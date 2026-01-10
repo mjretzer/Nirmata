@@ -1,0 +1,38 @@
+[
+  {
+    "ContainingType": "Gmsd.Api.Controllers.ProjectController",
+    "Method": "ListAllProjects",
+    "RelativePath": "Project",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Gmsd.Api.Controllers.ProjectController",
+    "Method": "NewProject",
+    "RelativePath": "Project",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Gmsd.Api.Controllers.ProjectController",
+    "Method": "ListProjects",
+    "RelativePath": "Project/search",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "query",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  }
+]

@@ -1,0 +1,11 @@
+D:\Projects\vs\Gmsd\Gmsd.Common\bin\Debug\net10.0\Gmsd.Common.deps.json
+D:\Projects\vs\Gmsd\Gmsd.Common\bin\Debug\net10.0\Gmsd.Common.dll
+D:\Projects\vs\Gmsd\Gmsd.Common\bin\Debug\net10.0\Gmsd.Common.pdb
+D:\Projects\vs\Gmsd\Gmsd.Common\obj\Debug\net10.0\Gmsd.Common.GeneratedMSBuildEditorConfig.editorconfig
+D:\Projects\vs\Gmsd\Gmsd.Common\obj\Debug\net10.0\Gmsd.Common.AssemblyInfoInputs.cache
+D:\Projects\vs\Gmsd\Gmsd.Common\obj\Debug\net10.0\Gmsd.Common.AssemblyInfo.cs
+D:\Projects\vs\Gmsd\Gmsd.Common\obj\Debug\net10.0\Gmsd.Common.csproj.CoreCompileInputs.cache
+D:\Projects\vs\Gmsd\Gmsd.Common\obj\Debug\net10.0\Gmsd.Common.dll
+D:\Projects\vs\Gmsd\Gmsd.Common\obj\Debug\net10.0\refint\Gmsd.Common.dll
+D:\Projects\vs\Gmsd\Gmsd.Common\obj\Debug\net10.0\Gmsd.Common.pdb
+D:\Projects\vs\Gmsd\Gmsd.Common\obj\Debug\net10.0\ref\Gmsd.Common.dll

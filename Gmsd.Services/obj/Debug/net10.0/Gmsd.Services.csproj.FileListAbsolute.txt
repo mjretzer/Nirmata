@@ -1,0 +1,15 @@
+D:\Projects\vs\Gmsd\Gmsd.Services\bin\Debug\net10.0\Gmsd.Services.deps.json
+D:\Projects\vs\Gmsd\Gmsd.Services\bin\Debug\net10.0\Gmsd.Services.dll
+D:\Projects\vs\Gmsd\Gmsd.Services\bin\Debug\net10.0\Gmsd.Services.pdb
+D:\Projects\vs\Gmsd\Gmsd.Services\bin\Debug\net10.0\Gmsd.Data.dll
+D:\Projects\vs\Gmsd\Gmsd.Services\bin\Debug\net10.0\Gmsd.Data.pdb
+D:\Projects\vs\Gmsd\Gmsd.Services\obj\Debug\net10.0\Gmsd.Services.csproj.AssemblyReference.cache
+D:\Projects\vs\Gmsd\Gmsd.Services\obj\Debug\net10.0\Gmsd.Services.GeneratedMSBuildEditorConfig.editorconfig
+D:\Projects\vs\Gmsd\Gmsd.Services\obj\Debug\net10.0\Gmsd.Services.AssemblyInfoInputs.cache
+D:\Projects\vs\Gmsd\Gmsd.Services\obj\Debug\net10.0\Gmsd.Services.AssemblyInfo.cs
+D:\Projects\vs\Gmsd\Gmsd.Services\obj\Debug\net10.0\Gmsd.Services.csproj.CoreCompileInputs.cache
+D:\Projects\vs\Gmsd\Gmsd.Services\obj\Debug\net10.0\Gmsd.Ser.47DE96BD.Up2Date
+D:\Projects\vs\Gmsd\Gmsd.Services\obj\Debug\net10.0\Gmsd.Services.dll
+D:\Projects\vs\Gmsd\Gmsd.Services\obj\Debug\net10.0\refint\Gmsd.Services.dll
+D:\Projects\vs\Gmsd\Gmsd.Services\obj\Debug\net10.0\Gmsd.Services.pdb
+D:\Projects\vs\Gmsd\Gmsd.Services\obj\Debug\net10.0\ref\Gmsd.Services.dll

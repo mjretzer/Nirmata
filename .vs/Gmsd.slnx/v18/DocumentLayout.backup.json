@@ -1,0 +1,207 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Projects\\vs\\Gmsd\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{20471D1A-C8DA-2F34-17C3-BB2DF2AFDAE5}|Gmsd.Api\\Gmsd.Api.csproj|d:\\projects\\vs\\gmsd\\gmsd.api\\controllers\\projectcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{20471D1A-C8DA-2F34-17C3-BB2DF2AFDAE5}|Gmsd.Api\\Gmsd.Api.csproj|solutionrelative:gmsd.api\\controllers\\projectcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{32860186-234D-4EE9-A605-EAEFD93BACCA}|Gmsd.Services\\Gmsd.Services.csproj|d:\\projects\\vs\\gmsd\\gmsd.services\\projectservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{32860186-234D-4EE9-A605-EAEFD93BACCA}|Gmsd.Services\\Gmsd.Services.csproj|solutionrelative:gmsd.services\\projectservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{32860186-234D-4EE9-A605-EAEFD93BACCA}|Gmsd.Services\\Gmsd.Services.csproj|d:\\projects\\vs\\gmsd\\gmsd.services\\interfaces\\iprojectservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{32860186-234D-4EE9-A605-EAEFD93BACCA}|Gmsd.Services\\Gmsd.Services.csproj|solutionrelative:gmsd.services\\interfaces\\iprojectservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{49C9B499-0459-4C37-B07E-C822CEF42E5A}|Gmsd.Data\\Gmsd.Data.csproj|d:\\projects\\vs\\gmsd\\gmsd.data\\model\\projects\\project.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{49C9B499-0459-4C37-B07E-C822CEF42E5A}|Gmsd.Data\\Gmsd.Data.csproj|solutionrelative:gmsd.data\\model\\projects\\project.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{49C9B499-0459-4C37-B07E-C822CEF42E5A}|Gmsd.Data\\Gmsd.Data.csproj|d:\\projects\\vs\\gmsd\\gmsd.data\\gmsddbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{49C9B499-0459-4C37-B07E-C822CEF42E5A}|Gmsd.Data\\Gmsd.Data.csproj|solutionrelative:gmsd.data\\gmsddbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{20471D1A-C8DA-2F34-17C3-BB2DF2AFDAE5}|Gmsd.Api\\Gmsd.Api.csproj|d:\\projects\\vs\\gmsd\\gmsd.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{20471D1A-C8DA-2F34-17C3-BB2DF2AFDAE5}|Gmsd.Api\\Gmsd.Api.csproj|solutionrelative:gmsd.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{20471D1A-C8DA-2F34-17C3-BB2DF2AFDAE5}|Gmsd.Api\\Gmsd.Api.csproj|d:\\projects\\vs\\gmsd\\gmsd.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{20471D1A-C8DA-2F34-17C3-BB2DF2AFDAE5}|Gmsd.Api\\Gmsd.Api.csproj|solutionrelative:gmsd.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{20471D1A-C8DA-2F34-17C3-BB2DF2AFDAE5}|Gmsd.Api\\Gmsd.Api.csproj|d:\\projects\\vs\\gmsd\\gmsd.api\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{20471D1A-C8DA-2F34-17C3-BB2DF2AFDAE5}|Gmsd.Api\\Gmsd.Api.csproj|solutionrelative:gmsd.api\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{49C9B499-0459-4C37-B07E-C822CEF42E5A}|Gmsd.Data\\Gmsd.Data.csproj|d:\\projects\\vs\\gmsd\\gmsd.data\\gmsd.data.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{49C9B499-0459-4C37-B07E-C822CEF42E5A}|Gmsd.Data\\Gmsd.Data.csproj|solutionrelative:gmsd.data\\gmsd.data.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B2BDD543-7DC2-49E3-95D1-5B645D7EED98}|Gmsd.Common\\Gmsd.Common.csproj|d:\\projects\\vs\\gmsd\\gmsd.common\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B2BDD543-7DC2-49E3-95D1-5B645D7EED98}|Gmsd.Common\\Gmsd.Common.csproj|solutionrelative:gmsd.common\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{20471D1A-C8DA-2F34-17C3-BB2DF2AFDAE5}|Gmsd.Api\\Gmsd.Api.csproj|d:\\projects\\vs\\gmsd\\gmsd.api\\gmsd.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
+      "RelativeMoniker": "D:0:0:{20471D1A-C8DA-2F34-17C3-BB2DF2AFDAE5}|Gmsd.Api\\Gmsd.Api.csproj|solutionrelative:gmsd.api\\gmsd.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 7,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Project.cs",
+              "DocumentMoniker": "D:\\Projects\\vs\\Gmsd\\Gmsd.Data\\Model\\Projects\\Project.cs",
+              "RelativeDocumentMoniker": "Gmsd.Data\\Model\\Projects\\Project.cs",
+              "ToolTip": "D:\\Projects\\vs\\Gmsd\\Gmsd.Data\\Model\\Projects\\Project.cs",
+              "RelativeToolTip": "Gmsd.Data\\Model\\Projects\\Project.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAApAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-10T20:07:51.977Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "Gmsd.Api",
+              "DocumentMoniker": "D:\\Projects\\vs\\Gmsd\\Gmsd.Api\\Gmsd.Api.csproj",
+              "RelativeDocumentMoniker": "Gmsd.Api\\Gmsd.Api.csproj",
+              "ToolTip": "D:\\Projects\\vs\\Gmsd\\Gmsd.Api\\Gmsd.Api.csproj",
+              "RelativeToolTip": "Gmsd.Api\\Gmsd.Api.csproj",
+              "ViewState": "AgIAABEAAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-01-10T19:56:07.052Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "launchSettings.json",
+              "DocumentMoniker": "D:\\Projects\\vs\\Gmsd\\Gmsd.Api\\Properties\\launchSettings.json",
+              "RelativeDocumentMoniker": "Gmsd.Api\\Properties\\launchSettings.json",
+              "ToolTip": "D:\\Projects\\vs\\Gmsd\\Gmsd.Api\\Properties\\launchSettings.json",
+              "RelativeToolTip": "Gmsd.Api\\Properties\\launchSettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-01-10T19:55:00.966Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\Projects\\vs\\Gmsd\\Gmsd.Api\\Program.cs",
+              "RelativeDocumentMoniker": "Gmsd.Api\\Program.cs",
+              "ToolTip": "D:\\Projects\\vs\\Gmsd\\Gmsd.Api\\Program.cs",
+              "RelativeToolTip": "Gmsd.Api\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAA6AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-10T19:54:49.14Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "D:\\Projects\\vs\\Gmsd\\Gmsd.Api\\appsettings.json",
+              "RelativeDocumentMoniker": "Gmsd.Api\\appsettings.json",
+              "ToolTip": "D:\\Projects\\vs\\Gmsd\\Gmsd.Api\\appsettings.json",
+              "RelativeToolTip": "Gmsd.Api\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-01-10T19:54:44.721Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "GmsdDbContext.cs",
+              "DocumentMoniker": "D:\\Projects\\vs\\Gmsd\\Gmsd.Data\\GmsdDbContext.cs",
+              "RelativeDocumentMoniker": "Gmsd.Data\\GmsdDbContext.cs",
+              "ToolTip": "D:\\Projects\\vs\\Gmsd\\Gmsd.Data\\GmsdDbContext.cs",
+              "RelativeToolTip": "Gmsd.Data\\GmsdDbContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB0AAAAEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-10T19:54:13.284Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "Gmsd.Data",
+              "DocumentMoniker": "D:\\Projects\\vs\\Gmsd\\Gmsd.Data\\Gmsd.Data.csproj",
+              "RelativeDocumentMoniker": "Gmsd.Data\\Gmsd.Data.csproj",
+              "ToolTip": "D:\\Projects\\vs\\Gmsd\\Gmsd.Data\\Gmsd.Data.csproj",
+              "RelativeToolTip": "Gmsd.Data\\Gmsd.Data.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-01-10T19:52:22.438Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "ProjectController.cs",
+              "DocumentMoniker": "D:\\Projects\\vs\\Gmsd\\Gmsd.Api\\Controllers\\ProjectController.cs",
+              "RelativeDocumentMoniker": "Gmsd.Api\\Controllers\\ProjectController.cs",
+              "ToolTip": "D:\\Projects\\vs\\Gmsd\\Gmsd.Api\\Controllers\\ProjectController.cs",
+              "RelativeToolTip": "Gmsd.Api\\Controllers\\ProjectController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB0AAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-10T19:43:48.48Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ProjectService.cs",
+              "DocumentMoniker": "D:\\Projects\\vs\\Gmsd\\Gmsd.Services\\ProjectService.cs",
+              "RelativeDocumentMoniker": "Gmsd.Services\\ProjectService.cs",
+              "ToolTip": "D:\\Projects\\vs\\Gmsd\\Gmsd.Services\\ProjectService.cs",
+              "RelativeToolTip": "Gmsd.Services\\ProjectService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-10T20:13:48.385Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "IProjectService.cs",
+              "DocumentMoniker": "D:\\Projects\\vs\\Gmsd\\Gmsd.Services\\Interfaces\\IProjectService.cs",
+              "RelativeDocumentMoniker": "Gmsd.Services\\Interfaces\\IProjectService.cs",
+              "ToolTip": "D:\\Projects\\vs\\Gmsd\\Gmsd.Services\\Interfaces\\IProjectService.cs",
+              "RelativeToolTip": "Gmsd.Services\\Interfaces\\IProjectService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAA6AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-10T20:13:44.842Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "D:\\Projects\\vs\\Gmsd\\Gmsd.Common\\Class1.cs",
+              "RelativeDocumentMoniker": "Gmsd.Common\\Class1.cs",
+              "ToolTip": "D:\\Projects\\vs\\Gmsd\\Gmsd.Common\\Class1.cs",
+              "RelativeToolTip": "Gmsd.Common\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-10T19:47:16.945Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

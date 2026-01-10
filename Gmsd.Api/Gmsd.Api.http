@@ -1,0 +1,6 @@
+@Gmsd.Api_HostAddress = http://localhost:5221
+
+GET {{Gmsd.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
