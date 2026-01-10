@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Gmsd.Data\Gmsd.Data.csproj" />
+    <ProjectReference Include="..\Gmsd.Data.Dto\Gmsd.Data.Dto.csproj" />
     <ProjectReference Include="..\Gmsd.Services\Gmsd.Services.csproj" />
   </ItemGroup>
 

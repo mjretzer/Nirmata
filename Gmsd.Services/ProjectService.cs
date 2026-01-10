@@ -19,14 +19,10 @@ public class ProjectService : IProjectService
         return await _dbContext.Projects.ToListAsync();
     }
 
-
     public async Task<List<Project>> SearchProjectsAsync(string query)
     {
-
         return await _dbContext.Projects
             .Where(p => EF.Functions.Like(p.Name, $"%{query}%"))
             .ToListAsync();
     }
-
-
 }
