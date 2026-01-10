@@ -12,3 +12,18 @@ D:\Projects\vs\Gmsd\Gmsd.Data\obj\Debug\net10.0\refint\Gmsd.Data.dll
 D:\Projects\vs\Gmsd\Gmsd.Data\obj\Debug\net10.0\Gmsd.Data.pdb
 D:\Projects\vs\Gmsd\Gmsd.Data\obj\Debug\net10.0\Gmsd.Data.genruntimeconfig.cache
 D:\Projects\vs\Gmsd\Gmsd.Data\obj\Debug\net10.0\ref\Gmsd.Data.dll
+C:\Users\James Lestler\Desktop\Projects\GMSD\Gmsd.Data\bin\Debug\net10.0\Gmsd.Data.deps.json
+C:\Users\James Lestler\Desktop\Projects\GMSD\Gmsd.Data\bin\Debug\net10.0\Gmsd.Data.runtimeconfig.json
+C:\Users\James Lestler\Desktop\Projects\GMSD\Gmsd.Data\bin\Debug\net10.0\Gmsd.Data.dll
+C:\Users\James Lestler\Desktop\Projects\GMSD\Gmsd.Data\bin\Debug\net10.0\Gmsd.Data.pdb
+C:\Users\James Lestler\Desktop\Projects\GMSD\Gmsd.Data\obj\Debug\net10.0\Gmsd.Data.csproj.AssemblyReference.cache
+C:\Users\James Lestler\Desktop\Projects\GMSD\Gmsd.Data\obj\Debug\net10.0\Gmsd.Data.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\James Lestler\Desktop\Projects\GMSD\Gmsd.Data\obj\Debug\net10.0\Gmsd.Data.AssemblyInfoInputs.cache
+C:\Users\James Lestler\Desktop\Projects\GMSD\Gmsd.Data\obj\Debug\net10.0\Gmsd.Data.AssemblyInfo.cs
+C:\Users\James Lestler\Desktop\Projects\GMSD\Gmsd.Data\obj\Debug\net10.0\Gmsd.Data.csproj.CoreCompileInputs.cache
+C:\Users\James Lestler\Desktop\Projects\GMSD\Gmsd.Data\obj\Debug\net10.0\Gmsd.Data.sourcelink.json
+C:\Users\James Lestler\Desktop\Projects\GMSD\Gmsd.Data\obj\Debug\net10.0\Gmsd.Data.dll
+C:\Users\James Lestler\Desktop\Projects\GMSD\Gmsd.Data\obj\Debug\net10.0\refint\Gmsd.Data.dll
+C:\Users\James Lestler\Desktop\Projects\GMSD\Gmsd.Data\obj\Debug\net10.0\Gmsd.Data.pdb
+C:\Users\James Lestler\Desktop\Projects\GMSD\Gmsd.Data\obj\Debug\net10.0\Gmsd.Data.genruntimeconfig.cache
+C:\Users\James Lestler\Desktop\Projects\GMSD\Gmsd.Data\obj\Debug\net10.0\ref\Gmsd.Data.dll

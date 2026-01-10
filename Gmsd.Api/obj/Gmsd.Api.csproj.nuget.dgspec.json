@@ -1,24 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Projects\\vs\\Gmsd\\Gmsd.Api\\Gmsd.Api.csproj": {}
+    "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Api\\Gmsd.Api.csproj": {}
   },
   "projects": {
-    "D:\\Projects\\vs\\Gmsd\\Gmsd.Api\\Gmsd.Api.csproj": {
+    "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Api\\Gmsd.Api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Projects\\vs\\Gmsd\\Gmsd.Api\\Gmsd.Api.csproj",
+        "projectUniqueName": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Api\\Gmsd.Api.csproj",
         "projectName": "Gmsd.Api",
-        "projectPath": "D:\\Projects\\vs\\Gmsd\\Gmsd.Api\\Gmsd.Api.csproj",
-        "packagesPath": "C:\\Users\\matth\\.nuget\\packages\\",
-        "outputPath": "D:\\Projects\\vs\\Gmsd\\Gmsd.Api\\obj\\",
+        "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Api\\Gmsd.Api.csproj",
+        "packagesPath": "C:\\Users\\James Lestler\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Api\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\matth\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\James Lestler\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -27,18 +26,17 @@
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net10.0": {
             "targetAlias": "net10.0",
             "projectReferences": {
-              "D:\\Projects\\vs\\Gmsd\\Gmsd.Data\\Gmsd.Data.csproj": {
-                "projectPath": "D:\\Projects\\vs\\Gmsd\\Gmsd.Data\\Gmsd.Data.csproj"
+              "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Data\\Gmsd.Data.csproj": {
+                "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Data\\Gmsd.Data.csproj"
               },
-              "D:\\Projects\\vs\\Gmsd\\Gmsd.Services\\Gmsd.Services.csproj": {
-                "projectPath": "D:\\Projects\\vs\\Gmsd\\Gmsd.Services\\Gmsd.Services.csproj"
+              "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Services\\Gmsd.Services.csproj": {
+                "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Services\\Gmsd.Services.csproj"
               }
             }
           }
@@ -501,21 +499,20 @@
         }
       }
     },
-    "D:\\Projects\\vs\\Gmsd\\Gmsd.Data\\Gmsd.Data.csproj": {
+    "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Data\\Gmsd.Data.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Projects\\vs\\Gmsd\\Gmsd.Data\\Gmsd.Data.csproj",
+        "projectUniqueName": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Data\\Gmsd.Data.csproj",
         "projectName": "Gmsd.Data",
-        "projectPath": "D:\\Projects\\vs\\Gmsd\\Gmsd.Data\\Gmsd.Data.csproj",
-        "packagesPath": "C:\\Users\\matth\\.nuget\\packages\\",
-        "outputPath": "D:\\Projects\\vs\\Gmsd\\Gmsd.Data\\obj\\",
+        "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Data\\Gmsd.Data.csproj",
+        "packagesPath": "C:\\Users\\James Lestler\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Data\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\matth\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\James Lestler\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -524,7 +521,6 @@
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -854,21 +850,20 @@
         }
       }
     },
-    "D:\\Projects\\vs\\Gmsd\\Gmsd.Services\\Gmsd.Services.csproj": {
+    "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Services\\Gmsd.Services.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Projects\\vs\\Gmsd\\Gmsd.Services\\Gmsd.Services.csproj",
+        "projectUniqueName": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Services\\Gmsd.Services.csproj",
         "projectName": "Gmsd.Services",
-        "projectPath": "D:\\Projects\\vs\\Gmsd\\Gmsd.Services\\Gmsd.Services.csproj",
-        "packagesPath": "C:\\Users\\matth\\.nuget\\packages\\",
-        "outputPath": "D:\\Projects\\vs\\Gmsd\\Gmsd.Services\\obj\\",
+        "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Services\\Gmsd.Services.csproj",
+        "packagesPath": "C:\\Users\\James Lestler\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Services\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\matth\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\James Lestler\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -877,15 +872,14 @@
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net10.0": {
             "targetAlias": "net10.0",
             "projectReferences": {
-              "D:\\Projects\\vs\\Gmsd\\Gmsd.Data\\Gmsd.Data.csproj": {
-                "projectPath": "D:\\Projects\\vs\\Gmsd\\Gmsd.Data\\Gmsd.Data.csproj"
+              "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Data\\Gmsd.Data.csproj": {
+                "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Data\\Gmsd.Data.csproj"
               }
             }
           }
