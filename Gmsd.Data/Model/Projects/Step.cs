@@ -3,15 +3,19 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Gmsd.Data.Model.Projects;
 
-[Table("Project")]
-public class Project
+[Table("Step")]
+public class Step
 {
     [Key]
-    public string ProjectId { get; set; }
+    public string StepId { get; set; }
 
     [Required]
     [MaxLength(200)]
     public string Name { get; set; }
 
-    public virtual ICollection<Step> Steps { get; set; } = new List<Step>();
+    [Required]
+    public string ProjectId { get; set; }
+
+    [ForeignKey(nameof(ProjectId))]
+    public virtual Project Project { get; set; }
 }

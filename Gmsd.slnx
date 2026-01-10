@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="Gmsd.Api/Gmsd.Api.csproj" />
   <Project Path="Gmsd.Common/Gmsd.Common.csproj" Id="b2bdd543-7dc2-49e3-95d1-5b645d7eed98" />
+  <Project Path="Gmsd.Data.Dto/Gmsd.Data.Dto.csproj" Id="d1c42e68-a2e4-4649-a0d3-90acb28eb2cf" />
   <Project Path="Gmsd.Data/Gmsd.Data.csproj" Id="49c9b499-0459-4c37-b07e-c822cef42e5a" />
   <Project Path="Gmsd.Services/Gmsd.Services.csproj" Id="32860186-234d-4ee9-a605-eaefd93bacca" />
 </Solution>

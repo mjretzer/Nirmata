@@ -1,4 +1,5 @@
 using Gmsd.Data;
+using Gmsd.Data.Mapping;
 using Gmsd.Services;
 using Gmsd.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +14,12 @@ builder.Services.AddOpenApi();
 
 // Configure Entity Framework with SQLite
 builder.Services.AddDbContext<GmsdDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options
+        .UseLazyLoadingProxies()
+        .UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Configure AutoMapper
+builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 // Register services
 builder.Services.AddScoped<IProjectService, ProjectService>();
