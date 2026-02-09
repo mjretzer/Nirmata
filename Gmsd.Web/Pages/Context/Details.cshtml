@@ -1,0 +1,342 @@
+@page "{id}"
+@model Gmsd.Web.Pages.Context.DetailsModel
+@{
+    ViewData["Title"] = $"Context Pack - {Model.Id}";
+}
+
+<h1>Context Pack: <code>@Model.Id</code></h1>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-error">
+        @Model.ErrorMessage
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success">
+        @Model.SuccessMessage
+    </div>
+}
+
+@if (Model.Pack == null)
+{
+    <div class="empty-state">
+        <div class="empty-state-icon">📦</div>
+        <h3>Pack Not Found</h3>
+        <p>The context pack could not be loaded.</p>
+        <a href="~/Context" class="btn btn-secondary">← Back to Context Packs</a>
+    </div>
+}
+else
+{
+    <div class="pack-detail-header">
+        <div class="pack-info">
+            <div class="info-row">
+                <span class="info-label">Pack ID:</span>
+                <code>@Model.Pack.PackId</code>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Mode:</span>
+                <span class="badge badge-@GetModeBadgeClass(Model.Pack.Mode)">@Model.Pack.Mode</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Driving ID:</span>
+                <a href="~/Tasks/Details/@Model.Pack.DrivingId" class="link">@Model.Pack.DrivingId</a>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Schema Version:</span>
+                <span>@Model.Pack.SchemaVersion</span>
+            </div>
+        </div>
+
+        <div class="pack-budget-panel">
+            <h4>Budget</h4>
+            <div class="budget-metric">
+                <span class="metric-label">Size:</span>
+                <span class="metric-value">@FormatBytes(Model.Pack.TotalBytes) / @FormatBytes(Model.Pack.MaxBytes)</span>
+                <span class="metric-pill">@Model.Pack.UtilizationPercent%</span>
+            </div>
+            <div class="budget-bar-large">
+                <div class="budget-fill" style="width: @Model.Pack.UtilizationPercent%"
+                     data-utilization="@Model.Pack.UtilizationPercent"></div>
+            </div>
+            <div class="budget-metric">
+                <span class="metric-label">Items:</span>
+                <span class="metric-value">@Model.Pack.TotalItems / @Model.Pack.MaxItems</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="pack-actions-bar">
+        <form method="post" asp-page-handler="RebuildPack" class="inline-form">
+            <button type="submit" class="btn btn-primary">🔄 Rebuild Pack</button>
+        </form>
+        <form method="post" asp-page-handler="DiffWithRun" class="inline-form">
+            <div class="input-group">
+                <input type="text" name="runId" class="form-control" placeholder="Enter RUN ID..." pattern="[0-9a-f]{32}" />
+                <button type="submit" class="btn btn-secondary">📊 Diff with RUN</button>
+            </div>
+        </form>
+    </div>
+
+    <h3>Pack Entries (@Model.Entries.Count items)</h3>
+
+    @if (Model.Entries.Count == 0)
+    {
+        <div class="alert alert-info">
+            No entries in this context pack.
+        </div>
+    }
+    else
+    {
+        <div class="entries-list">
+            @for (int i = 0; i < Model.Entries.Count; i++)
+            {
+                var entry = Model.Entries[i];
+                <div class="entry-card">
+                    <div class="entry-header">
+                        <span class="entry-number">#@(i + 1)</span>
+                        <code class="entry-path">@entry.ContractPath</code>
+                        <span class="entry-type badge badge-secondary">@entry.ContentType</span>
+                    </div>
+                    <div class="entry-meta">
+                        <span class="meta-item">
+                            <span class="meta-label">Size:</span>
+                            <span class="meta-value">@FormatBytes(entry.Bytes)</span>
+                        </span>
+                        <span class="meta-item">
+                            <span class="meta-label">SHA256:</span>
+                            <code class="meta-value hash-short">@(entry.Sha256?.Substring(0, 16) ?? "-")...</code>
+                        </span>
+                    </div>
+                    @if (!string.IsNullOrEmpty(entry.ContentPreview))
+                    {
+                        <div class="entry-preview">
+                            <pre>@entry.ContentPreview@(entry.Content?.Length > 200 ? "..." : "")</pre>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    <div class="pack-raw-section">
+        <h3>Raw JSON</h3>
+        <details>
+            <summary>View Full Pack JSON</summary>
+            @if (!string.IsNullOrEmpty(Model.Pack.RawJson))
+            {
+                @await Html.PartialAsync("~/Pages/Shared/_JsonViewer.cshtml", new Gmsd.Web.Models.JsonViewerModel { JsonContent = Model.Pack.RawJson, FileName = $"pack-{Model.Pack.PackId}.json" })
+            }
+        </details>
+    </div>
+
+    <div class="mt-3">
+        <a href="~/Context" class="btn btn-secondary">← Back to Context Packs</a>
+    </div>
+}
+
+@functions {
+    string GetModeBadgeClass(string? mode) => mode?.ToLower() switch
+    {
+        "task" => "primary",
+        "phase" => "info",
+        "run" => "success",
+        _ => "secondary"
+    };
+
+    string FormatBytes(int bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        return $"{bytes / (1024.0 * 1024):F1} MB";
+    }
+}
+
+<style>
+    .pack-detail-header {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin: 1rem 0;
+        padding: 1rem;
+        background: var(--card-bg, #f8f9fa);
+        border-radius: 8px;
+    }
+
+    @@media (max-width: 768px) {
+        .pack-detail-header {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .pack-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .info-row {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .info-label {
+        font-weight: 600;
+        min-width: 100px;
+        color: var(--text-muted, #666);
+    }
+
+    .pack-budget-panel {
+        padding: 1rem;
+        background: var(--bg-color, #fff);
+        border-radius: 6px;
+        border: 1px solid var(--border-color, #ddd);
+    }
+
+    .pack-budget-panel h4 {
+        margin-top: 0;
+        margin-bottom: 0.75rem;
+    }
+
+    .budget-metric {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .metric-label {
+        font-weight: 600;
+        color: var(--text-muted, #666);
+    }
+
+    .metric-pill {
+        padding: 0.125rem 0.5rem;
+        background: var(--primary-color, #007bff);
+        color: white;
+        border-radius: 12px;
+        font-size: 0.75rem;
+    }
+
+    .budget-bar-large {
+        height: 8px;
+        background: var(--border-color, #eee);
+        border-radius: 4px;
+        margin: 0.75rem 0;
+        overflow: hidden;
+    }
+
+    .budget-fill {
+        height: 100%;
+        background: var(--success-color, #28a745);
+        border-radius: 4px;
+        transition: width 0.3s ease;
+    }
+
+    .budget-fill[data-utilization^="8"],
+    .budget-fill[data-utilization^="9"] {
+        background: var(--warning-color, #ffc107);
+    }
+
+    .budget-fill[data-utilization="100"] {
+        background: var(--danger-color, #dc3545);
+    }
+
+    .pack-actions-bar {
+        display: flex;
+        gap: 1rem;
+        margin: 1rem 0;
+        flex-wrap: wrap;
+    }
+
+    .inline-form {
+        display: inline-flex;
+    }
+
+    .entries-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin: 1rem 0;
+    }
+
+    .entry-card {
+        border: 1px solid var(--border-color, #ddd);
+        border-radius: 6px;
+        padding: 0.75rem;
+        background: var(--card-bg, #fff);
+    }
+
+    .entry-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.5rem;
+    }
+
+    .entry-number {
+        font-weight: 600;
+        color: var(--text-muted, #666);
+        min-width: 2.5rem;
+    }
+
+    .entry-path {
+        flex: 1;
+        font-size: 0.875rem;
+    }
+
+    .entry-type {
+        font-size: 0.75rem;
+    }
+
+    .entry-meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .meta-item {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .meta-label {
+        color: var(--text-muted, #666);
+    }
+
+    .hash-short {
+        font-size: 0.75rem;
+    }
+
+    .entry-preview {
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        background: var(--code-bg, #f5f5f5);
+        border-radius: 4px;
+        overflow-x: auto;
+    }
+
+    .entry-preview pre {
+        margin: 0;
+        font-size: 0.75rem;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .pack-raw-section {
+        margin: 1.5rem 0;
+    }
+
+    .pack-raw-section summary {
+        cursor: pointer;
+        padding: 0.5rem;
+        background: var(--card-bg, #f8f9fa);
+        border-radius: 4px;
+    }
+</style>

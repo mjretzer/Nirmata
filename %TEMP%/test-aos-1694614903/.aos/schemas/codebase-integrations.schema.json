@@ -1,0 +1,176 @@
+{
+  "$id": "gmsd:aos:schema:codebase-integrations:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "External integration points including APIs, databases, and services",
+  "properties": {
+    "databases": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "connectionStringKey": {
+            "description": "Configuration key for connection string",
+            "type": "string"
+          },
+          "entities": {
+            "description": "Entity classes mapped to this database",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "migrationFiles": {
+            "description": "Database migration files",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "description": "Database name or identifier",
+            "type": "string"
+          },
+          "provider": {
+            "description": "ORM or data access provider (e.g., \u0027EF Core\u0027, \u0027Dapper\u0027)",
+            "type": "string"
+          },
+          "type": {
+            "description": "Database type",
+            "enum": [
+              "sql-server",
+              "postgresql",
+              "mysql",
+              "sqlite",
+              "mongodb",
+              "cosmosdb",
+              "redis",
+              "dynamodb",
+              "oracle",
+              "other"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "externalApis": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "authentication": {
+            "description": "Authentication method used",
+            "enum": [
+              "none",
+              "api-key",
+              "oauth",
+              "bearer",
+              "basic",
+              "certificate"
+            ],
+            "type": "string"
+          },
+          "baseUrl": {
+            "description": "Base URL or endpoint for the API",
+            "type": "string"
+          },
+          "clientFiles": {
+            "description": "Files that interact with this API",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "description": "API name or identifier",
+            "type": "string"
+          },
+          "type": {
+            "description": "API protocol or integration type",
+            "enum": [
+              "rest",
+              "graphql",
+              "grpc",
+              "soap",
+              "webhook",
+              "sdk"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "description": "API version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    },
+    "services": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "integrationFiles": {
+            "description": "Files that integrate with this service",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "description": "Service name or identifier",
+            "type": "string"
+          },
+          "provider": {
+            "description": "Service provider (e.g., \u0027Azure Service Bus\u0027, \u0027RabbitMQ\u0027, \u0027AWS S3\u0027)",
+            "type": "string"
+          },
+          "type": {
+            "description": "Service category",
+            "enum": [
+              "message-queue",
+              "cache",
+              "blob-storage",
+              "search",
+              "email",
+              "notification",
+              "logging",
+              "monitoring",
+              "identity",
+              "payment",
+              "other"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "externalApis",
+    "databases",
+    "services"
+  ],
+  "title": "Codebase Integrations (integrations.json)",
+  "type": "object"
+}

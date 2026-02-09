@@ -1,0 +1,215 @@
+@model Gmsd.Web.Models.ContextSidebarViewModel
+
+@{
+    var workspace = Model.Workspace;
+    var recentRuns = Model.RecentRuns;
+    var quickActions = Model.QuickActions;
+}
+
+<div class="context-sidebar" id="context-sidebar" hx-get="/api/sidebar/context" hx-trigger="load, every 30s, workspace-changed from:body">
+    <!-- Workspace Section -->
+    <div class="sidebar-section @(Model.SectionStates.GetValueOrDefault("workspace", false) ? "collapsed" : "")" data-section="workspace">
+        <h3 class="section-title">
+            <button class="section-toggle" aria-expanded="@(Model.SectionStates.GetValueOrDefault("workspace", false) ? "false" : "true")">
+                <span class="toggle-icon">▼</span>
+                Workspace
+            </button>
+        </h3>
+        <div class="section-content" id="workspace-section-content">
+            @if (workspace != null)
+            {
+                <div class="workspace-status-card @workspace.GetStatusClass()">
+                    <div class="workspace-header">
+                        <span class="workspace-name" title="@workspace.Path">@workspace.Name</span>
+                        <span class="workspace-status-badge @workspace.GetStatusClass()">@workspace.Status</span>
+                    </div>
+                    
+                    <div class="workspace-stats">
+                        <div class="stat-item">
+                            <span class="stat-icon">📁</span>
+                            <span class="stat-value">@workspace.ProjectCount</span>
+                            <span class="stat-label">Projects</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-icon">🐛</span>
+                            <span class="stat-value">@workspace.OpenIssueCount</span>
+                            <span class="stat-label">Issues</span>
+                        </div>
+                    </div>
+                    
+                    @if (!string.IsNullOrEmpty(workspace.Cursor))
+                    {
+                        <div class="workspace-cursor">
+                            <span class="cursor-label">Cursor:</span>
+                            <span class="cursor-value">@workspace.Cursor</span>
+                        </div>
+                    }
+                    
+                    <div class="workspace-activity">
+                        <span class="activity-label">Last activity:</span>
+                        <span class="activity-time">@workspace.GetRelativeTime()</span>
+                    </div>
+                    
+                    <a href="~/Workspace" class="workspace-link">Manage Workspace →</a>
+                </div>
+            }
+            else
+            {
+                <div class="workspace-empty">
+                    <span class="empty-icon">📂</span>
+                    <p>No workspace selected</p>
+                    <a href="~/Workspace" class="btn btn-primary btn-sm">Select Workspace</a>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Recent Runs Section -->
+    <div class="sidebar-section @(Model.SectionStates.GetValueOrDefault("runs", false) ? "collapsed" : "")" data-section="runs">
+        <h3 class="section-title">
+            <button class="section-toggle" aria-expanded="@(Model.SectionStates.GetValueOrDefault("runs", false) ? "false" : "true")">
+                <span class="toggle-icon">▼</span>
+                Recent Runs
+            </button>
+        </h3>
+        <div class="section-content" id="recent-runs-content">
+            @if (recentRuns.Any())
+            {
+                <ul class="recent-runs-list">
+                    @foreach (var run in recentRuns)
+                    {
+                        <li class="run-item @run.GetStatusClass()" data-run-id="@run.RunId">
+                            <div class="run-status-icon">@run.GetStatusIcon()</div>
+                            <div class="run-info">
+                                <span class="run-description" title="@run.RunId">@(run.Description ?? $"Run {run.RunId[..Math.Min(8, run.RunId.Length)]}...")</span>
+                                <div class="run-meta">
+                                    <span class="run-time">@run.GetRelativeTime()</span>
+                                    @if (run.Duration.HasValue)
+                                    {
+                                        <span class="run-duration">• @run.FormatDuration()</span>
+                                    }
+                                </div>
+                            </div>
+                        </li>
+                    }
+                </ul>
+                <a href="~/Runs" class="view-all-link">View all runs →</a>
+            }
+            else
+            {
+                <div class="runs-empty">
+                    <span class="empty-icon">▶</span>
+                    <p>No recent runs</p>
+                    <span class="hint">Execute a command to start a run</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Quick Actions Section -->
+    <div class="sidebar-section @(Model.SectionStates.GetValueOrDefault("actions", false) ? "collapsed" : "")" data-section="actions">
+        <h3 class="section-title">
+            <button class="section-toggle" aria-expanded="@(Model.SectionStates.GetValueOrDefault("actions", false) ? "false" : "true")">
+                <span class="toggle-icon">▼</span>
+                Quick Actions
+            </button>
+        </h3>
+        <div class="section-content" id="quick-actions-content">
+            <div class="quick-actions-grid">
+                @foreach (var action in quickActions)
+                {
+                    <button class="quick-action-btn" data-command="@action.Command" title="@action.Command">
+                        <span class="action-icon">@action.Icon</span>
+                        <span class="action-label">@action.Label</span>
+                    </button>
+                }
+            </div>
+        </div>
+    <!-- Settings Section -->
+    <div class="sidebar-section @(Model.SectionStates.GetValueOrDefault("settings", false) ? "collapsed" : "")" data-section="settings">
+        <h3 class="section-title">
+            <button class="section-toggle" aria-expanded="@(Model.SectionStates.GetValueOrDefault("settings", false) ? "false" : "true")">
+                <span class="toggle-icon">▼</span>
+                Settings
+            </button>
+        </h3>
+        <div class="section-content" id="settings-content">
+            <div class="settings-links">
+                <a href="~/Settings/Llm" class="settings-link" title="Configure LLM provider and API keys">
+                    <span class="settings-icon">🤖</span>
+                    <span>LLM Configuration</span>
+                </a>
+                <a href="~/Workspace" class="settings-link">
+                    <span class="settings-icon">📁</span>
+                    <span>Workspace</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize context sidebar section persistence
+    (function() {
+        const STORAGE_KEY = 'gmsd_sidebar_sections';
+        
+        // Load saved section states
+        function loadSectionStates() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                return stored ? JSON.parse(stored) : {};
+            } catch (e) {
+                return {};
+            }
+        }
+        
+        // Save section states
+        function saveSectionStates(states) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(states));
+            } catch (e) {
+                console.warn('Failed to save sidebar section states:', e);
+            }
+        }
+        
+        // Apply saved states on load
+        const states = loadSectionStates();
+        Object.entries(states).forEach(([section, isCollapsed]) => {
+            const sectionEl = document.querySelector(`.sidebar-section[data-section="${section}"]`);
+            if (sectionEl) {
+                sectionEl.classList.toggle('collapsed', isCollapsed);
+                const toggle = sectionEl.querySelector('.section-toggle');
+                if (toggle) {
+                    toggle.setAttribute('aria-expanded', !isCollapsed);
+                }
+            }
+        });
+        
+        // Bind toggle handlers
+        document.querySelectorAll('.section-toggle').forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                const section = this.closest('.sidebar-section');
+                const sectionName = section?.dataset.section;
+                if (!section || !sectionName) return;
+                
+                const isCollapsed = section.classList.toggle('collapsed');
+                this.setAttribute('aria-expanded', !isCollapsed);
+                
+                // Save state
+                const currentStates = loadSectionStates();
+                currentStates[sectionName] = isCollapsed;
+                saveSectionStates(currentStates);
+            });
+        });
+        
+        // Bind quick action handlers
+        document.querySelectorAll('.quick-action-btn[data-command]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const command = this.dataset.command;
+                if (command && window.mainLayout) {
+                    window.mainLayout.insertCommand(command);
+                }
+            });
+        });
+    })();
+</script>

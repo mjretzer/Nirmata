@@ -1,0 +1,167 @@
+@page
+@model Gmsd.Web.Pages.Settings.LlmModel
+@{
+    ViewData["Title"] = "LLM Settings";
+    Layout = "_MainLayout";
+}
+
+<div class="settings-container">
+    <header class="settings-header">
+        <h1>LLM Configuration</h1>
+        <p class="text-muted">Configure your AI provider settings for agent execution</p>
+    </header>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success">
+            @Model.SuccessMessage
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-error">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    <div class="settings-form">
+        <form method="post" asp-page-handler="Save">
+            <div class="form-section">
+                <h3>Provider Selection</h3>
+                
+                <div class="form-group">
+                    <label asp-for="Provider">LLM Provider</label>
+                    <select asp-for="Provider" class="form-control" onchange="showProviderFields()">
+                        <option value="">-- Select Provider --</option>
+                        <option value="openai">OpenAI</option>
+                        <option value="anthropic">Anthropic (Claude)</option>
+                        <option value="azure-openai">Azure OpenAI</option>
+                        <option value="ollama">Ollama (Local)</option>
+                    </select>
+                    <span asp-validation-for="Provider" class="text-danger"></span>
+                </div>
+            </div>
+
+            <!-- OpenAI Settings -->
+            <div id="openai-settings" class="provider-settings" style="display: none;">
+                <h3>OpenAI Configuration</h3>
+                <div class="form-group">
+                    <label asp-for="OpenAiApiKey">API Key</label>
+                    <input asp-for="OpenAiApiKey" type="password" class="form-control" placeholder="sk-..." />
+                    <small class="form-text">Your OpenAI API key (starts with sk-)</small>
+                </div>
+                <div class="form-group">
+                    <label asp-for="OpenAiModel">Model</label>
+                    <select asp-for="OpenAiModel" class="form-control">
+                        <option value="gpt-4o">GPT-4o</option>
+                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                        <option value="gpt-4">GPT-4</option>
+                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label asp-for="OpenAiBaseUrl">Base URL (Optional)</label>
+                    <input asp-for="OpenAiBaseUrl" class="form-control" placeholder="https://api.openai.com/v1" />
+                    <small class="form-text">Only change if using a proxy or custom endpoint</small>
+                </div>
+            </div>
+
+            <!-- Anthropic Settings -->
+            <div id="anthropic-settings" class="provider-settings" style="display: none;">
+                <h3>Anthropic Configuration</h3>
+                <div class="form-group">
+                    <label asp-for="AnthropicApiKey">API Key</label>
+                    <input asp-for="AnthropicApiKey" type="password" class="form-control" placeholder="sk-ant-..." />
+                    <small class="form-text">Your Anthropic API key</small>
+                </div>
+                <div class="form-group">
+                    <label asp-for="AnthropicModel">Model</label>
+                    <select asp-for="AnthropicModel" class="form-control">
+                        <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                        <option value="claude-3-sonnet-20240229">Claude 3 Sonnet</option>
+                        <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Azure OpenAI Settings -->
+            <div id="azure-settings" class="provider-settings" style="display: none;">
+                <h3>Azure OpenAI Configuration</h3>
+                <div class="form-group">
+                    <label asp-for="AzureEndpoint">Endpoint URL</label>
+                    <input asp-for="AzureEndpoint" class="form-control" placeholder="https://your-resource.openai.azure.com/" />
+                </div>
+                <div class="form-group">
+                    <label asp-for="AzureApiKey">API Key</label>
+                    <input asp-for="AzureApiKey" type="password" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label asp-for="AzureDeployment">Deployment Name</label>
+                    <input asp-for="AzureDeployment" class="form-control" placeholder="gpt-4" />
+                    <small class="form-text">The deployment name you created in Azure AI Studio</small>
+                </div>
+            </div>
+
+            <!-- Ollama Settings -->
+            <div id="ollama-settings" class="provider-settings" style="display: none;">
+                <h3>Ollama Configuration</h3>
+                <div class="form-group">
+                    <label asp-for="OllamaBaseUrl">Base URL</label>
+                    <input asp-for="OllamaBaseUrl" class="form-control" placeholder="http://localhost:11434" />
+                    <small class="form-text">Ollama server address</small>
+                </div>
+                <div class="form-group">
+                    <label asp-for="OllamaModel">Model</label>
+                    <input asp-for="OllamaModel" class="form-control" placeholder="llama3" />
+                    <small class="form-text">Model name as shown in `ollama list`</small>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save Settings</button>
+                <button type="submit" asp-page-handler="Test" class="btn btn-secondary">Test Connection</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="settings-info">
+        <h3>About LLM Configuration</h3>
+        <p>
+            The GMSD agent system requires an LLM provider to execute AI-powered workflows.
+            You can use commercial providers (OpenAI, Anthropic, Azure) or run models locally with Ollama.
+        </p>
+        <ul>
+            <li><strong>OpenAI:</strong> Requires an API key from <a href="https://platform.openai.com" target="_blank">platform.openai.com</a></li>
+            <li><strong>Anthropic:</strong> Requires an API key from <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></li>
+            <li><strong>Azure OpenAI:</strong> Requires Azure subscription and AI Studio deployment</li>
+            <li><strong>Ollama:</strong> Free local option - requires <a href="https://ollama.com" target="_blank">ollama.com</a> installed</li>
+        </ul>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showProviderFields() {
+            const provider = document.getElementById('Provider').value;
+            
+            // Hide all provider settings
+            document.querySelectorAll('.provider-settings').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // Show selected provider settings
+            if (provider) {
+                const selectedSection = document.getElementById(provider + '-settings');
+                if (selectedSection) {
+                    selectedSection.style.display = 'block';
+                }
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            showProviderFields();
+        });
+    </script>
+}

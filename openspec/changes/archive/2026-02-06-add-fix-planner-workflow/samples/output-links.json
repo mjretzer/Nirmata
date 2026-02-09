@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "parent": {
+    "type": "task",
+    "id": "TSK-001",
+    "relationship": "fix-for"
+  },
+  "issues": [
+    {
+      "type": "issue",
+      "id": "ISS-0001",
+      "relationship": "fixes"
+    }
+  ]
+}

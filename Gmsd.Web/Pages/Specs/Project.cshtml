@@ -1,0 +1,585 @@
+@page
+@model Gmsd.Web.Pages.Specs.ProjectModel
+@{
+    ViewData["Title"] = "Project Spec";
+}
+
+<div class="spec-editor">
+    <header class="editor-header">
+        <div class="breadcrumb">
+            <a href="~/Specs">Specs</a>
+            <span class="separator">/</span>
+            <span class="current">Project</span>
+        </div>
+        <div class="editor-actions">
+            <a href="@Model.DiskPath" class="btn btn-sm btn-secondary" target="_blank">
+                📂 Open on Disk
+            </a>
+            <button type="button" class="btn btn-sm btn-info" onclick="toggleInterviewMode()">
+                🎤 Interview Mode
+            </button>
+            <a href="~/Specs" class="btn btn-sm btn-secondary">← Back to List</a>
+        </div>
+    </header>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-error">
+            <strong>Error:</strong> @Model.ErrorMessage
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success">
+            @Model.SuccessMessage
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.DraftMessage))
+    {
+        <div class="alert alert-info" id="draft-message">
+            @Model.DraftMessage
+        </div>
+    }
+
+    <!-- Validation Status -->
+    <div class="validation-status @(Model.IsValid ? "valid" : "invalid")">
+        <span class="status-icon">@(Model.IsValid ? "✅" : "⚠️")</span>
+        <span class="status-text">@(Model.IsValid ? "Valid" : "Validation Errors")</span>
+    </div>
+
+    @if (Model.ValidationErrors.Any())
+    {
+        <div class="validation-errors">
+            <h4>❌ Validation Errors</h4>
+            <ul>
+                @foreach (var error in Model.ValidationErrors)
+                {
+                    <li class="error-item">
+                        <span class="error-path">@error.Path</span>: @error.Message
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+
+    <!-- Interview Mode Panel -->
+    <div id="interview-panel" class="interview-panel" style="display: none;">
+        <div class="interview-header">
+            <h4>🎤 Interview Mode</h4>
+            <p>Answer these questions to define your project</p>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="toggleInterviewMode()">✕ Close</button>
+        </div>
+        <div class="interview-content" id="interview-content">
+            <div class="interview-question active" data-question="0">
+                <h5>Question 1 of 4</h5>
+                <p class="question-text">What is the project name?</p>
+                <input type="text" class="form-control interview-input" id="interview-name" placeholder="Enter project name..." />
+                <div class="interview-actions">
+                    <button type="button" class="btn btn-primary" onclick="nextQuestion()">Next →</button>
+                </div>
+            </div>
+            <div class="interview-question" data-question="1" style="display: none;">
+                <h5>Question 2 of 4</h5>
+                <p class="question-text">Describe the project goal and purpose</p>
+                <textarea class="form-control interview-input" id="interview-description" rows="4" placeholder="Describe what this project aims to achieve..."></textarea>
+                <div class="interview-actions">
+                    <button type="button" class="btn btn-secondary" onclick="prevQuestion()">← Back</button>
+                    <button type="button" class="btn btn-primary" onclick="nextQuestion()">Next →</button>
+                </div>
+            </div>
+            <div class="interview-question" data-question="2" style="display: none;">
+                <h5>Question 3 of 4</h5>
+                <p class="question-text">List key constraints (one per line)</p>
+                <p class="hint">Examples: Budget limits, Technology stack, Timeline restrictions, Compliance requirements</p>
+                <textarea class="form-control interview-input" id="interview-constraints" rows="5" placeholder="- Must use .NET 8&#10;- Limited to Azure services&#10;- 3 month deadline..."></textarea>
+                <div class="interview-actions">
+                    <button type="button" class="btn btn-secondary" onclick="prevQuestion()">← Back</button>
+                    <button type="button" class="btn btn-primary" onclick="nextQuestion()">Next →</button>
+                </div>
+            </div>
+            <div class="interview-question" data-question="3" style="display: none;">
+                <h5>Question 4 of 4</h5>
+                <p class="question-text">Define success criteria (one per line)</p>
+                <p class="hint">What does "done" look like? How will you measure success?</p>
+                <textarea class="form-control interview-input" id="interview-success-criteria" rows="5" placeholder="- All unit tests passing&#10;- Code coverage > 80%&#10;- Load test: 1000 req/s&#10;- Security audit passed..."></textarea>
+                <div class="interview-actions">
+                    <button type="button" class="btn btn-secondary" onclick="prevQuestion()">← Back</button>
+                    <button type="button" class="btn btn-primary" onclick="finishInterview()">✓ Finish & Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mode Toggle -->
+    <div class="mode-toggle">
+        <button type="button" class="btn btn-sm @(Model.EditMode == "form" ? "btn-primary" : "btn-secondary")"
+                onclick="setMode('form')">
+            📋 Form
+        </button>
+        <button type="button" class="btn btn-sm @(Model.EditMode == "raw" ? "btn-primary" : "btn-secondary")"
+                onclick="setMode('raw')">
+            📝 Raw JSON
+        </button>
+    </div>
+
+    <form method="post" class="editor-form" id="project-form">
+        <input type="hidden" name="editMode" id="editMode" value="@Model.EditMode" />
+
+        @if (Model.EditMode == "form")
+        {
+            <!-- Form Mode -->
+            <div class="form-editor">
+                <!-- Project Section -->
+                <div class="form-section">
+                    <h4>📁 Project Information</h4>
+                    
+                    <div class="form-group">
+                        <label for="ProjectName" class="form-label">
+                            Project Name <span class="required">*</span>
+                        </label>
+                        <input type="text"
+                               id="ProjectName"
+                               name="ProjectName"
+                               class="form-control"
+                               value="@Model.ProjectName"
+                               required
+                               placeholder="Enter project name..." />
+                        <small class="form-text">A unique, descriptive name for the project</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ProjectDescription" class="form-label">
+                            Description <span class="required">*</span>
+                        </label>
+                        <textarea id="ProjectDescription"
+                                  name="ProjectDescription"
+                                  class="form-control"
+                                  rows="4"
+                                  required
+                                  placeholder="Describe the project purpose and goals...">@Model.ProjectDescription</textarea>
+                        <small class="form-text">Clear description of what the project aims to achieve</small>
+                    </div>
+                </div>
+
+                <!-- Constraints Section -->
+                <div class="form-section">
+                    <h4>🔒 Constraints</h4>
+                    <p class="section-hint">List constraints that affect how the project must be built (one per line)</p>
+                    
+                    <div class="form-group">
+                        <label for="Constraints" class="form-label">Constraints</label>
+                        <textarea id="Constraints"
+                                  name="Constraints"
+                                  class="form-control"
+                                  rows="5"
+                                  placeholder="- Must use specific technology&#10;- Budget limitations&#10;- Timeline restrictions...">@Model.Constraints</textarea>
+                    </div>
+                </div>
+
+                <!-- Success Criteria Section -->
+                <div class="form-section">
+                    <h4>✅ Success Criteria</h4>
+                    <p class="section-hint">Define measurable criteria that indicate project success (one per line)</p>
+                    
+                    <div class="form-group">
+                        <label for="SuccessCriteria" class="form-label">Success Criteria</label>
+                        <textarea id="SuccessCriteria"
+                                  name="SuccessCriteria"
+                                  class="form-control"
+                                  rows="5"
+                                  placeholder="- All tests passing&#10;- Performance benchmarks met&#10;- Security requirements satisfied...">@Model.SuccessCriteria</textarea>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">💾 Save</button>
+                    <a href="~/Specs" class="btn btn-secondary">Cancel</a>
+                    <button type="button" class="btn btn-info" onclick="validateProject()">🔍 Validate</button>
+                    <button type="button" class="btn btn-warning" onclick="exportProject()">📥 Export</button>
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('import-file').click()">📤 Import</button>
+                    <button type="button" class="btn btn-danger" id="discard-draft-btn" style="display: none;" onclick="discardDraft()">🗑️ Discard Draft</button>
+                    <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importProject(this)" />
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Raw JSON Mode -->
+            <div class="raw-editor">
+                <textarea name="RawContent"
+                          id="rawContent"
+                          class="form-control json-editor"
+                          rows="25"
+                          spellcheck="false">@Model.RawContent</textarea>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">💾 Save</button>
+                    <a href="~/Specs" class="btn btn-secondary">Cancel</a>
+                    <button type="button" class="btn btn-info" onclick="formatJson()">🔧 Format</button>
+                    <button type="button" class="btn btn-warning" onclick="validateProjectJson()">🔍 Validate</button>
+                    <button type="button" class="btn btn-secondary" onclick="exportRaw()">📥 Export</button>
+                </div>
+            </div>
+        }
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-save draft functionality
+        const DRAFT_KEY = 'projectSpecDraft';
+        let saveTimeout;
+        const formInputs = document.querySelectorAll('.form-control');
+        
+        formInputs.forEach(input => {
+            input.addEventListener('input', () => {
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(saveDraft, 3000);
+            });
+        });
+
+        function saveDraft() {
+            const draft = {
+                projectName: document.getElementById('ProjectName')?.value || '',
+                projectDescription: document.getElementById('ProjectDescription')?.value || '',
+                constraints: document.getElementById('Constraints')?.value || '',
+                successCriteria: document.getElementById('SuccessCriteria')?.value || '',
+                rawContent: document.getElementById('rawContent')?.value || '',
+                editMode: document.getElementById('editMode')?.value || 'form',
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+            showDraftMessage('💾 Draft saved');
+            showDiscardButton();
+        }
+
+        function clearDraft() {
+            localStorage.removeItem(DRAFT_KEY);
+            hideDiscardButton();
+        }
+
+        function discardDraft() {
+            if (confirm('Are you sure you want to discard the draft? This cannot be undone.')) {
+                clearDraft();
+                location.reload();
+            }
+        }
+
+        function showDiscardButton() {
+            const btn = document.getElementById('discard-draft-btn');
+            if (btn) btn.style.display = 'inline-block';
+        }
+
+        function hideDiscardButton() {
+            const btn = document.getElementById('discard-draft-btn');
+            if (btn) btn.style.display = 'none';
+        }
+
+        function showDraftMessage(message) {
+            const msgEl = document.getElementById('draft-message');
+            if (msgEl) {
+                msgEl.textContent = message;
+                msgEl.style.display = 'block';
+                setTimeout(() => {
+                    msgEl.style.display = 'none';
+                }, 2000);
+            }
+        }
+
+        // Load draft on page load
+        window.addEventListener('load', () => {
+            const draftJson = localStorage.getItem(DRAFT_KEY);
+            if (draftJson) {
+                try {
+                    const draft = JSON.parse(draftJson);
+                    const draftMsg = document.getElementById('draft-message');
+                    if (draftMsg && draft.timestamp) {
+                        const date = new Date(draft.timestamp);
+                        draftMsg.innerHTML = `💾 Draft available from ${date.toLocaleTimeString()} - <a href="#" onclick="restoreDraft(); return false;">Restore</a> or <a href="#" onclick="discardDraft(); return false;">Discard</a>`;
+                        draftMsg.style.display = 'block';
+                        showDiscardButton();
+                    }
+                } catch (e) {
+                    console.error('Error parsing draft:', e);
+                }
+            }
+        });
+
+        // Restore draft values
+        function restoreDraft() {
+            const draftJson = localStorage.getItem(DRAFT_KEY);
+            if (!draftJson) return;
+
+            try {
+                const draft = JSON.parse(draftJson);
+                
+                // Confirm restoration
+                const hasExistingValues = document.getElementById('ProjectName')?.value || 
+                                         document.getElementById('ProjectDescription')?.value;
+                if (hasExistingValues) {
+                    if (!confirm('Restoring will overwrite current form values. Continue?')) {
+                        return;
+                    }
+                }
+                
+                // Restore form values
+                const nameEl = document.getElementById('ProjectName');
+                const descEl = document.getElementById('ProjectDescription');
+                const constraintsEl = document.getElementById('Constraints');
+                const successCriteriaEl = document.getElementById('SuccessCriteria');
+                const rawContentEl = document.getElementById('rawContent');
+
+                if (nameEl && draft.projectName) nameEl.value = draft.projectName;
+                if (descEl && draft.projectDescription) descEl.value = draft.projectDescription;
+                if (constraintsEl && draft.constraints) constraintsEl.value = draft.constraints;
+                if (successCriteriaEl && draft.successCriteria) successCriteriaEl.value = draft.successCriteria;
+                if (rawContentEl && draft.rawContent) rawContentEl.value = draft.rawContent;
+
+                showDraftMessage('✅ Draft restored');
+            } catch (e) {
+                console.error('Error restoring draft:', e);
+                alert('Failed to restore draft');
+            }
+        }
+
+        // Clear draft after successful save
+        const originalFormSubmit = document.getElementById('project-form');
+        if (originalFormSubmit) {
+            originalFormSubmit.addEventListener('submit', () => {
+                clearDraft();
+            });
+        }
+
+        function setMode(mode) {
+            document.getElementById('editMode').value = mode;
+            window.location.href = `@Url.Page("/Specs/Project")?editMode=${mode}`;
+        }
+
+        function formatJson() {
+            const textarea = document.getElementById('rawContent');
+            try {
+                const obj = JSON.parse(textarea.value);
+                textarea.value = JSON.stringify(obj, null, 2);
+            } catch (e) {
+                alert('Invalid JSON: ' + e.message);
+            }
+        }
+
+        function validateProject() {
+            const form = document.getElementById('project-form');
+            const formData = new FormData(form);
+            
+            fetch('@Url.Page("/Specs/Project", "Validate")', {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.valid) {
+                    alert('✅ Project spec is valid!');
+                } else {
+                    alert('❌ Validation Errors:\n' + data.errors.join('\n'));
+                }
+            })
+            .catch(err => {
+                alert('Validation error: ' + err.message);
+            });
+        }
+
+        function validateProjectJson() {
+            const textarea = document.getElementById('rawContent');
+            
+            fetch('@Url.Page("/Specs/Project", "ValidateRaw")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                },
+                body: JSON.stringify({ content: textarea.value })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.valid) {
+                    alert('✅ Valid JSON!');
+                } else {
+                    alert('❌ Validation Errors:\n' + data.errors.join('\n'));
+                }
+            })
+            .catch(err => {
+                alert('Validation error: ' + err.message);
+            });
+        }
+
+        function exportProject() {
+            const projectName = document.getElementById('ProjectName')?.value || 'project';
+            const data = {
+                projectName: projectName,
+                projectDescription: document.getElementById('ProjectDescription')?.value || '',
+                constraints: document.getElementById('Constraints')?.value || '',
+                successCriteria: document.getElementById('SuccessCriteria')?.value || ''
+            };
+            
+            fetch('@Url.Page("/Specs/Project", "Export")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    const blob = new Blob([result.content], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = result.fileName;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                } else {
+                    alert('❌ Export failed: ' + result.error);
+                }
+            })
+            .catch(err => {
+                alert('Export error: ' + err.message);
+            });
+        }
+
+        function exportRaw() {
+            const content = document.getElementById('rawContent').value;
+            const data = { rawContent: content };
+            
+            fetch('@Url.Page("/Specs/Project", "Export")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    const blob = new Blob([result.content], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = result.fileName;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                } else {
+                    alert('❌ Export failed: ' + result.error);
+                }
+            })
+            .catch(err => {
+                alert('Export error: ' + err.message);
+            });
+        }
+
+        function importProject(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('importFile', file);
+
+            fetch('@Url.Page("/Specs/Project", "Import")', {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Populate form fields
+                    const nameField = document.getElementById('ProjectName');
+                    const descField = document.getElementById('ProjectDescription');
+                    const constraintsField = document.getElementById('Constraints');
+                    const successCriteriaField = document.getElementById('SuccessCriteria');
+                    const rawField = document.getElementById('rawContent');
+
+                    if (nameField && data.name) nameField.value = data.name;
+                    if (descField && data.description) descField.value = data.description;
+                    if (constraintsField && data.constraints) constraintsField.value = data.constraints;
+                    if (successCriteriaField && data.successCriteria) successCriteriaField.value = data.successCriteria;
+                    if (rawField && data.rawContent) rawField.value = data.rawContent;
+
+                    alert('✅ Project imported successfully! Click Save to apply changes.');
+                } else {
+                    alert('❌ Import failed: ' + data.error);
+                }
+            })
+            .catch(err => {
+                alert('❌ Import error: ' + err.message);
+            });
+            
+            input.value = ''; // Reset file input
+        }
+
+        // Interview Mode
+        let currentQuestion = 0;
+        const totalQuestions = 4;
+
+        function toggleInterviewMode() {
+            const panel = document.getElementById('interview-panel');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                resetInterview();
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        function resetInterview() {
+            currentQuestion = 0;
+            document.querySelectorAll('.interview-question').forEach((q, i) => {
+                q.style.display = i === 0 ? 'block' : 'none';
+                q.classList.toggle('active', i === 0);
+            });
+        }
+
+        function nextQuestion() {
+            if (currentQuestion < totalQuestions - 1) {
+                document.querySelector(`.interview-question[data-question="${currentQuestion}"]`).style.display = 'none';
+                currentQuestion++;
+                document.querySelector(`.interview-question[data-question="${currentQuestion}"]`).style.display = 'block';
+            }
+        }
+
+        function prevQuestion() {
+            if (currentQuestion > 0) {
+                document.querySelector(`.interview-question[data-question="${currentQuestion}"]`).style.display = 'none';
+                currentQuestion--;
+                document.querySelector(`.interview-question[data-question="${currentQuestion}"]`).style.display = 'block';
+            }
+        }
+
+        function finishInterview() {
+            // Apply interview answers to form
+            const nameInput = document.getElementById('interview-name');
+            const descInput = document.getElementById('interview-description');
+            const constraintsInput = document.getElementById('interview-constraints');
+            const successCriteriaInput = document.getElementById('interview-success-criteria');
+
+            const projectName = document.getElementById('ProjectName');
+            const projectDesc = document.getElementById('ProjectDescription');
+            const constraints = document.getElementById('Constraints');
+            const successCriteria = document.getElementById('SuccessCriteria');
+
+            if (projectName && nameInput) projectName.value = nameInput.value;
+            if (projectDesc && descInput) projectDesc.value = descInput.value;
+            if (constraints && constraintsInput) constraints.value = constraintsInput.value;
+            if (successCriteria && successCriteriaInput) successCriteria.value = successCriteriaInput.value;
+
+            toggleInterviewMode();
+            alert('✅ Interview answers applied! Click Save to persist changes.');
+        }
+    </script>
+}

@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gmsd:aos:schema:codebase-conventions:v1",
+  "title": "Codebase Conventions (conventions.json)",
+  "description": "Coding conventions, naming patterns, organization rules, and style patterns",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "naming",
+    "organization"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "naming": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "projects": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "pattern": {
+              "type": "string",
+              "description": "Project naming pattern (e.g., 'PascalCase', 'Company.Product.Feature')"
+            },
+            "prefix": {
+              "type": "string",
+              "description": "Common project prefix if any"
+            },
+            "suffix": {
+              "type": "string",
+              "description": "Common project suffix if any"
+            },
+            "examples": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Example project names following the convention"
+            }
+          }
+        },
+        "namespaces": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "pattern": {
+              "type": "string",
+              "description": "Namespace naming pattern"
+            },
+            "root": {
+              "type": "string",
+              "description": "Root namespace"
+            },
+            "examples": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Example namespaces"
+            }
+          }
+        },
+        "types": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "interfaces": {
+              "type": "string",
+              "description": "Interface naming convention (e.g., 'IPascalCase')"
+            },
+            "classes": {
+              "type": "string",
+              "description": "Class naming convention"
+            },
+            "structs": {
+              "type": "string",
+              "description": "Struct naming convention"
+            },
+            "enums": {
+              "type": "string",
+              "description": "Enum naming convention"
+            },
+            "exceptions": {
+              "type": "string",
+              "description": "Exception naming convention"
+            }
+          }
+        },
+        "members": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "properties": {
+              "type": "string",
+              "description": "Property naming convention"
+            },
+            "methods": {
+              "type": "string",
+              "description": "Method naming convention"
+            },
+            "fields": {
+              "type": "string",
+              "description": "Field naming convention"
+            },
+            "constants": {
+              "type": "string",
+              "description": "Constant naming convention"
+            },
+            "parameters": {
+              "type": "string",
+              "description": "Parameter naming convention"
+            },
+            "localVariables": {
+              "type": "string",
+              "description": "Local variable naming convention"
+            }
+          }
+        },
+        "files": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "matchTypeName": {
+              "type": "boolean",
+              "description": "Whether file names match their primary type name"
+            },
+            "casing": {
+              "type": "string",
+              "enum": ["PascalCase", "camelCase", "kebab-case", "snake_case"],
+              "description": "File naming casing style"
+            }
+          }
+        }
+      }
+    },
+    "organization": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "projectStructure": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "folder",
+              "purpose"
+            ],
+            "properties": {
+              "folder": {
+                "type": "string",
+                "description": "Standard folder name"
+              },
+              "purpose": {
+                "type": "string",
+                "description": "Purpose of this folder"
+              },
+              "contents": {
+                "type": "string",
+                "description": "What should be placed here"
+              },
+              "required": {
+                "type": "boolean",
+                "description": "Whether this folder is required"
+              }
+            }
+          }
+        },
+        "namespaceToFolderMapping": {
+          "type": "boolean",
+          "description": "Whether namespaces map to folder structure"
+        },
+        "filePerType": {
+          "type": "boolean",
+          "description": "Whether each type has its own file"
+        },
+        "maxFileLines": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Recommended maximum lines per file"
+        },
+        "maxTypeMembers": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Recommended maximum members per type"
+        }
+      }
+    },
+    "stylePatterns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Style pattern name"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["formatting", "documentation", "ordering", "accessibility", "architecture"],
+            "description": "Pattern category"
+          },
+          "description": {
+            "type": "string",
+            "description": "Pattern description"
+          },
+          "enforced": {
+            "type": "boolean",
+            "description": "Whether this pattern is enforced"
+          },
+          "tooling": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tools that enforce this pattern"
+          }
+        }
+      }
+    }
+  }
+}

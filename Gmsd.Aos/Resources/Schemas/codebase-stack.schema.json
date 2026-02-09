@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gmsd:aos:schema:codebase-stack:v1",
+  "title": "Codebase Stack (stack.json)",
+  "description": "Technology stack detection including languages, frameworks, build tools, and package managers",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "languages",
+    "frameworks",
+    "buildTools",
+    "packageManagers"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "version"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Programming language name (e.g., 'C#', 'TypeScript')"
+          },
+          "version": {
+            "type": "string",
+            "description": "Detected language version"
+          },
+          "fileCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of files in this language"
+          },
+          "linesOfCode": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total lines of code"
+          },
+          "percentage": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Percentage of codebase"
+          }
+        }
+      }
+    },
+    "frameworks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "version"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Framework name (e.g., '.NET', 'React', 'ASP.NET Core')"
+          },
+          "version": {
+            "type": "string",
+            "description": "Detected framework version"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["frontend", "backend", "testing", "data", "utility"],
+            "description": "Framework category"
+          }
+        }
+      }
+    },
+    "buildTools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Build tool name (e.g., 'MSBuild', 'Vite', 'Webpack')"
+          },
+          "version": {
+            "type": "string",
+            "description": "Detected build tool version"
+          },
+          "configurationFiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of configuration file paths"
+          }
+        }
+      }
+    },
+    "packageManagers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Package manager name (e.g., 'NuGet', 'npm', 'pip')"
+          },
+          "version": {
+            "type": "string",
+            "description": "Detected package manager version"
+          },
+          "manifestFiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of manifest file paths (e.g., package.json, .csproj)"
+          }
+        }
+      }
+    }
+  }
+}

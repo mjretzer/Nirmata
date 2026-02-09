@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "secrets": {
+    "OPENAI_API_KEY": {
+      "ref": "env:OPENAI_API_KEY"
+    }
+  }
+}
+

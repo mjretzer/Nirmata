@@ -1,0 +1,14 @@
+@model Gmsd.Web.Models.IssueSeverity
+
+@{
+    var (cssClass, label) = Model switch
+    {
+        Gmsd.Web.Models.IssueSeverity.Critical => ("badge badge-error", "Critical"),
+        Gmsd.Web.Models.IssueSeverity.High => ("badge badge-warning", "High"),
+        Gmsd.Web.Models.IssueSeverity.Medium => ("badge badge-info", "Medium"),
+        Gmsd.Web.Models.IssueSeverity.Low => ("badge badge-secondary", "Low"),
+        _ => ("badge badge-secondary", "Unknown")
+    };
+}
+
+<span class="@cssClass">@label</span>

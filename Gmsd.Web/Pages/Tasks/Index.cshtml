@@ -1,0 +1,133 @@
+@page
+@model Gmsd.Web.Pages.Tasks.IndexModel
+@using Gmsd.Web.Models
+@{
+    ViewData["Title"] = "Tasks";
+}
+
+<h1>Tasks</h1>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-error">
+        @Model.ErrorMessage
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success">
+        @Model.SuccessMessage
+    </div>
+}
+
+@if (Model.Tasks.Count == 0)
+{
+    <div class="empty-state">
+        <div class="empty-state-icon">📋</div>
+        <h3>No Tasks Found</h3>
+        <p>There are no tasks defined yet.</p>
+        <a href="~/Phases" class="btn btn-primary">View Phases to Generate Tasks</a>
+    </div>
+}
+else
+{
+    <div class="filter-bar">
+        <form method="get" class="filter-group">
+            <label class="filter-label">Status:</label>
+            <select name="FilterStatus" class="filter-select" onchange="this.form.submit()">
+                <option value="">All Statuses</option>
+                <option value="Draft" selected="@(Model.FilterStatus == "Draft" ? "selected" : null)">Draft</option>
+                <option value="Pending" selected="@(Model.FilterStatus == "Pending" ? "selected" : null)">Pending</option>
+                <option value="InProgress" selected="@(Model.FilterStatus == "InProgress" ? "selected" : null)">In Progress</option>
+                <option value="Completed" selected="@(Model.FilterStatus == "Completed" ? "selected" : null)">Completed</option>
+                <option value="Failed" selected="@(Model.FilterStatus == "Failed" ? "selected" : null)">Failed</option>
+                <option value="Verified" selected="@(Model.FilterStatus == "Verified" ? "selected" : null)">Verified</option>
+            </select>
+        </form>
+
+        <form method="get" class="filter-group">
+            <label class="filter-label">Phase:</label>
+            <select name="FilterPhaseId" class="filter-select" onchange="this.form.submit()">
+                <option value="">All Phases</option>
+                @foreach (var phase in Model.Tasks.Select(t => new { t.PhaseId, t.PhaseName }).Distinct())
+                {
+                    <option value="@phase.PhaseId" selected="@(Model.FilterPhaseId == phase.PhaseId ? "selected" : null)">@phase.PhaseName</option>
+                }
+            </select>
+        </form>
+
+        <form method="get" class="filter-group">
+            <label class="filter-label">Milestone:</label>
+            <select name="FilterMilestoneId" class="filter-select" onchange="this.form.submit()">
+                <option value="">All Milestones</option>
+                @foreach (var milestone in Model.Tasks.Select(t => new { t.MilestoneId, t.MilestoneName }).Distinct().Where(m => !string.IsNullOrEmpty(m.MilestoneId)))
+                {
+                    <option value="@milestone.MilestoneId" selected="@(Model.FilterMilestoneId == milestone.MilestoneId ? "selected" : null)">@milestone.MilestoneName</option>
+                }
+            </select>
+        </form>
+
+        <form method="get" class="filter-group" style="flex: 1;">
+            <div class="input-group">
+                <input type="text" name="SearchQuery" class="form-control" 
+                       placeholder="Search tasks..." value="@Model.SearchQuery" />
+                <button type="submit" class="btn btn-secondary">Search</button>
+                @if (!string.IsNullOrEmpty(Model.SearchQuery) || !string.IsNullOrEmpty(Model.FilterStatus) || !string.IsNullOrEmpty(Model.FilterPhaseId) || !string.IsNullOrEmpty(Model.FilterMilestoneId))
+                {
+                    <a href="~/Tasks" class="btn btn-secondary">Clear</a>
+                }
+            </div>
+        </form>
+    </div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Task ID</th>
+                <th>Name</th>
+                <th>Phase</th>
+                <th>Milestone</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var task in Model.Tasks)
+            {
+                <tr>
+                    <td><code>@task.Id</code></td>
+                    <td>
+                        <strong>@task.Title</strong>
+                        @if (!string.IsNullOrEmpty(task.Description))
+                        {
+                            <br /><small class="text-muted">@task.Description</small>
+                        }
+                    </td>
+                    <td>@task.PhaseName</td>
+                    <td>@task.MilestoneName</td>
+                    <td>
+                        <span class="badge @(task.Status switch {
+                            SpecItemStatus.Completed or SpecItemStatus.Verified => "badge-success",
+                            SpecItemStatus.InProgress => "badge-warning",
+                            SpecItemStatus.Failed => "badge-error",
+                            SpecItemStatus.Blocked => "badge-error",
+                            SpecItemStatus.Draft => "badge-info",
+                            _ => "badge-info"
+                        })">
+                            @task.Status
+                        </span>
+                    </td>
+                    <td>
+                        <a href="~/Tasks/Details/@task.Id" class="btn btn-sm btn-secondary">View</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="mt-3">
+        <a href="~/Phases" class="btn btn-secondary">← Back to Phases</a>
+        <a href="~/Roadmap" class="btn btn-secondary">Roadmap</a>
+    </div>
+}

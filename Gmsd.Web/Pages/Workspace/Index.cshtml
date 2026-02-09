@@ -1,0 +1,351 @@
+@page
+@model Gmsd.Web.Pages.Workspace.IndexModel
+@{
+    ViewData["Title"] = "Workspace";
+}
+
+<h1>Workspace Selection</h1>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="error-message">
+        @Model.ErrorMessage
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="success-message">
+        @Model.SuccessMessage
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.SelectedWorkspacePath))
+{
+    <div class="card selected-workspace">
+        <div class="card-header">
+            <h2>Current Workspace</h2>
+        </div>
+        <div class="selected-path">
+            <strong>@Model.SelectedWorkspacePath</strong>
+            <div class="workspace-actions">
+                <span class="badge badge-success">Active</span>
+                <form method="post" asp-page-handler="ClearWorkspace" style="display: inline;">
+                    <button type="submit" class="btn btn-sm btn-secondary">Clear</button>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="card">
+    <div class="card-header">
+        <h2>Select Workspace Directory</h2>
+        <p class="text-muted">Choose a directory to initialize or open an AOS workspace</p>
+    </div>
+
+    <form method="post" asp-page-handler="Select">
+        <div class="form-group">
+            <label for="workspacePath">Workspace Path</label>
+            <div class="input-group">
+                <input type="text"
+                       id="workspacePath"
+                       name="workspacePath"
+                       class="form-control"
+                       value="@Model.WorkspacePath"
+                       placeholder="C:\Projects\MyProject" />
+                <button type="button" class="btn btn-secondary" onclick="browseFolder()">
+                    Browse...
+                </button>
+            </div>
+            <input type="file"
+                   id="filePicker"
+                   webkitdirectory
+                   directory
+                   style="display: none;"
+                   onchange="updatePath(this)" />
+            <small class="form-text">Enter the path to your project directory (the .aos folder will be created here)</small>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Open Workspace</button>
+            <button type="submit" asp-page-handler="Initialize" class="btn btn-secondary">Initialize New</button>
+        </div>
+    </form>
+</div>
+
+@if (Model.HealthReport != null)
+{
+    <div class="card">
+        <div class="card-header">
+            <h2>Workspace Health Report</h2>
+            <span class="badge @(Model.HealthReport.IsHealthy ? "badge-success" : "badge-error")">
+                @(Model.HealthReport.IsHealthy ? "Healthy" : "Issues Detected")
+            </span>
+        </div>
+
+        @if (Model.HealthReport.LockStatus != LockStatus.Unknown)
+        {
+            <div class="lock-status">
+                <h4>Lock Status</h4>
+                @switch (Model.HealthReport.LockStatus)
+                {
+                    case LockStatus.Unlocked:
+                        <span class="badge badge-success">Unlocked</span>
+                        <span>Workspace is available for use.</span>
+                        break;
+                    case LockStatus.LockedActive:
+                        <span class="badge badge-warning">Locked (Active)</span>
+                        <span>Another process is currently using this workspace.</span>
+                        break;
+                    case LockStatus.LockedStale:
+                        <span class="badge badge-warning">Locked (Stale)</span>
+                        <span>The lock appears to be stale. You may need to release it manually.</span>
+                        break;
+                    case LockStatus.LockedUnknown:
+                        <span class="badge badge-error">Locked (Unknown)</span>
+                        <span>Cannot determine lock status.</span>
+                        break;
+                }
+
+                @if (Model.HealthReport.LockInfo != null && Model.HealthReport.LockStatus != LockStatus.Unlocked)
+                {
+                    <div class="lock-details">
+                        <small>
+                            Command: @Model.HealthReport.LockInfo.Command<br />
+                            PID: @Model.HealthReport.LockInfo.Pid<br />
+                            Machine: @Model.HealthReport.LockInfo.Machine<br />
+                            User: @Model.HealthReport.LockInfo.User<br />
+                            Acquired: @Model.HealthReport.LockInfo.AcquiredAtUtc
+                        </small>
+                    </div>
+                }
+            </div>
+        }
+
+        <div class="health-details">
+            @if (Model.HealthReport.MissingDirectories.Any())
+            {
+                <div class="health-section">
+                    <h4>Missing Directories</h4>
+                    <ul class="issue-list">
+                        @foreach (var dir in Model.HealthReport.MissingDirectories)
+                        {
+                            <li>@dir</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            @if (Model.HealthReport.InvalidDirectories.Any())
+            {
+                <div class="health-section">
+                    <h4>Invalid Directories</h4>
+                    <ul class="issue-list">
+                        @foreach (var dir in Model.HealthReport.InvalidDirectories)
+                        {
+                            <li>@dir</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            @if (Model.HealthReport.MissingFiles.Any())
+            {
+                <div class="health-section">
+                    <h4>Missing Files</h4>
+                    <ul class="issue-list">
+                        @foreach (var file in Model.HealthReport.MissingFiles)
+                        {
+                            <li>@file</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            @if (Model.HealthReport.InvalidFiles.Any())
+            {
+                <div class="health-section">
+                    <h4>Invalid Files</h4>
+                    <ul class="issue-list">
+                        @foreach (var file in Model.HealthReport.InvalidFiles)
+                        {
+                            <li>@file</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            @if (Model.HealthReport.SchemaValidationErrors.Any())
+            {
+                <div class="health-section">
+                    <h4>Schema Validation Errors</h4>
+                    <ul class="issue-list error">
+                        @foreach (var error in Model.HealthReport.SchemaValidationErrors)
+                        {
+                            <li>@error</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            @if (Model.HealthReport.ExtraEntries.Any())
+            {
+                <div class="health-section">
+                    <h4>Extra Entries</h4>
+                    <ul class="issue-list info">
+                        @foreach (var entry in Model.HealthReport.ExtraEntries)
+                        {
+                            <li>@entry</li>
+                        }
+                    </ul>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if (Model.RecentWorkspaces.Any())
+{
+    <div class="card">
+        <div class="card-header">
+            <h2>Recent Workspaces</h2>
+        </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Path</th>
+                    <th>Last Accessed</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var workspace in Model.RecentWorkspaces)
+                {
+                    <tr>
+                        <td>@workspace.Path</td>
+                        <td>@workspace.LastAccessed.ToString("g")</td>
+                        <td>
+                            <form method="post" asp-page-handler="Select" style="display: inline;">
+                                <input type="hidden" name="workspacePath" value="@workspace.Path" />
+                                <button type="submit" class="btn btn-sm btn-primary">Open</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        async function browseFolder() {
+            const currentPath = document.getElementById('workspacePath').value;
+            
+            try {
+                const response = await fetch('/api/folderbrowser/select', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        description: 'Select a workspace directory',
+                        initialPath: currentPath,
+                        showNewFolderButton: true
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.path) {
+                        document.getElementById('workspacePath').value = result.path;
+                    }
+                } else {
+                    console.error('Folder browser API error:', response.status);
+                }
+            } catch (error) {
+                console.error('Error calling folder browser:', error);
+                // Fall back to the hidden file input for manual selection
+                document.getElementById('filePicker').click();
+            }
+        }
+
+        function updatePath(input) {
+            // Fallback for browsers - extracts folder name from webkitRelativePath
+            if (input.files && input.files.length > 0) {
+                const file = input.files[0];
+                const relativePath = file.webkitRelativePath;
+                
+                if (relativePath) {
+                    const topFolder = relativePath.split('/')[0];
+                    if (topFolder) {
+                        document.getElementById('workspacePath').value = topFolder;
+                    }
+                }
+                input.value = '';
+            }
+        }
+    </script>
+}
+
+<style>
+    .selected-workspace {
+        background-color: #e8f5e9;
+        border-left: 4px solid #4caf50;
+        align-self: flex-start;
+        margin-right: auto;
+    }
+
+    .selected-workspace .selected-path {
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .workspace-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .lock-status {
+        padding: 1rem;
+        border-bottom: 1px solid #e0e0e0;
+        background-color: #fafafa;
+    }
+
+    .lock-status h4 {
+        margin-top: 0;
+        margin-bottom: 0.5rem;
+    }
+
+    .lock-details {
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        background-color: #f5f5f5;
+        border-radius: 4px;
+    }
+
+    .badge-success {
+        background-color: #4caf50;
+        color: white;
+    }
+
+    .badge-warning {
+        background-color: #ff9800;
+        color: white;
+    }
+
+    .badge-error {
+        background-color: #f44336;
+        color: white;
+    }
+
+    .issue-list.error {
+        color: #f44336;
+    }
+
+    .issue-list.info {
+        color: #2196f3;
+    }
+</style>

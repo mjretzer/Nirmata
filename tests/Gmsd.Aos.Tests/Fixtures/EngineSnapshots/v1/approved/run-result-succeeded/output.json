@@ -1,0 +1,19 @@
+{
+  "error": null,
+  "exitCode": 0,
+  "producedArtifacts": [
+    {
+      "contractPath": ".aos/evidence/runs/RUN_ID/artifacts/manifest.json",
+      "kind": "manifest",
+      "sha256": null
+    },
+    {
+      "contractPath": ".aos/evidence/runs/RUN_ID/outputs/hello.txt",
+      "kind": "output",
+      "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"
+    }
+  ],
+  "runId": "RUN_ID",
+  "schemaVersion": 1,
+  "status": "succeeded"
+}

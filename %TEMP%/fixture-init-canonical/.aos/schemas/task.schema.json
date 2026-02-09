@@ -1,0 +1,28 @@
+{
+  "$id": "gmsd:aos:schema:task:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "properties": {
+    "description": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    },
+    "status": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schemaVersion"
+  ],
+  "title": "AOS Task Spec (tasks/{id}.json)",
+  "type": "object"
+}

@@ -1,0 +1,39 @@
+@page
+@model Gmsd.Web.Pages.Projects.IndexModel
+@{
+    ViewData["Title"] = "Projects";
+}
+
+<h1>Projects</h1>
+
+@if (Model.Projects.Count == 0)
+{
+    <div class="empty-state">
+        <h3>No Projects Found</h3>
+        <p>There are no projects in the system yet.</p>
+    </div>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Steps</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var project in Model.Projects)
+            {
+                <tr>
+                    <td>@project.Name</td>
+                    <td>@project.Steps.Count</td>
+                    <td>
+                        <a href="~/Projects/Details/@project.ProjectId">View Details</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

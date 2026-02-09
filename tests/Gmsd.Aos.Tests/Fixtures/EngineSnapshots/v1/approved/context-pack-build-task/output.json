@@ -1,0 +1,37 @@
+{
+  "budget": {
+    "maxBytes": 1000,
+    "maxItems": 10
+  },
+  "drivingId": "TSK-000001",
+  "entries": [
+    {
+      "bytes": 31,
+      "content": "{\u0022schemaVersion\u0022:1,\u0022steps\u0022:[]}\n",
+      "contentType": "application/json",
+      "contractPath": ".aos/spec/tasks/TSK-000001/plan.json",
+      "sha256": "da7dfad71a417cb12e755300d0ee38e95742c27a3d9928a8d8e4763703a93b9f"
+    },
+    {
+      "bytes": 31,
+      "content": "{\u0022links\u0022:[],\u0022schemaVersion\u0022:1}\n",
+      "contentType": "application/json",
+      "contractPath": ".aos/spec/tasks/TSK-000001/links.json",
+      "sha256": "51714680ad619ff505f2e4326b3921ac7cabc6be40ca81eb99ab8350bfd14c96"
+    },
+    {
+      "bytes": 38,
+      "content": "{\u0022id\u0022:\u0022TSK-000001\u0022,\u0022schemaVersion\u0022:1}\n",
+      "contentType": "application/json",
+      "contractPath": ".aos/spec/tasks/TSK-000001/task.json",
+      "sha256": "9b72fed583ddfcdee32067791606e69b0df5b5ce8280ada0a8846e8e1453b909"
+    }
+  ],
+  "mode": "task",
+  "packId": "PCK-0001",
+  "schemaVersion": 1,
+  "summary": {
+    "totalBytes": 100,
+    "totalItems": 3
+  }
+}

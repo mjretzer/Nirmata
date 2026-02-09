@@ -1,0 +1,60 @@
+{
+  "$id": "gmsd:aos:schema:call-envelope:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "callId": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "error": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "meta": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "provider": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "request": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "response": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "runId": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    },
+    "status": {
+      "enum": [
+        "succeeded",
+        "failed"
+      ],
+      "type": "string"
+    },
+    "tool": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "runId",
+    "callId",
+    "provider",
+    "tool",
+    "status"
+  ],
+  "title": "AOS Provider/Tool Call Envelope",
+  "type": "object"
+}

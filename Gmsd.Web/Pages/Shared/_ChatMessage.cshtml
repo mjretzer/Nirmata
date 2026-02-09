@@ -1,0 +1,257 @@
+@using Gmsd.Web.Models
+@model ChatMessageModel
+
+@{
+    var isLast = ViewData["IsLast"] as bool? ?? false;
+    var containerId = ViewData["ContainerId"] as string ?? "";
+    var messageId = Model.Id;
+    var isStreaming = Model.IsStreaming;
+}
+
+<div class="chat-message @(Model.Sender == MessageSender.User ? "message-user" : "message-ai") @(isStreaming ? "message-streaming" : "")" 
+     id="message-@messageId"
+     data-message-id="@messageId"
+     data-sender="@Model.Sender"
+     data-content-type="@Model.ContentType">
+    
+    <!-- Avatar -->
+    <div class="message-avatar @Model.SenderAvatarClass" aria-hidden="true">
+        <span>@Model.SenderAvatar</span>
+    </div>
+    
+    <!-- Message Content Wrapper -->
+    <div class="message-wrapper">
+        <!-- Header with author and timestamp -->
+        <div class="message-header">
+            <span class="message-author">@Model.SenderDisplayName</span>
+            <time class="message-time" datetime="@Model.Timestamp.ToString("O")" title="@Model.FormattedTimestamp">
+                @Model.RelativeTime
+            </time>
+        </div>
+        
+        <!-- Message Body -->
+        <div class="message-body">
+            @switch (Model.ContentType)
+            {
+                case MessageContentType.Text:
+                    <div class="message-text">
+                        @foreach (var paragraph in Model.Content.Split('\n'))
+                        {
+                            @if (!string.IsNullOrWhiteSpace(paragraph))
+                            {
+                                <p>@paragraph</p>
+                            }
+                        }
+                    </div>
+                    break;
+                    
+                case MessageContentType.RichText:
+                case MessageContentType.Html:
+                    <div class="message-rich-content">
+                        @Html.Raw(Model.HtmlContent ?? Model.Content)
+                    </div>
+                    break;
+                    
+                case MessageContentType.Code:
+                    <div class="message-code">
+                        @if (!string.IsNullOrEmpty(Model.CodeLanguage))
+                        {
+                            <div class="code-header">
+                                <span class="code-language">@Model.CodeLanguage</span>
+                            </div>
+                        }
+                        <pre><code class="language-@(Model.CodeLanguage ?? "text")">@Model.Content</code></pre>
+                    </div>
+                    break;
+                    
+                case MessageContentType.Table:
+                    @if (Model.TableColumns != null && Model.TableRows != null)
+                    {
+                        <div class="message-table-container">
+                            @if (!string.IsNullOrEmpty(Model.Content))
+                            {
+                                <div class="table-caption">@Model.Content</div>
+                            }
+                            <table class="message-table">
+                                <thead>
+                                    <tr>
+                                        @foreach (var col in Model.TableColumns)
+                                        {
+                                            <th style="@(col.Width != null ? $"width: {col.Width}" : "")">@col.Header</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var row in Model.TableRows)
+                                    {
+                                        <tr>
+                                            @foreach (var col in Model.TableColumns)
+                                            {
+                                                <td>
+                                                    @if (row.TryGetValue(col.Key, out var value))
+                                                    {
+                                                        @value?.ToString()
+                                                    }
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    break;
+                    
+                case MessageContentType.Form:
+                    @if (Model.FormFields != null)
+                    {
+                        <form class="message-form" action="@Model.FormAction" method="post" 
+                              hx-post="@(Model.FormAction ?? "")" hx-target="#response-container">
+                            @if (!string.IsNullOrEmpty(Model.Content))
+                            {
+                                <div class="form-description">@Model.Content</div>
+                            }
+                            @foreach (var field in Model.FormFields)
+                            {
+                                <div class="form-field">
+                                    <label for="@field.Name">@field.Label @(field.Required ? "*" : "")</label>
+                                    @switch (field.Type)
+                                    {
+                                        case "textarea":
+                                            <textarea id="@field.Name" name="@field.Name" 
+                                                      placeholder="@field.Placeholder" 
+                                                      required="@field.Required">@field.Value</textarea>
+                                            break;
+                                        case "select":
+                                            <select id="@field.Name" name="@field.Name" required="@field.Required">
+                                                @if (field.Options != null)
+                                                {
+                                                    @foreach (var opt in field.Options)
+                                                    {
+                                                        <option value="@opt.Value" selected="@(opt.Value == field.Value)">@opt.Label</option>
+                                                    }
+                                                }
+                                            </select>
+                                            break;
+                                        case "checkbox":
+                                            <input type="checkbox" id="@field.Name" name="@field.Name" 
+                                                   checked="@(field.Value == "true")" />
+                                            break;
+                                        default:
+                                            <input type="@field.Type" id="@field.Name" name="@field.Name" 
+                                                   value="@field.Value" placeholder="@field.Placeholder" 
+                                                   required="@field.Required" />
+                                            break;
+                                    }
+                                    @if (!string.IsNullOrEmpty(field.HelpText))
+                                    {
+                                        <span class="field-help">@field.HelpText</span>
+                                    }
+                                </div>
+                            }
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Submit</button>
+                            </div>
+                        </form>
+                    }
+                    break;
+                    
+                case MessageContentType.Json:
+                    <div class="message-json">
+                        <pre class="json-viewer">@Model.Content</pre>
+                    </div>
+                    break;
+                    
+                case MessageContentType.Error:
+                    <div class="message-error">
+                        <div class="error-icon">⚠️</div>
+                        <div class="error-content">
+                            <p>@Model.ErrorMessage</p>
+                            @if (!string.IsNullOrEmpty(Model.Content))
+                            {
+                                <p class="error-details">@Model.Content</p>
+                            }
+                        </div>
+                    </div>
+                    break;
+                    
+                default:
+                    <div class="message-text">
+                        <p>@Model.Content</p>
+                    </div>
+                    break;
+            }
+        </div>
+        
+        <!-- Message Actions -->
+        @if (!isStreaming && Model.Sender != MessageSender.System)
+        {
+            <div class="message-actions">
+                <button class="message-action-btn" data-action="copy" data-message-id="@messageId" 
+                        title="Copy to clipboard" aria-label="Copy message content">
+                    <span>📋</span>
+                    <span class="action-label">Copy</span>
+                </button>
+                
+                @if (Model.Sender == MessageSender.Ai)
+                {
+                    <button class="message-action-btn" data-action="feedback-positive" data-message-id="@messageId" 
+                            title="This was helpful" aria-label="Mark as helpful">
+                        <span>👍</span>
+                    </button>
+                    <button class="message-action-btn" data-action="feedback-negative" data-message-id="@messageId" 
+                            title="This was not helpful" aria-label="Mark as not helpful">
+                        <span>👎</span>
+                    </button>
+                }
+                
+                @if (Model.Sender == MessageSender.Ai && isLast)
+                {
+                    <button class="message-action-btn" data-action="retry" data-message-id="@messageId" 
+                            title="Regenerate response" aria-label="Regenerate response">
+                        <span>🔄</span>
+                        <span class="action-label">Retry</span>
+                    </button>
+                }
+            </div>
+        }
+        
+        <!-- Metadata (hidden by default, toggleable) -->
+        @if (Model.Metadata != null && Model.Metadata.Count > 0)
+        {
+            <div class="message-metadata collapsed" id="metadata-@messageId">
+                <button class="metadata-toggle" data-target="metadata-@messageId" aria-expanded="false">
+                    <span class="toggle-icon">▶</span> Details
+                </button>
+                <div class="metadata-content">
+                    <dl>
+                        @foreach (var kvp in Model.Metadata)
+                        {
+                            <dt>@kvp.Key</dt>
+                            <dd>@kvp.Value</dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@if (isLast && isStreaming)
+{
+    <script>
+        // Auto-scroll to this message if streaming
+        (function() {
+            const messageEl = document.getElementById('message-@messageId');
+            if (messageEl && window.chatThreads) {
+                const thread = Object.values(window.chatThreads).find(t => t.containerId === '@containerId');
+                if (thread) {
+                    const viewport = document.getElementById(thread.containerId + '-viewport');
+                    if (viewport) {
+                        messageEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                    }
+                }
+            }
+        })();
+    </script>
+}

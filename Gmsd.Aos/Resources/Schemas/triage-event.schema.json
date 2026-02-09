@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gmsd:aos:schema:triage-event:v1",
+  "title": "AOS Triage Event (state/events.ndjson)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schemaVersion",
+    "eventType",
+    "timestampUtc",
+    "issueId",
+    "routingDecision"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "eventType": {
+      "type": "string",
+      "const": "triage"
+    },
+    "timestampUtc": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the triage occurred"
+    },
+    "issueId": {
+      "type": "string",
+      "description": "Reference to the triaged issue"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "Assessed severity level"
+    },
+    "routingDecision": {
+      "type": "string",
+      "enum": ["main-loop", "deferred", "discarded"],
+      "description": "Routing decision from triage"
+    },
+    "rationale": {
+      "type": "string",
+      "description": "Reasoning behind the routing decision"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Additional triage metadata"
+    }
+  }
+}

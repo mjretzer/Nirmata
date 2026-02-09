@@ -1,0 +1,14 @@
+{
+  "callId": "execute-plan.write-outputs",
+  "provider": "aos",
+  "request": {
+    "outputCount": 2
+  },
+  "response": {
+    "value": 42
+  },
+  "runId": "RUN_ID",
+  "schemaVersion": 1,
+  "status": "succeeded",
+  "tool": "execute-plan.write-outputs"
+}

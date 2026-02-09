@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "scopeAllowlist": [
+    "./"
+  ],
+  "toolAllowlist": [
+    "read",
+    "write"
+  ],
+  "noImplicitState": true
+}
+

@@ -1,0 +1,217 @@
+{
+  "$id": "gmsd:aos:schema:codebase-structure:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Directory and file structure with metadata and statistics",
+  "properties": {
+    "directories": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "depth": {
+            "description": "Nesting depth from root",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "fileCount": {
+            "description": "Number of files in this directory",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "name": {
+            "description": "Directory name",
+            "type": "string"
+          },
+          "parent": {
+            "description": "Parent directory path",
+            "type": "string"
+          },
+          "path": {
+            "description": "Relative path from repository root",
+            "type": "string"
+          },
+          "purpose": {
+            "description": "Inferred directory purpose",
+            "enum": [
+              "source",
+              "test",
+              "config",
+              "documentation",
+              "build",
+              "resources",
+              "tools",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "subdirectoryCount": {
+            "description": "Number of subdirectories",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path",
+          "name"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "files": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "directory": {
+            "description": "Parent directory path",
+            "type": "string"
+          },
+          "extension": {
+            "description": "File extension",
+            "type": "string"
+          },
+          "hash": {
+            "description": "Content hash for change detection",
+            "type": "string"
+          },
+          "language": {
+            "description": "Programming language if code file",
+            "type": "string"
+          },
+          "lastModified": {
+            "description": "Last modification timestamp",
+            "format": "date-time",
+            "type": "string"
+          },
+          "lines": {
+            "description": "Number of lines in file",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "name": {
+            "description": "File name with extension",
+            "type": "string"
+          },
+          "path": {
+            "description": "Relative path from repository root",
+            "type": "string"
+          },
+          "sizeBytes": {
+            "description": "File size in bytes",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": {
+            "description": "Classified file type",
+            "enum": [
+              "code",
+              "test",
+              "config",
+              "documentation",
+              "build",
+              "resource",
+              "data",
+              "unknown"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "name"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "metadata": {
+      "additionalProperties": false,
+      "properties": {
+        "ignoredPatterns": {
+          "description": "Patterns excluded from scan",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "rootDirectories": {
+          "description": "Top-level directories",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "rootFiles": {
+          "description": "Files in repository root",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    },
+    "statistics": {
+      "additionalProperties": false,
+      "properties": {
+        "averageFileSize": {
+          "description": "Average file size in bytes",
+          "minimum": 0,
+          "type": "number"
+        },
+        "filesByExtension": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "description": "Count of files by extension",
+          "type": "object"
+        },
+        "filesByType": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "description": "Count of files by type classification",
+          "type": "object"
+        },
+        "maxDirectoryDepth": {
+          "description": "Maximum nesting depth",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "totalDirectories": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "totalFiles": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "totalLinesOfCode": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "totalFiles",
+        "totalDirectories",
+        "totalLinesOfCode",
+        "averageFileSize"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "directories",
+    "files",
+    "statistics"
+  ],
+  "title": "Codebase Structure (structure.json)",
+  "type": "object"
+}

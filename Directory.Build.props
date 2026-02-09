@@ -1,0 +1,142 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!--
+      Canonical layer classification (centralized).
+
+      Enforced by `Directory.Build.targets`.
+      See OpenSpec change: `add-engine-project-skeletons-and-boundaries`.
+    -->
+    <GmsdBoundaryEnforcementEnabled>true</GmsdBoundaryEnforcementEnabled>
+
+    <!-- Defaults; overridden by mapping below. -->
+    <GmsdDomain>Unknown</GmsdDomain>
+    <GmsdLayer>Unknown</GmsdLayer>
+    <GmsdStackRank>-1</GmsdStackRank>
+    <GmsdEngineRank>-1</GmsdEngineRank>
+  </PropertyGroup>
+
+  <Choose>
+    <!-- Tests are allowed to reference across layers for integration/unit testing. -->
+    <When Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+      <PropertyGroup>
+        <GmsdDomain>Test</GmsdDomain>
+        <GmsdLayer>Test</GmsdLayer>
+        <GmsdStackRank>100</GmsdStackRank>
+        <GmsdEngineRank>0</GmsdEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <!-- Test infrastructure (fixture repos, test utilities) -->
+    <When Condition="'$(MSBuildProjectName)' == 'TestTargets'">
+      <PropertyGroup>
+        <GmsdDomain>Test</GmsdDomain>
+        <GmsdLayer>Test.Fixtures</GmsdLayer>
+        <GmsdStackRank>99</GmsdStackRank>
+        <GmsdEngineRank>0</GmsdEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <!-- Shared -->
+    <When Condition="'$(MSBuildProjectName)' == 'Gmsd.Common'">
+      <PropertyGroup>
+        <GmsdDomain>Shared</GmsdDomain>
+        <GmsdLayer>Shared</GmsdLayer>
+        <GmsdStackRank>0</GmsdStackRank>
+        <GmsdEngineRank>0</GmsdEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <!-- Product stack (DTO → Data → Services → API → Web) -->
+    <When Condition="'$(MSBuildProjectName)' == 'Gmsd.Data.Dto'">
+      <PropertyGroup>
+        <GmsdDomain>Product</GmsdDomain>
+        <GmsdLayer>Product.Dto</GmsdLayer>
+        <GmsdStackRank>10</GmsdStackRank>
+        <GmsdEngineRank>0</GmsdEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(MSBuildProjectName)' == 'Gmsd.Data'">
+      <PropertyGroup>
+        <GmsdDomain>Product</GmsdDomain>
+        <GmsdLayer>Product.Data</GmsdLayer>
+        <GmsdStackRank>20</GmsdStackRank>
+        <GmsdEngineRank>0</GmsdEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(MSBuildProjectName)' == 'Gmsd.Services'">
+      <PropertyGroup>
+        <GmsdDomain>Product</GmsdDomain>
+        <GmsdLayer>Product.Services</GmsdLayer>
+        <GmsdStackRank>30</GmsdStackRank>
+        <GmsdEngineRank>0</GmsdEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <!-- Hosts -->
+    <When Condition="'$(MSBuildProjectName)' == 'Gmsd.Api'">
+      <PropertyGroup>
+        <GmsdDomain>Host</GmsdDomain>
+        <GmsdLayer>Host.Api</GmsdLayer>
+        <GmsdStackRank>40</GmsdStackRank>
+        <GmsdEngineRank>0</GmsdEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(MSBuildProjectName)' == 'Gmsd.Web'">
+      <PropertyGroup>
+        <GmsdDomain>Host</GmsdDomain>
+        <GmsdLayer>Host.Web</GmsdLayer>
+        <GmsdStackRank>50</GmsdStackRank>
+        <GmsdEngineRank>0</GmsdEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(MSBuildProjectName)' == 'Gmsd.Windows.Service'">
+      <PropertyGroup>
+        <GmsdDomain>Host</GmsdDomain>
+        <GmsdLayer>Host.Windows.Service</GmsdLayer>
+        <GmsdStackRank>60</GmsdStackRank>
+        <GmsdEngineRank>0</GmsdEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(MSBuildProjectName)' == 'Gmsd.Windows.Service.Api'">
+      <PropertyGroup>
+        <GmsdDomain>Host</GmsdDomain>
+        <GmsdLayer>Host.Windows.Service.Api</GmsdLayer>
+        <GmsdStackRank>61</GmsdStackRank>
+        <GmsdEngineRank>0</GmsdEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <!-- Engine (AOS) -->
+    <When Condition="'$(MSBuildProjectName)' == 'Gmsd.Aos'">
+      <PropertyGroup>
+        <GmsdDomain>Engine</GmsdDomain>
+        <GmsdLayer>Engine.Aos</GmsdLayer>
+        <GmsdStackRank>0</GmsdStackRank>
+        <GmsdEngineRank>10</GmsdEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(MSBuildProjectName)' == 'Gmsd.Agents'">
+      <PropertyGroup>
+        <GmsdDomain>Engine</GmsdDomain>
+        <GmsdLayer>Engine.Agents</GmsdLayer>
+        <GmsdStackRank>0</GmsdStackRank>
+        <GmsdEngineRank>20</GmsdEngineRank>
+      </PropertyGroup>
+    </When>
+  </Choose>
+</Project>

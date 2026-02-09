@@ -1,0 +1,578 @@
+@page
+@model Gmsd.Web.Pages.Checkpoints.IndexModel
+@{
+    ViewData["Title"] = "Pause/Resume & Checkpoints";
+}
+
+<h1>Pause/Resume & Checkpoints</h1>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-error">
+        @Model.ErrorMessage
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success">
+        @Model.SuccessMessage
+    </div>
+}
+
+@if (string.IsNullOrEmpty(Model.WorkspacePath))
+{
+    <div class="empty-state">
+        <div class="empty-state-icon">📁</div>
+        <h3>No Workspace Selected</h3>
+        <p>Please select a workspace to manage checkpoints and locks.</p>
+        <a href="~/Workspace" class="btn btn-primary">Select Workspace</a>
+    </div>
+}
+else
+{
+    <!-- Lock Status Section -->
+    <div class="dashboard-card mb-4">
+        <div class="dashboard-header">
+            <h2>Workspace Lock</h2>
+            @if (Model.LockExists)
+            {
+                <span class="badge badge-danger">🔒 Locked</span>
+            }
+            else
+            {
+                <span class="badge badge-success">🔓 Unlocked</span>
+            }
+        </div>
+        <div class="dashboard-body">
+            @if (Model.LockExists && Model.LockStatus?.Holder != null)
+            {
+                var holder = Model.LockStatus.Holder;
+                <div class="lock-info">
+                    <div class="lock-detail">
+                        <span class="lock-label">Process:</span>
+                        <span class="lock-value">@holder.ProcessName (PID: @holder.ProcessId)</span>
+                    </div>
+                    <div class="lock-detail">
+                        <span class="lock-label">Machine:</span>
+                        <span class="lock-value">@holder.MachineName</span>
+                    </div>
+                    <div class="lock-detail">
+                        <span class="lock-label">Started:</span>
+                        <span class="lock-value">@holder.StartedAtUtc.ToString("yyyy-MM-dd HH:mm:ss UTC")</span>
+                    </div>
+                </div>
+
+                <div class="lock-actions mt-3">
+                    <form method="post" asp-page-handler="ReleaseLock" class="d-inline">
+                        <button type="submit" class="btn btn-warning" onclick="return confirm('Are you sure you want to release the lock? This may interfere with an active process.')">
+                            <span class="btn-icon">🔓</span> Release Lock
+                        </button>
+                    </form>
+                    <form method="post" asp-page-handler="ReleaseLock" asp-route-force="true" class="d-inline ml-2">
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('⚠️ WARNING: Force release bypasses all validation. Are you sure?')">
+                            <span class="btn-icon">⚠️</span> Force Release
+                        </button>
+                    </form>
+                </div>
+            }
+            else if (Model.LockExists)
+            {
+                <div class="lock-info">
+                    <p class="text-muted">Lock is active but holder information is unavailable (corrupted lock file).</p>
+                </div>
+                <div class="lock-actions mt-3">
+                    <form method="post" asp-page-handler="ReleaseLock" asp-route-force="true" class="d-inline">
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('⚠️ WARNING: Force release bypasses all validation. Are you sure?')">
+                            <span class="btn-icon">⚠️</span> Force Release
+                        </button>
+                    </form>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state-small">
+                    <p class="text-muted">Workspace is currently unlocked. No active processes are holding the lock.</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Pause/Resume Section -->
+    <div class="dashboard-card mb-4">
+        <div class="dashboard-header">
+            <h2>Pause & Resume</h2>
+        </div>
+        <div class="dashboard-body">
+            <div class="pause-resume-grid">
+                <!-- Pause Action -->
+                <div class="action-card">
+                    <h4>⏸️ Pause Execution</h4>
+                    <p class="text-muted">Capture current execution state to handoff.json for later resumption.</p>
+                    <form method="post" asp-page-handler="Pause">
+                        <div class="form-group">
+                            <label for="pauseReason">Reason (optional):</label>
+                            <input type="text" id="pauseReason" name="PauseReason" class="form-control" placeholder="e.g., 'Need to review changes before continuing'" />
+                        </div>
+                        <button type="submit" class="btn btn-warning" @(Model.LockExists ? "" : "disabled")>
+                            <span class="btn-icon">⏸️</span> Pause
+                        </button>
+                        @if (!Model.LockExists)
+                        {
+                            <small class="text-muted ml-2">No active execution to pause.</small>
+                        }
+                    </form>
+                </div>
+
+                <!-- Resume Action -->
+                <div class="action-card">
+                    <h4>▶️ Resume Execution</h4>
+                    <p class="text-muted">Resume execution from handoff.json after validation.</p>
+                    <form method="post" asp-page-handler="ValidateHandoff" class="mb-2">
+                        <button type="submit" class="btn btn-info" @(Model.HandoffExists ? "" : "disabled")>
+                            <span class="btn-icon">✓</span> Validate Handoff
+                        </button>
+                    </form>
+                    <form method="post" asp-page-handler="Resume">
+                        <button type="submit" class="btn btn-success" @(Model.HandoffExists ? "" : "disabled")>
+                            <span class="btn-icon">▶️</span> Resume
+                        </button>
+                        @if (!Model.HandoffExists)
+                        {
+                            <small class="text-muted ml-2">No handoff.json exists. Pause first.</small>
+                        }
+                    </form>
+                </div>
+            </div>
+
+            <!-- Handoff Status -->
+            @if (Model.HandoffExists)
+            {
+                <div class="handoff-status mt-4">
+                    <h4>📄 Handoff.json Status</h4>
+                    <div class="status-badge badge badge-success">Exists</div>
+                    @if (Model.Handoff != null)
+                    {
+                        <div class="handoff-details mt-2">
+                            <div class="handoff-detail">
+                                <span class="handoff-label">Source Run:</span>
+                                <span class="handoff-value">@Model.Handoff.SourceRunId</span>
+                            </div>
+                            <div class="handoff-detail">
+                                <span class="handoff-label">Timestamp:</span>
+                                <span class="handoff-value">@Model.Handoff.Timestamp</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(Model.Handoff.Reason))
+                            {
+                                <div class="handoff-detail">
+                                    <span class="handoff-label">Reason:</span>
+                                    <span class="handoff-value">@Model.Handoff.Reason</span>
+                                </div>
+                            }
+                            @if (Model.Handoff.Cursor != null)
+                            {
+                                <div class="handoff-detail">
+                                    <span class="handoff-label">Cursor:</span>
+                                    <span class="handoff-value">
+                                        @if (!string.IsNullOrEmpty(Model.Handoff.Cursor.MilestoneId))
+                                        {
+                                            <text>M:@Model.Handoff.Cursor.MilestoneId </text>
+                                        }
+                                        @if (!string.IsNullOrEmpty(Model.Handoff.Cursor.PhaseId))
+                                        {
+                                            <text>P:@Model.Handoff.Cursor.PhaseId </text>
+                                        }
+                                        @if (!string.IsNullOrEmpty(Model.Handoff.Cursor.TaskId))
+                                        {
+                                            <text>T:@Model.Handoff.Cursor.TaskId</text>
+                                        }
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="handoff-status mt-4">
+                    <h4>📄 Handoff.json Status</h4>
+                    <div class="status-badge badge badge-secondary">Not Present</div>
+                    <p class="text-muted mt-2">No handoff.json file exists. Use Pause to create one.</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Checkpoints Section -->
+    <div class="dashboard-card mb-4">
+        <div class="dashboard-header">
+            <h2>Checkpoints (@Model.Checkpoints.Count)</h2>
+            <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('createCheckpointForm').style.display = 'block'">
+                <span class="btn-icon">+</span> Create Checkpoint
+            </button>
+        </div>
+        <div class="dashboard-body">
+            <!-- Create Checkpoint Form -->
+            <div id="createCheckpointForm" style="display: none;" class="create-form mb-4">
+                <form method="post" asp-page-handler="CreateCheckpoint">
+                    <div class="form-group">
+                        <label for="checkpointDescription">Description:</label>
+                        <input type="text" id="checkpointDescription" name="CheckpointDescription" class="form-control" placeholder="e.g., 'Before major refactoring'" />
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Create</button>
+                        <button type="button" class="btn btn-secondary ml-2" onclick="document.getElementById('createCheckpointForm').style.display = 'none'">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            @if (Model.Checkpoints.Count == 0)
+            {
+                <div class="empty-state">
+                    <div class="empty-state-icon">💾</div>
+                    <h3>No Checkpoints</h3>
+                    <p>No checkpoints have been created yet.</p>
+                </div>
+            }
+            else
+            {
+                <div class="checkpoints-list">
+                    @foreach (var checkpoint in Model.Checkpoints.OrderByDescending(c => c.CreatedAtUtc))
+                    {
+                        <div class="checkpoint-item">
+                            <div class="checkpoint-header">
+                                <div class="checkpoint-id">@checkpoint.CheckpointId</div>
+                                <div class="checkpoint-date">@checkpoint.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm UTC")</div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(checkpoint.Description))
+                            {
+                                <div class="checkpoint-description">@checkpoint.Description</div>
+                            }
+                            <div class="checkpoint-actions">
+                                <a href="?ViewCheckpointId=@checkpoint.CheckpointId" class="btn btn-sm btn-secondary">View</a>
+                                <form method="post" asp-page-handler="RestoreCheckpoint" class="d-inline">
+                                    <input type="hidden" name="RestoreCheckpointId" value="@checkpoint.CheckpointId" />
+                                    <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('Restore checkpoint @checkpoint.CheckpointId? This will overwrite current state.')">
+                                        Restore
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Checkpoint Detail Modal -->
+    @if (!string.IsNullOrEmpty(Model.ViewCheckpointId))
+    {
+        var checkpoint = Model.Checkpoints.FirstOrDefault(c => c.CheckpointId == Model.ViewCheckpointId);
+        if (checkpoint != null)
+        {
+            <div class="modal-overlay" id="checkpointModal">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Checkpoint @checkpoint.CheckpointId</h3>
+                            <a href="~/Checkpoints" class="modal-close">&times;</a>
+                        </div>
+                        <div class="modal-body">
+                            <div class="checkpoint-info mb-3">
+                                <p><strong>Created:</strong> @checkpoint.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss UTC")</p>
+                                @if (!string.IsNullOrEmpty(checkpoint.Description))
+                                {
+                                    <p><strong>Description:</strong> @checkpoint.Description</p>
+                                }
+                                <p><strong>State Path:</strong> <code>@checkpoint.StateSnapshotPath</code></p>
+                            </div>
+
+                            @if (System.IO.File.Exists(checkpoint.StateSnapshotPath))
+                            {
+                                var content = System.IO.File.ReadAllText(checkpoint.StateSnapshotPath);
+                                @await Html.PartialAsync("Shared/_JsonViewer", new Gmsd.Web.Models.JsonViewerModel
+                                {
+                                    JsonContent = content,
+                                    FileName = "state.json",
+                                    ShowToolbar = true,
+                                    AllowDownload = true,
+                                    DownloadUrl = $"data:application/json;base64,{Convert.ToBase64String(System.IO.File.ReadAllBytes(checkpoint.StateSnapshotPath))}"
+                                })
+                            }
+                            else
+                            {
+                                <div class="alert alert-warning">State snapshot file not found.</div>
+                            }
+                        </div>
+                        <div class="modal-footer">
+                            <form method="post" asp-page-handler="RestoreCheckpoint" class="d-inline mr-2">
+                                <input type="hidden" name="RestoreCheckpointId" value="@checkpoint.CheckpointId" />
+                                <button type="submit" class="btn btn-warning" onclick="return confirm('Restore this checkpoint? This will overwrite current state.')">
+                                    Restore Checkpoint
+                                </button>
+                            </form>
+                            <a href="~/Checkpoints" class="btn btn-secondary">Close</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+    <div class="mt-3">
+        <a href="~/" class="btn btn-secondary">← Back to Dashboard</a>
+    </div>
+}
+
+<style>
+    .lock-info {
+        background: var(--info-bg, #f8f9fa);
+        padding: 0.75rem;
+        border-radius: 4px;
+        border: 1px solid var(--border-color, #e1e4e8);
+    }
+
+    .lock-detail {
+        display: flex;
+        margin-bottom: 0.5rem;
+    }
+
+    .lock-detail:last-child {
+        margin-bottom: 0;
+    }
+
+    .lock-label {
+        font-weight: 600;
+        min-width: 80px;
+        color: var(--text-muted, #6c757d);
+    }
+
+    .lock-value {
+        font-family: monospace;
+    }
+
+    .lock-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .empty-state-small {
+        padding: 1rem;
+        text-align: center;
+    }
+
+    .pause-resume-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1rem;
+    }
+
+    .action-card {
+        border: 1px solid var(--border-color, #e1e4e8);
+        border-radius: 6px;
+        padding: 1rem;
+    }
+
+    .action-card h4 {
+        margin-top: 0;
+        margin-bottom: 0.75rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.375rem 0.75rem;
+        border: 1px solid var(--border-color, #e1e4e8);
+        border-radius: 4px;
+    }
+
+    .handoff-status {
+        background: var(--info-bg, #f8f9fa);
+        padding: 1rem;
+        border-radius: 6px;
+        border: 1px solid var(--border-color, #e1e4e8);
+    }
+
+    .handoff-details {
+        display: grid;
+        gap: 0.5rem;
+    }
+
+    .handoff-detail {
+        display: flex;
+    }
+
+    .handoff-label {
+        font-weight: 600;
+        min-width: 100px;
+        color: var(--text-muted, #6c757d);
+    }
+
+    .handoff-value {
+        font-family: monospace;
+        font-size: 0.9rem;
+    }
+
+    .create-form {
+        background: var(--info-bg, #f8f9fa);
+        padding: 1rem;
+        border-radius: 6px;
+        border: 1px solid var(--border-color, #e1e4e8);
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .checkpoints-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .checkpoint-item {
+        border: 1px solid var(--border-color, #e1e4e8);
+        border-radius: 6px;
+        padding: 1rem;
+        border-left: 4px solid #17a2b8;
+    }
+
+    .checkpoint-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .checkpoint-id {
+        font-family: monospace;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .checkpoint-date {
+        font-size: 0.875rem;
+        color: var(--text-muted, #6c757d);
+    }
+
+    .checkpoint-description {
+        color: var(--text-muted, #6c757d);
+        font-style: italic;
+        margin-bottom: 0.75rem;
+    }
+
+    .checkpoint-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .status-badge {
+        display: inline-block;
+    }
+
+    .d-inline {
+        display: inline;
+    }
+
+    .ml-2 {
+        margin-left: 0.5rem;
+    }
+
+    .mr-2 {
+        margin-right: 0.5rem;
+    }
+
+    .mt-2 {
+        margin-top: 0.5rem;
+    }
+
+    .mt-3 {
+        margin-top: 0.75rem;
+    }
+
+    .mt-4 {
+        margin-top: 1rem;
+    }
+
+    .mb-4 {
+        margin-bottom: 1rem;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-dialog {
+        background: var(--card-bg, #fff);
+        border-radius: 6px;
+        max-width: 90vw;
+        max-height: 90vh;
+        overflow: auto;
+    }
+
+    .modal-lg {
+        width: 900px;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color, #e1e4e8);
+    }
+
+    .modal-header h3 {
+        margin: 0;
+    }
+
+    .modal-close {
+        font-size: 1.5rem;
+        text-decoration: none;
+        color: var(--text-muted, #6c757d);
+    }
+
+    .modal-body {
+        padding: 1rem;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+
+    .modal-footer {
+        padding: 1rem;
+        border-top: 1px solid var(--border-color, #e1e4e8);
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+    }
+
+    .checkpoint-info {
+        background: var(--info-bg, #f8f9fa);
+        padding: 0.75rem;
+        border-radius: 4px;
+    }
+
+    .checkpoint-info p {
+        margin: 0.25rem 0;
+    }
+</style>

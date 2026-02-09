@@ -1,0 +1,23 @@
+{
+  "$id": "gmsd:aos:schema:catalog-index:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "items": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "items"
+  ],
+  "title": "AOS Spec Catalog Index (index.json)",
+  "type": "object"
+}

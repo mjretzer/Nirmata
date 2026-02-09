@@ -1,0 +1,5 @@
+{
+  "exitCode": 2,
+  "stderr": "Validation failed: 3 issue(s).\nAOS_ERROR: {\u0022code\u0022:\u0022aos.schemas.invalid_pack\u0022,\u0022message\u0022:\u0022Schema pack validation failed.\u0022}\n",
+  "stdout": "Repository root: \u003CROOT\u003E\nLocal schemas discovered: 1\nFAIL test.schema.json (id=test)\n  - Missing required \u0027$schema\u0027 string.\n  - Missing required \u0027$id\u0027 string.\n  - Missing required \u0027type\u0027 string.\n"
+}

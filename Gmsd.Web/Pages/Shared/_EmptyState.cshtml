@@ -1,0 +1,17 @@
+@model Gmsd.Web.ViewModels.EmptyStateViewModel
+
+<div class="empty-state">
+    @if (!string.IsNullOrEmpty(Model.Icon))
+    {
+        <div class="empty-state-icon">@Model.Icon</div>
+    }
+    <h3>@Model.Title</h3>
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <p>@Model.Message</p>
+    }
+    @if (!string.IsNullOrEmpty(Model.ActionUrl) && !string.IsNullOrEmpty(Model.ActionText))
+    {
+        <a href="@Model.ActionUrl" class="btn btn-primary">@Model.ActionText</a>
+    }
+</div>

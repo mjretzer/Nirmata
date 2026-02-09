@@ -1,0 +1,207 @@
+@page "{runId}"
+@model Gmsd.Web.Pages.Runs.DetailsModel
+@{
+    ViewData["Title"] = $"Run Details - {Model.Run?.RunId ?? "Not Found"}";
+}
+
+@if (Model.Run == null)
+{
+    <div class="error-state">
+        <h1>Run Not Found</h1>
+        <p>@Model.NotFoundMessage</p>
+        <a href="~/Runs" class="btn btn-secondary">Back to Runs</a>
+    </div>
+}
+else
+{
+    <div class="run-details">
+        <div class="page-header">
+            <h1>Run Details</h1>
+            <a href="~/Runs" class="btn btn-secondary">← Back to Runs</a>
+        </div>
+
+        <section class="metadata-section">
+            <h2>Run Metadata</h2>
+            <div class="metadata-grid">
+                <div class="metadata-item">
+                    <label>Run ID</label>
+                    <span class="value">@Model.Run.RunId</span>
+                </div>
+                <div class="metadata-item">
+                    <label>Correlation ID</label>
+                    <span class="value">@Model.Run.CorrelationId</span>
+                </div>
+                <div class="metadata-item">
+                    <label>Status</label>
+                    <span class="value">
+                        @if (Model.Run.Success)
+                        {
+                            <span class="status-badge status-success">Success</span>
+                        }
+                        else if (!string.IsNullOrEmpty(Model.Run.ErrorMessage))
+                        {
+                            <span class="status-badge status-error">Failed</span>
+                        }
+                        else
+                        {
+                            <span class="status-badge status-unknown">Unknown</span>
+                        }
+                    </span>
+                </div>
+                <div class="metadata-item">
+                    <label>Start Time</label>
+                    <span class="value">@Model.Run.StartedAt.ToLocalTime().ToString("F")</span>
+                </div>
+                <div class="metadata-item">
+                    <label>End Time</label>
+                    <span class="value">@Model.Run.CompletedAt.ToLocalTime().ToString("F")</span>
+                </div>
+                <div class="metadata-item">
+                    <label>Duration</label>
+                    <span class="value">@Model.Run.Duration.ToString("hh\\:mm\\:ss")</span>
+                </div>
+            </div>
+        </section>
+
+        @if (!string.IsNullOrEmpty(Model.Run.ErrorMessage))
+        {
+            <section class="error-section">
+                <h2>Error</h2>
+                <div class="error-message">
+                    <p><strong>Error Code:</strong> @(Model.Run.ErrorCode ?? "N/A")</p>
+                    <p><strong>Message:</strong> @Model.Run.ErrorMessage</p>
+                </div>
+            </section>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.RelatedTaskId))
+        {
+            <section class="related-task-section">
+                <h2>Related Task</h2>
+                <div class="section-content">
+                    <p>This run is associated with task: <code>@Model.RelatedTaskId</code></p>
+                    <a href="~/Tasks/Details/@Model.RelatedTaskId" class="btn btn-secondary">View Task</a>
+                    <a href="~/Uat/Verify?taskId=@Model.RelatedTaskId" class="btn btn-secondary">View UAT</a>
+                </div>
+            </section>
+        }
+
+        @if (Model.RelatedUatSessions.Count > 0)
+        {
+            <section class="related-uat-section">
+                <h2>Related UAT Sessions</h2>
+                <div class="related-list">
+                    @foreach (var uat in Model.RelatedUatSessions)
+                    {
+                        <div class="related-item">
+                            <div class="related-info">
+                                <strong>@uat.SessionId</strong>
+                                <span class="badge @(uat.Status switch {
+                                    "Passed" => "badge-success",
+                                    "Failed" => "badge-error",
+                                    _ => "badge-warning"
+                                })">
+                                    @uat.Status
+                                </span>
+                                <span class="text-muted">@uat.PassedCount ✓ / @uat.FailedCount ✗ / @uat.PendingCount ⏳</span>
+                            </div>
+                            <div class="related-actions">
+                                <a href="~/Uat/Verify?taskId=@uat.TaskId&sessionId=@uat.SessionId" class="btn btn-sm btn-primary">View UAT</a>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+
+        @if (Model.RelatedIssues.Count > 0)
+        {
+            <section class="related-issues-section">
+                <h2>Related Issues</h2>
+                <div class="related-list">
+                    @foreach (var issue in Model.RelatedIssues)
+                    {
+                        <div class="related-item">
+                            <div class="related-info">
+                                <code>@issue.Id</code>
+                                <strong>@issue.Title</strong>
+                                @await Html.PartialAsync("_IssueSeverityBadge", issue.Severity)
+                                @await Html.PartialAsync("_IssueStatusBadge", issue.Status)
+                            </div>
+                            <div class="related-actions">
+                                <a href="~/Issues/Details/@issue.Id" class="btn btn-sm btn-primary">View Issue</a>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="mt-2">
+                    <a href="~/Issues?SearchQuery=@Model.RelatedTaskId" class="btn btn-secondary">View All Related Issues</a>
+                </div>
+            </section>
+        }
+
+        <section class="artifacts-section">
+            <h2>Artifacts</h2>
+            <div class="artifact-list">
+                @if (System.IO.File.Exists(Model.SummaryArtifactPath))
+                {
+                    <div class="artifact-item">
+                        <span class="artifact-icon">📄</span>
+                        <span class="artifact-name">summary.json</span>
+                        <span class="artifact-path">@Model.SummaryArtifactPath</span>
+                    </div>
+                }
+                @if (System.IO.File.Exists(Model.CommandsArtifactPath))
+                {
+                    <div class="artifact-item">
+                        <span class="artifact-icon">📄</span>
+                        <span class="artifact-name">commands.json</span>
+                        <span class="artifact-path">@Model.CommandsArtifactPath</span>
+                    </div>
+                }
+                @if (!System.IO.File.Exists(Model.SummaryArtifactPath) && !System.IO.File.Exists(Model.CommandsArtifactPath))
+                {
+                    <p class="empty-text">No artifacts available.</p>
+                }
+            </div>
+        </section>
+
+        <section class="logs-section">
+            <h2>Execution Logs</h2>
+            @if (Model.Logs.Count == 0)
+            {
+                <div class="empty-state">
+                    <p>No logs available for this run.</p>
+                </div>
+            }
+            else
+            {
+                <div class="logs-container">
+                    <table class="table logs-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Level</th>
+                                <th>Source</th>
+                                <th>Message</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var log in Model.Logs)
+                            {
+                                <tr class="log-entry log-level-@(log.Level?.ToLower() ?? "info")">
+                                    <td class="log-timestamp">@(log.Timestamp ?? "N/A")</td>
+                                    <td class="log-level">
+                                        <span class="level-badge level-@(log.Level?.ToLower() ?? "info")">@(log.Level ?? "INFO")</span>
+                                    </td>
+                                    <td class="log-source">@(log.Source ?? "N/A")</td>
+                                    <td class="log-message">@(log.Message ?? "N/A")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    </div>
+}

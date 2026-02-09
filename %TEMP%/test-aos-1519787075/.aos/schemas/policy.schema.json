@@ -1,0 +1,64 @@
+{
+  "$id": "gmsd:aos:schema:policy:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "noImplicitState": {
+      "const": true,
+      "type": "boolean"
+    },
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    },
+    "scopeAllowlist": {
+      "additionalProperties": false,
+      "properties": {
+        "write": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "write"
+      ],
+      "type": "object"
+    },
+    "toolAllowlist": {
+      "additionalProperties": false,
+      "properties": {
+        "providers": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "tools": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "tools",
+        "providers"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "scopeAllowlist",
+    "toolAllowlist",
+    "noImplicitState"
+  ],
+  "title": "AOS Policy (policy.json)",
+  "type": "object"
+}

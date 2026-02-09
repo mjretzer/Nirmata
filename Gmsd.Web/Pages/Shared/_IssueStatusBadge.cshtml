@@ -1,0 +1,15 @@
+@model Gmsd.Web.Models.IssueStatus
+
+@{
+    var (cssClass, label) = Model switch
+    {
+        Gmsd.Web.Models.IssueStatus.Open => ("badge badge-error", "Open"),
+        Gmsd.Web.Models.IssueStatus.InProgress => ("badge badge-primary", "In Progress"),
+        Gmsd.Web.Models.IssueStatus.Resolved => ("badge badge-success", "Resolved"),
+        Gmsd.Web.Models.IssueStatus.Deferred => ("badge badge-warning", "Deferred"),
+        Gmsd.Web.Models.IssueStatus.Closed => ("badge badge-secondary", "Closed"),
+        _ => ("badge badge-secondary", "Unknown")
+    };
+}
+
+<span class="@cssClass">@label</span>

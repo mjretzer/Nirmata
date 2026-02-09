@@ -1,0 +1,5 @@
+{
+  "exitCode": 0,
+  "stderr": "",
+  "stdout": "Repository root: \u003CROOT\u003E\nLocal schemas discovered: 1\nPASS test.schema.json (id=test)\nOK\n"
+}

@@ -1,0 +1,37 @@
+[
+  {
+    "contractPath": ".aos/spec/milestones/MS-0001/milestone.json",
+    "id": "MS-0001",
+    "kind": "Milestone"
+  },
+  {
+    "contractPath": ".aos/spec/phases/PH-0001/phase.json",
+    "id": "PH-0001",
+    "kind": "Phase"
+  },
+  {
+    "contractPath": ".aos/spec/tasks/TSK-000001/task.json",
+    "id": "TSK-000001",
+    "kind": "Task"
+  },
+  {
+    "contractPath": ".aos/spec/issues/ISS-0001.json",
+    "id": "ISS-0001",
+    "kind": "Issue"
+  },
+  {
+    "contractPath": ".aos/spec/uat/UAT-0001.json",
+    "id": "UAT-0001",
+    "kind": "Uat"
+  },
+  {
+    "contractPath": ".aos/context/packs/PCK-0001.json",
+    "id": "PCK-0001",
+    "kind": "ContextPack"
+  },
+  {
+    "contractPath": ".aos/evidence/runs/0123456789abcdef0123456789abcdef/",
+    "id": "0123456789abcdef0123456789abcdef",
+    "kind": "Run"
+  }
+]

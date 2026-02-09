@@ -1,0 +1,398 @@
+@page "{id}"
+@model Gmsd.Web.Pages.Phases.DetailsModel
+@using Gmsd.Web.Models
+@{
+    ViewData["Title"] = $"Phase: {Model.Phase.Name}";
+}
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-error">
+        @Model.ErrorMessage
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success">
+        @Model.SuccessMessage
+    </div>
+}
+
+<div class="detail-page">
+    <div class="detail-header">
+        <div class="detail-title">
+            <h1>@Model.Phase.Name</h1>
+            <span class="badge @(Model.Phase.Status switch {
+                SpecItemStatus.Completed or SpecItemStatus.Verified => "badge-success",
+                SpecItemStatus.InProgress => "badge-warning",
+                SpecItemStatus.Blocked => "badge-error",
+                SpecItemStatus.Draft => "badge-info",
+                _ => "badge-info"
+            })">
+                @Model.Phase.Status
+            </span>
+        </div>
+        <div class="detail-meta">
+            <span>ID: @Model.Phase.Id</span>
+            @if (!string.IsNullOrEmpty(Model.Phase.MilestoneName))
+            {
+                <span>Milestone: @Model.Phase.MilestoneName</span>
+            }
+        </div>
+        <div class="detail-actions">
+            <a href="~/Roadmap" class="btn btn-secondary">← Back to Roadmap</a>
+            <a href="~/Tasks?phaseId=@Model.Phase.Id" class="btn btn-secondary">View Tasks</a>
+            <form method="post" asp-page-handler="PlanPhase" asp-route-id="@Model.Phase.Id" style="display: inline;">
+                <button type="submit" class="btn btn-primary">Plan Phase (Generate Tasks)</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="tabs-container">
+        <div class="tabs-header">
+            <button class="tab-button @(Model.ActiveTab == "overview" ? "active" : "")" 
+                    onclick="switchTab('overview')">Overview</button>
+            <button class="tab-button @(Model.ActiveTab == "goals" ? "active" : "")" 
+                    onclick="switchTab('goals')">Goals & Outcomes</button>
+            <button class="tab-button @(Model.ActiveTab == "assumptions" ? "active" : "")" 
+                    onclick="switchTab('assumptions')">Assumptions</button>
+            <button class="tab-button @(Model.ActiveTab == "research" ? "active" : "")" 
+                    onclick="switchTab('research')">Research</button>
+            <button class="tab-button @(Model.ActiveTab == "notes" ? "active" : "")" 
+                    onclick="switchTab('notes')">Discussion Notes</button>
+            <button class="tab-button @(Model.ActiveTab == "constraints" ? "active" : "")" 
+                    onclick="switchTab('constraints')">Constraints</button>
+        </div>
+
+        <div class="tabs-content">
+            <!-- Overview Tab -->
+            <div id="tab-overview" class="tab-content @(Model.ActiveTab == "overview" ? "active" : "")">
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">Description</h3>
+                    </div>
+                    <div class="section-content">
+                        @if (!string.IsNullOrEmpty(Model.Phase.Description))
+                        {
+                            <p>@Model.Phase.Description</p>
+                        }
+                        else
+                        {
+                            <p class="text-muted">No description provided.</p>
+                        }
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">Quick Stats</h3>
+                    </div>
+                    <div class="section-content">
+                        <div class="quick-stats">
+                            <div class="stat-card">
+                                <span class="stat-value">@Model.Phase.Tasks.Count</span>
+                                <span class="stat-label">Tasks</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-value">@Model.Phase.Assumptions.Count</span>
+                                <span class="stat-label">Assumptions</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-value">@Model.Phase.Research.Count</span>
+                                <span class="stat-label">Research Items</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-value">@Model.Phase.Constraints.Count</span>
+                                <span class="stat-label">Constraints</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Goals & Outcomes Tab -->
+            <div id="tab-goals" class="tab-content @(Model.ActiveTab == "goals" ? "active" : "")">
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">Goals</h3>
+                    </div>
+                    <div class="section-content">
+                        @if (Model.Phase.Goals.Any())
+                        {
+                            <ul class="item-list">
+                                @foreach (var goal in Model.Phase.Goals)
+                                {
+                                    <li><span class="item-bullet">→</span> @goal</li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <p class="text-muted">No goals defined yet.</p>
+                        }
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">Expected Outcomes</h3>
+                    </div>
+                    <div class="section-content">
+                        @if (Model.Phase.Outcomes.Any())
+                        {
+                            <ul class="item-list">
+                                @foreach (var outcome in Model.Phase.Outcomes)
+                                {
+                                    <li><span class="item-bullet">✓</span> @outcome</li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <p class="text-muted">No outcomes defined yet.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assumptions Tab -->
+            <div id="tab-assumptions" class="tab-content @(Model.ActiveTab == "assumptions" ? "active" : "")">
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">Assumptions</h3>
+                    </div>
+                    <div class="section-content">
+                        <form method="post" asp-page-handler="AddAssumption" asp-route-id="@Model.Phase.Id" class="form-inline mb-3">
+                            <div class="input-group">
+                                <input type="text" name="NewAssumption" class="form-control" 
+                                       placeholder="Add a new assumption..." required />
+                                <button type="submit" class="btn btn-primary">Add Assumption</button>
+                            </div>
+                        </form>
+
+                        @if (Model.Phase.Assumptions.Any())
+                        {
+                            <ul class="item-list">
+                                @foreach (var assumption in Model.Phase.Assumptions)
+                                {
+                                    <li><span class="item-bullet">⚠</span> @assumption</li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <p class="text-muted">No assumptions recorded yet.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Research Tab -->
+            <div id="tab-research" class="tab-content @(Model.ActiveTab == "research" ? "active" : "")">
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">Research Items</h3>
+                    </div>
+                    <div class="section-content">
+                        <form method="post" asp-page-handler="SetResearch" asp-route-id="@Model.Phase.Id" class="mb-3">
+                            <div class="form-group">
+                                <label>Research Topic</label>
+                                <input type="text" name="ResearchTopic" class="form-control" 
+                                       placeholder="What needs to be researched?" required />
+                            </div>
+                            <div class="form-group">
+                                <label>Findings (optional)</label>
+                                <textarea name="ResearchFindings" class="form-control" rows="3" 
+                                          placeholder="Initial findings or notes..."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Add Research Item</button>
+                        </form>
+
+                        @if (Model.Phase.Research.Any())
+                        {
+                            <div class="research-list">
+                                @foreach (var research in Model.Phase.Research)
+                                {
+                                    <div class="research-item">
+                                        <div class="research-header">
+                                            <h4>@research.Topic</h4>
+                                            @if (research.IsComplete)
+                                            {
+                                                <span class="badge badge-success">Complete</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge badge-warning">In Progress</span>
+                                            }
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(research.Findings))
+                                        {
+                                            <p class="research-findings">@research.Findings</p>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <p class="text-muted">No research items recorded yet.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes Tab (Discussion) -->
+            <div id="tab-notes" class="tab-content @(Model.ActiveTab == "notes" ? "active" : "")">
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">Discussion Notes</h3>
+                    </div>
+                    <div class="section-content">
+                        <form method="post" asp-page-handler="AddNote" asp-route-id="@Model.Phase.Id" class="mb-3">
+                            <div class="form-group">
+                                <label>Add Note</label>
+                                <textarea name="NoteContent" class="form-control" rows="4" 
+                                          placeholder="Enter discussion notes, questions, or observations..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Add Note</button>
+                        </form>
+
+                        <div class="notes-list">
+                            <p class="text-muted">Notes will appear here once the discussion system is fully implemented.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Constraints Tab -->
+            <div id="tab-constraints" class="tab-content @(Model.ActiveTab == "constraints" ? "active" : "")">
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">Constraints & Blockers</h3>
+                    </div>
+                    <div class="section-content">
+                        @if (Model.Phase.Constraints.Any())
+                        {
+                            <div class="constraint-list">
+                                @foreach (var constraint in Model.Phase.Constraints)
+                                {
+                                    <div class="constraint-item @(constraint.IsBlocking ? "blocking" : "")">
+                                        <div class="constraint-type">@constraint.Type</div>
+                                        <div class="constraint-description">@constraint.Description</div>
+                                        @if (!string.IsNullOrEmpty(constraint.Source))
+                                        {
+                                            <div class="constraint-source">Source: @constraint.Source</div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <p class="text-muted">No constraints or blockers recorded.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchTab(tabId) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        
+        // Remove active from all buttons
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.classList.remove('active');
+        });
+        
+        // Show selected tab
+        document.getElementById('tab-' + tabId).classList.add('active');
+        
+        // Activate button
+        event.target.classList.add('active');
+    }
+</script>
+
+<style>
+    .research-item {
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .research-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .research-header h4 {
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    .research-findings {
+        margin: 0;
+        color: #5d6d7e;
+        font-size: 0.9rem;
+    }
+
+    .constraint-item {
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        border-left: 4px solid #95a5a6;
+    }
+
+    .constraint-item.blocking {
+        border-left-color: #e74c3c;
+        background-color: #fdf2f2;
+    }
+
+    .constraint-type {
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: #5d6d7e;
+        text-transform: uppercase;
+        margin-bottom: 0.25rem;
+    }
+
+    .constraint-description {
+        color: #2c3e50;
+    }
+
+    .constraint-source {
+        font-size: 0.875rem;
+        color: #7f8c8d;
+        margin-top: 0.5rem;
+    }
+
+    .notes-list {
+        border-top: 1px solid #ecf0f1;
+        padding-top: 1rem;
+    }
+
+    .form-inline {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .form-inline .input-group {
+        flex: 1;
+    }
+</style>

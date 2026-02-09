@@ -1,0 +1,15 @@
+{
+  "callId": "execute-plan.write-outputs",
+  "error": {
+    "message": "boom",
+    "type": "System.InvalidOperationException"
+  },
+  "provider": "aos",
+  "request": {
+    "outputCount": 1
+  },
+  "runId": "RUN_ID",
+  "schemaVersion": 1,
+  "status": "failed",
+  "tool": "execute-plan.write-outputs"
+}

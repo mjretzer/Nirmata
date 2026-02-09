@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gmsd:aos:schema:codebase-integrations:v1",
+  "title": "Codebase Integrations (integrations.json)",
+  "description": "External integration points including APIs, databases, and services",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "externalApis",
+    "databases",
+    "services"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "externalApis": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "type"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "API name or identifier"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["rest", "graphql", "grpc", "soap", "webhook", "sdk"],
+            "description": "API protocol or integration type"
+          },
+          "baseUrl": {
+            "type": "string",
+            "description": "Base URL or endpoint for the API"
+          },
+          "version": {
+            "type": "string",
+            "description": "API version"
+          },
+          "authentication": {
+            "type": "string",
+            "enum": ["none", "api-key", "oauth", "bearer", "basic", "certificate"],
+            "description": "Authentication method used"
+          },
+          "clientFiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Files that interact with this API"
+          }
+        }
+      }
+    },
+    "databases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "type"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Database name or identifier"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["sql-server", "postgresql", "mysql", "sqlite", "mongodb", "cosmosdb", "redis", "dynamodb", "oracle", "other"],
+            "description": "Database type"
+          },
+          "provider": {
+            "type": "string",
+            "description": "ORM or data access provider (e.g., 'EF Core', 'Dapper')"
+          },
+          "connectionStringKey": {
+            "type": "string",
+            "description": "Configuration key for connection string"
+          },
+          "entities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Entity classes mapped to this database"
+          },
+          "migrationFiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Database migration files"
+          }
+        }
+      }
+    },
+    "services": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "type"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Service name or identifier"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["message-queue", "cache", "blob-storage", "search", "email", "notification", "logging", "monitoring", "identity", "payment", "other"],
+            "description": "Service category"
+          },
+          "provider": {
+            "type": "string",
+            "description": "Service provider (e.g., 'Azure Service Bus', 'RabbitMQ', 'AWS S3')"
+          },
+          "integrationFiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Files that integrate with this service"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+@model Gmsd.Web.Pages.Specs.SpecTreeNode
+
+@{
+    var nodeId = Model.RelativePath.Replace("/", "-").Replace("\\", "-").Replace(".", "_");
+}
+
+<div class="tree-node">
+    @if (Model.IsDirectory)
+    {
+        <div class="tree-node-header" onclick="toggleNode('@nodeId')">
+            <span class="folder-icon" id="node-icon-@nodeId">📁</span>
+            <span class="node-name">@Model.Name</span>
+        </div>
+        <div class="tree-children" id="node-children-@nodeId" style="display: none;">
+            @foreach (var child in Model.Children)
+            {
+                <partial name="_SpecTreeNode" model="child" />
+            }
+        </div>
+    }
+    else
+    {
+        <div class="tree-node-header tree-leaf">
+            <a href="~/Specs/View/@Model.RelativePath" class="file-link">
+                <span class="file-icon">@Model.Icon</span>
+                <span class="node-name">@Model.Name</span>
+            </a>
+        </div>
+    }
+</div>

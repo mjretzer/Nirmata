@@ -1,0 +1,14 @@
+{
+  "noImplicitState": true,
+  "schemaVersion": 1,
+  "scopeAllowlist": {
+    "write": [
+      ".aos/"
+    ]
+  },
+  "toolAllowlist": {
+    "providers": [],
+    "tools": []
+  }
+}
+

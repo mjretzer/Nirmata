@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gmsd:aos:schema:todo:v1",
+  "title": "AOS TODO (context/todos/TODO-{id}.json)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schemaVersion",
+    "id",
+    "description",
+    "capturedAt",
+    "status"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for the TODO"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the work item"
+    },
+    "source": {
+      "type": "string",
+      "description": "Origin context (e.g., file path, conversation reference)"
+    },
+    "capturedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the TODO was captured"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "urgent"],
+      "description": "Priority level of the TODO"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["captured", "reviewing", "promoted", "discarded"],
+      "description": "Current status in the TODO lifecycle"
+    }
+  }
+}

@@ -1,16 +1,60 @@
-using Gmsd.Data;
+using FluentValidation.AspNetCore;
+using Gmsd.Api.HealthChecks;
+using Gmsd.Common.Exceptions;
+using Gmsd.Data.Context;
 using Gmsd.Data.Mapping;
-using Gmsd.Services;
+using Gmsd.Data.Repositories;
+using Gmsd.Services.Composition;
+using Gmsd.Services.Implementations;
 using Gmsd.Services.Interfaces;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = context =>
+    {
+        context.ProblemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier;
+
+        if (context.Exception is NotFoundException)
+        {
+            context.ProblemDetails.Status = StatusCodes.Status404NotFound;
+            context.ProblemDetails.Title = "Not found";
+        }
+        else if (context.Exception is ValidationFailedException)
+        {
+            context.ProblemDetails.Status = StatusCodes.Status400BadRequest;
+            context.ProblemDetails.Title = "Validation failed";
+        }
+        else if (context.Exception is GmsdException)
+        {
+            context.ProblemDetails.Status = StatusCodes.Status500InternalServerError;
+            context.ProblemDetails.Title = "Request failed";
+        }
+    };
+});
+
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+            new BadRequestObjectResult(new ValidationProblemDetails(context.ModelState)
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Validation failed"
+            });
+    });
+
+builder.Services.AddFluentValidationAutoValidation();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // Configure Entity Framework with SQLite
 builder.Services.AddDbContext<GmsdDbContext>(options =>
@@ -21,22 +65,76 @@ builder.Services.AddDbContext<GmsdDbContext>(options =>
 // Configure AutoMapper
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 
-// Register services
-builder.Services.AddScoped<IProjectService, ProjectService>();
+// Register repositories
+builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 
+// Register services using composition root
+builder.Services.AddGmsdServices();
+
+builder.Services.AddAuthentication();
+builder.Services.AddAuthorization();
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("database");
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+app.Use(async (context, next) =>
 {
-    app.MapOpenApi();
-}
+    try
+    {
+        await next();
+    }
+    catch (Exception exception)
+    {
+        var statusCode = StatusCodes.Status500InternalServerError;
+        var title = "Request failed";
+
+        if (exception is NotFoundException)
+        {
+            statusCode = StatusCodes.Status404NotFound;
+            title = "Not found";
+        }
+        else if (exception is ValidationFailedException)
+        {
+            statusCode = StatusCodes.Status400BadRequest;
+            title = "Validation failed";
+        }
+
+        var problemDetails = new ProblemDetails
+        {
+            Status = statusCode,
+            Title = title,
+            Detail = exception.Message,
+            Instance = context.Request.Path
+        };
+        problemDetails.Extensions["traceId"] = context.TraceIdentifier;
+
+        context.Response.StatusCode = statusCode;
+        context.Response.ContentType = "application/problem+json";
+        await context.Response.WriteAsJsonAsync(problemDetails);
+    }
+});
+
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "GMSD API v1");
+});
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = HealthCheckResponseWriter.WriteDetailedResponse
+});
 app.MapControllers();
 
 app.Run();
+
+public partial class Program
+{
+}

@@ -1,0 +1,58 @@
+@page
+@model Gmsd.Web.Pages.Runs.IndexModel
+@{
+    ViewData["Title"] = "Runs";
+}
+
+<h1>Runs</h1>
+
+@if (Model.Runs.Count == 0)
+{
+    <div class="empty-state">
+        <h3>No Runs Found</h3>
+        <p>There are no agent runs in the system yet.</p>
+    </div>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Run ID</th>
+                <th>Status</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th>Duration</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var run in Model.Runs)
+            {
+                <tr>
+                    <td>@run.RunId</td>
+                    <td>
+                        @if (run.Success)
+                        {
+                            <span class="status-badge status-success">Success</span>
+                        }
+                        else if (!string.IsNullOrEmpty(run.ErrorMessage))
+                        {
+                            <span class="status-badge status-error">Failed</span>
+                        }
+                        else
+                        {
+                            <span class="status-badge status-unknown">Unknown</span>
+                        }
+                    </td>
+                    <td>@run.StartedAt.ToLocalTime().ToString("g")</td>
+                    <td>@run.CompletedAt.ToLocalTime().ToString("g")</td>
+                    <td>@run.Duration.ToString("hh\\:mm\\:ss")</td>
+                    <td>
+                        <a href="~/Runs/Details/@run.RunId">View Details</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

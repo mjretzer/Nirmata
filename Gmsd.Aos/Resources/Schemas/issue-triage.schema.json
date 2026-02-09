@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gmsd:aos:schema:issue-triage:v1",
+  "title": "AOS Issue Triage (spec/issues/ISS-{id}.json)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schemaVersion",
+    "id",
+    "title",
+    "description",
+    "severity",
+    "status"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for the issue"
+    },
+    "title": {
+      "type": "string",
+      "description": "Short title of the issue"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the issue"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "Severity level of the issue"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["open", "triaged", "deferred", "routing", "resolved"],
+      "description": "Current status in the issue lifecycle"
+    },
+    "routingDecision": {
+      "type": "string",
+      "enum": ["main-loop", "deferred", "discarded"],
+      "description": "Triage routing decision: main-loop (urgent), deferred (non-urgent), or discarded"
+    },
+    "triagedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the issue was triaged"
+    },
+    "rationale": {
+      "type": "string",
+      "description": "Reasoning behind the routing decision"
+    }
+  }
+}

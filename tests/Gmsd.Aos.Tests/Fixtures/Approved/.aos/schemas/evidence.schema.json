@@ -1,0 +1,27 @@
+{
+  "$id": "gmsd:aos:schema:evidence:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "properties": {
+    "data": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "evidenceType": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    },
+    "timestampUtc": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schemaVersion"
+  ],
+  "title": "AOS Evidence Packet (evidence.json)",
+  "type": "object"
+}
+

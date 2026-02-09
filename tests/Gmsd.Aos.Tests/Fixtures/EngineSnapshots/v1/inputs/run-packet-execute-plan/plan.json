@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "outputs": [
+    {
+      "relativePath": "b.txt",
+      "contentsUtf8": "B\n"
+    },
+    {
+      "relativePath": "a.txt",
+      "contentsUtf8": "A\n"
+    }
+  ]
+}
+

@@ -1,0 +1,77 @@
+{
+  "$id": "gmsd:aos:schema:workspace-lock:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "acquiredAtUtc": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "expiresAtUtc": {
+      "format": "date-time",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "holder": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "machine": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "pid": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "processName": {
+          "type": "string"
+        },
+        "user": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "workingDirectory": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "pid",
+        "machine",
+        "user"
+      ],
+      "type": "object"
+    },
+    "lockId": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "lockKind": {
+      "const": "workspace",
+      "type": "string"
+    },
+    "releaseHint": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "lockKind",
+    "acquiredAtUtc",
+    "holder"
+  ],
+  "title": "AOS Workspace Lock (workspace.lock.json)",
+  "type": "object"
+}
+

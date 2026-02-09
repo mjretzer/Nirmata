@@ -373,3 +373,8 @@ FodyWeavers.xsd
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# AOS engine runtime workspace (repo-root only)
+/.aos/**
+!/.aos/fixtures/
+!/.aos/fixtures/**

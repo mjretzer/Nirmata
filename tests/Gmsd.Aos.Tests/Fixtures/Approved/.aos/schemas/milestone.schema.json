@@ -1,0 +1,26 @@
+{
+  "$id": "gmsd:aos:schema:milestone:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "properties": {
+    "description": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    },
+    "title": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schemaVersion"
+  ],
+  "title": "AOS Milestone Spec (milestones/{id}.json)",
+  "type": "object"
+}
+

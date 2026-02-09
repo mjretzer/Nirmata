@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gmsd:aos:schema:codebase-concerns:v1",
+  "title": "Codebase Concerns (concerns.json)",
+  "description": "Cross-cutting concerns, hotspots, and complexity indicators",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "crossCutting",
+    "hotspots",
+    "complexity"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "crossCutting": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "category"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Concern name (e.g., 'Logging', 'Authentication', 'Configuration')"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["logging", "security", "configuration", "error-handling", "caching", "validation", "instrumentation", "localization", "other"],
+            "description": "Category of cross-cutting concern"
+          },
+          "description": {
+            "type": "string",
+            "description": "Brief description of how this concern is addressed"
+          },
+          "implementationFiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Files implementing this cross-cutting concern"
+          },
+          "affectedFiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Files affected by or using this concern"
+          }
+        }
+      }
+    },
+    "hotspots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "filePath",
+          "score"
+        ],
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "description": "Path to the hotspot file"
+          },
+          "score": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Hotspot score (higher indicates more activity/risk)"
+          },
+          "changeFrequency": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of times file has been modified"
+          },
+          "contributorCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of unique contributors to this file"
+          },
+          "reasoning": {
+            "type": "string",
+            "description": "Why this file is considered a hotspot"
+          }
+        }
+      }
+    },
+    "complexity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "averageCyclomaticComplexity",
+        "maxCyclomaticComplexity",
+        "highComplexityFiles"
+      ],
+      "properties": {
+        "averageCyclomaticComplexity": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Average cyclomatic complexity across codebase"
+        },
+        "maxCyclomaticComplexity": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum cyclomatic complexity found"
+        },
+        "highComplexityFiles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "filePath",
+              "complexity"
+            ],
+            "properties": {
+              "filePath": {
+                "type": "string",
+                "description": "Path to high-complexity file"
+              },
+              "complexity": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Cyclomatic complexity score"
+              },
+              "methodCount": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Number of methods in file"
+              }
+            }
+          }
+        },
+        "totalLinesOfCode": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total lines of code in analyzed files"
+        },
+        "commentDensity": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Ratio of comment lines to total lines"
+        }
+      }
+    }
+  }
+}

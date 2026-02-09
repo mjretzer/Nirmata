@@ -1,0 +1,108 @@
+{
+  "$id": "gmsd:aos:schema:state-snapshot:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "cursor": {
+      "additionalProperties": true,
+      "description": "Workflow progress cursor (v2). Legacy id/kind fields may be present for compatibility.",
+      "properties": {
+        "id": {
+          "description": "Legacy cursor reference id (deprecated).",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Legacy cursor reference kind (deprecated).",
+          "type": "string"
+        },
+        "milestoneId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "milestoneStatus": {
+          "enum": [
+            "not_started",
+            "in_progress",
+            "blocked",
+            "done",
+            null
+          ],
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "phaseId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "phaseStatus": {
+          "enum": [
+            "not_started",
+            "in_progress",
+            "blocked",
+            "done",
+            null
+          ],
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stepId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stepStatus": {
+          "enum": [
+            "not_started",
+            "in_progress",
+            "blocked",
+            "done",
+            null
+          ],
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "taskId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "taskStatus": {
+          "enum": [
+            "not_started",
+            "in_progress",
+            "blocked",
+            "done",
+            null
+          ],
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "cursor"
+  ],
+  "title": "AOS State Snapshot (state.json)",
+  "type": "object"
+}

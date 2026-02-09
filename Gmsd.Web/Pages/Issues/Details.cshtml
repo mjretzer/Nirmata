@@ -1,0 +1,180 @@
+@page "{issueId}"
+@model Gmsd.Web.Pages.Issues.DetailsModel
+@using Gmsd.Web.Models
+@{
+    ViewData["Title"] = $"Issue Details - {Model.Issue?.Id ?? "Not Found"}";
+}
+
+@if (Model.Issue == null)
+{
+    <div class="error-state">
+        <h1>Issue Not Found</h1>
+        <p>@Model.NotFoundMessage</p>
+        <a href="~/Issues" class="btn btn-secondary">Back to Issues</a>
+    </div>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-error">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success">
+            @Model.SuccessMessage
+        </div>
+    }
+
+    <div class="detail-page">
+        <div class="detail-header">
+            <div class="detail-title">
+                <h1>@Model.Issue.Title</h1>
+                @await Html.PartialAsync("_IssueStatusBadge", Model.Issue.Status)
+            </div>
+            <div class="detail-meta">
+                <span>ID: <code>@Model.Issue.Id</code></span>
+                @await Html.PartialAsync("_IssueSeverityBadge", Model.Issue.Severity)
+                <span class="badge badge-@(Model.Issue.Type.ToString().ToLower())">@Model.Issue.Type</span>
+                @if (Model.Issue.CreatedAt.HasValue)
+                {
+                    <span>Created: @Model.Issue.CreatedAt.Value.ToString("yyyy-MM-dd HH:mm")</span>
+                }
+            </div>
+            <div class="detail-actions">
+                <a href="~/Issues" class="btn btn-secondary">← Back to Issues</a>
+                @if (Model.Issue.Status == IssueStatus.Open || Model.Issue.Status == IssueStatus.InProgress)
+                {
+                    <form method="post" asp-page-handler="RouteToFixPlan" asp-route-issueId="@Model.Issue.Id" style="display: inline;">
+                        <button type="submit" class="btn btn-primary">Route to Fix Plan</button>
+                    </form>
+                }
+            </div>
+        </div>
+
+        <div class="detail-tabs">
+            <div class="tab-content active">
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">Description</h3>
+                    </div>
+                    <div class="section-content">
+                        @if (!string.IsNullOrEmpty(Model.Issue.Description))
+                        {
+                            <p>@Model.Issue.Description</p>
+                        }
+                        else
+                        {
+                            <p class="text-muted">No description provided.</p>
+                        }
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(Model.Issue.ReproSteps) || !string.IsNullOrEmpty(Model.Issue.ExpectedBehavior) || !string.IsNullOrEmpty(Model.Issue.ActualBehavior))
+                {
+                    <div class="section-card">
+                        <div class="section-header">
+                            <h3 class="section-title">Reproduction Details</h3>
+                        </div>
+                        <div class="section-content">
+                            @if (!string.IsNullOrEmpty(Model.Issue.ReproSteps))
+                            {
+                                <div class="detail-field">
+                                    <label>Reproduction Steps:</label>
+                                    <pre>@Model.Issue.ReproSteps</pre>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.Issue.ExpectedBehavior))
+                            {
+                                <div class="detail-field">
+                                    <label>Expected Behavior:</label>
+                                    <p>@Model.Issue.ExpectedBehavior</p>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.Issue.ActualBehavior))
+                            {
+                                <div class="detail-field">
+                                    <label>Actual Behavior:</label>
+                                    <p>@Model.Issue.ActualBehavior</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">Related Items</h3>
+                    </div>
+                    <div class="section-content">
+                        @if (!string.IsNullOrEmpty(Model.Issue.TaskId))
+                        {
+                            <div class="related-link">
+                                <strong>Task:</strong>
+                                <a href="~/Tasks/Details/@Model.Issue.TaskId">@Model.Issue.TaskName (@Model.Issue.TaskId)</a>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Issue.UatSessionId))
+                        {
+                            <div class="related-link">
+                                <strong>UAT Session:</strong>
+                                <a href="~/Uat/Verify?taskId=@Model.Issue.TaskId&sessionId=@Model.Issue.UatSessionId">@Model.Issue.UatSessionId</a>
+                            </div>
+                        }
+                        @if (string.IsNullOrEmpty(Model.Issue.TaskId) && string.IsNullOrEmpty(Model.Issue.UatSessionId))
+                        {
+                            <p class="text-muted">No related items.</p>
+                        }
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">Actions</h3>
+                    </div>
+                    <div class="section-content">
+                        @if (Model.Issue.Status == IssueStatus.Open || Model.Issue.Status == IssueStatus.InProgress)
+                        {
+                            <form method="post" asp-page-handler="MarkStatus" asp-route-issueId="@Model.Issue.Id" class="action-form" style="display: inline-block; margin-right: 10px;">
+                                <input type="hidden" name="NewStatus" value="Resolved" />
+                                <div class="form-group">
+                                    <input type="text" name="ResolutionNotes" class="form-control" placeholder="Resolution notes (optional)" style="display: inline-block; width: 250px; margin-right: 5px;" />
+                                    <button type="submit" class="btn btn-success">Mark Resolved</button>
+                                </div>
+                            </form>
+                            <form method="post" asp-page-handler="MarkStatus" asp-route-issueId="@Model.Issue.Id" style="display: inline-block;">
+                                <input type="hidden" name="NewStatus" value="Deferred" />
+                                <button type="submit" class="btn btn-warning">Mark Deferred</button>
+                            </form>
+                        }
+                        else if (Model.Issue.Status == IssueStatus.Resolved || Model.Issue.Status == IssueStatus.Deferred)
+                        {
+                            <form method="post" asp-page-handler="MarkStatus" asp-route-issueId="@Model.Issue.Id" style="display: inline-block;">
+                                <input type="hidden" name="NewStatus" value="Closed" />
+                                <button type="submit" class="btn btn-secondary">Close Issue</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <span class="text-muted">No actions available for this issue status.</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">Links</h3>
+                    </div>
+                    <div class="section-content">
+                        <a href="~/Uat" class="btn btn-secondary">Go to UAT</a>
+                        <a href="~/Runs" class="btn btn-secondary">View Runs</a>
+                        <a href="~/Tasks" class="btn btn-secondary">View Tasks</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

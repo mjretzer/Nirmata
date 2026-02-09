@@ -1,0 +1,45 @@
+@page
+@model Gmsd.Web.Pages.Dashboard.IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h1>Dashboard</h1>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-error">
+        <strong>Error:</strong> @Model.ErrorMessage
+        <p><a href="~/Workspace" class="btn btn-primary">Select Workspace</a></p>
+    </div>
+}
+
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["Message"]
+    </div>
+}
+
+@if (Model.State != null)
+{
+    <partial name="_DashboardContent" model="Model" />
+}
+else if (string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-info">
+        <p>No workspace data available. Select a workspace to view dashboard.</p>
+        <a href="~/Workspace" class="btn btn-primary">Select Workspace</a>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // HTMX event handling for dashboard updates
+        document.body.addEventListener('htmx:afterSwap', function(evt) {
+            if (evt.detail.target.id === 'dashboard-content') {
+                console.log('Dashboard refreshed at', new Date().toLocaleTimeString());
+            }
+        });
+    </script>
+}

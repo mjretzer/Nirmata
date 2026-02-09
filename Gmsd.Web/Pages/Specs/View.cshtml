@@ -1,0 +1,301 @@
+@page "{*path}"
+@model Gmsd.Web.Pages.Specs.ViewModel
+@{
+    ViewData["Title"] = $"Edit: {Model.FileName}";
+}
+
+<div class="spec-editor">
+    <header class="editor-header">
+        <div class="breadcrumb">
+            <a href="~/Specs">Specs</a>
+            <span class="separator">/</span>
+            <span class="current">@Model.FileName</span>
+        </div>
+        <div class="editor-actions">
+            <a href="@Model.DiskPath" class="btn btn-sm btn-secondary" target="_blank">
+                📂 Open on Disk
+            </a>
+            <button type="button" class="btn btn-sm btn-info" onclick="toggleDiff()">
+                📊 View Diff
+            </button>
+            <a href="~/Specs" class="btn btn-sm btn-secondary">← Back to List</a>
+        </div>
+    </header>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-error">
+            <strong>Error:</strong> @Model.ErrorMessage
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success">
+            @Model.SuccessMessage
+        </div>
+    }
+
+    <!-- Diff Viewer Panel -->
+    <div id="diff-panel" class="diff-panel" style="display: none;">
+        <div class="diff-header">
+            <h4>📊 Git Diff Viewer</h4>
+            <div class="diff-controls">
+                <select id="commit-select" class="form-control form-control-sm" onchange="loadDiffForCommit()">
+                    <option value="">Compare with HEAD (latest)</option>
+                    @foreach (var commit in Model.GitHistory)
+                    {
+                        <option value="@commit.Hash">@commit.ShortHash - @commit.Message (@commit.Date.ToString("MMM dd"))</option>
+                    }
+                </select>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="toggleDiff()">✕ Close</button>
+            </div>
+        </div>
+        <div id="diff-content" class="diff-content">
+            <div class="diff-placeholder">
+                <p>Select a commit above or click "Load Diff" to see changes</p>
+                <button type="button" class="btn btn-primary" onclick="loadCurrentDiff()">Load Diff</button>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.ValidationErrors.Any())
+    {
+        <div class="validation-errors">
+            <h4>❌ Validation Errors</h4>
+            <ul>
+                @foreach (var error in Model.ValidationErrors)
+                {
+                    <li class="error-item">
+                        <span class="error-path">@error.Path</span>: @error.Message
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+
+    @if (Model.IsJson)
+    {
+        <!-- Mode Toggle -->
+        <div class="mode-toggle">
+            <button type="button" class="btn btn-sm @(Model.EditMode == "form" ? "btn-primary" : "btn-secondary")"
+                    onclick="setMode('form')">
+                📋 Form
+            </button>
+            <button type="button" class="btn btn-sm @(Model.EditMode == "raw" ? "btn-primary" : "btn-secondary")"
+                    onclick="setMode('raw')">
+                📝 Raw JSON
+            </button>
+        </div>
+
+        <form method="post" class="editor-form">
+            <input type="hidden" name="path" value="@Model.FilePath" />
+            <input type="hidden" name="editMode" id="editMode" value="@Model.EditMode" />
+
+            @if (Model.EditMode == "form" && Model.FormFields.Any())
+            {
+                <!-- Form Mode -->
+                <div class="form-editor">
+                    @foreach (var field in Model.FormFields)
+                    {
+                        <div class="form-group">
+                            <label for="@field.Key" class="form-label">
+                                @field.DisplayName
+                                @if (field.IsRequired)
+                                {
+                                    <span class="required">*</span>
+                                }
+                            </label>
+                            @if (field.Type == "textarea")
+                            {
+                                <textarea id="@field.Key"
+                                          name="@field.Key"
+                                          class="form-control"
+                                          rows="4"
+                                          @(field.IsRequired ? "required" : "")>@field.Value</textarea>
+                            }
+                            else if (field.Type == "number")
+                            {
+                                <input type="number"
+                                       id="@field.Key"
+                                       name="@field.Key"
+                                       class="form-control"
+                                       value="@field.Value"
+                                       @(field.IsRequired ? "required" : "") />
+                            }
+                            else if (field.Type == "checkbox")
+                            {
+                                <input type="checkbox"
+                                       id="@field.Key"
+                                       name="@field.Key"
+                                       class="form-check-input"
+                                       @(field.Value?.ToLower() == "true" ? "checked" : "") />
+                            }
+                            else
+                            {
+                                <input type="text"
+                                       id="@field.Key"
+                                       name="@field.Key"
+                                       class="form-control"
+                                       value="@field.Value"
+                                       @(field.IsRequired ? "required" : "") />
+                            }
+                            @if (!string.IsNullOrEmpty(field.Description))
+                            {
+                                <small class="form-text">@field.Description</small>
+                            }
+                        </div>
+                    }
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">💾 Save</button>
+                        <a href="~/Specs" class="btn btn-secondary">Cancel</a>
+                        <button type="button" class="btn btn-info" onclick="validateSchema()">🔍 Validate</button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <!-- Raw JSON Mode -->
+                <div class="raw-editor">
+                    <textarea name="rawContent"
+                              class="form-control json-editor"
+                              rows="25"
+                              spellcheck="false">@Model.RawContent</textarea>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">💾 Save</button>
+                        <a href="~/Specs" class="btn btn-secondary">Cancel</a>
+                        <button type="button" class="btn btn-info" onclick="formatJson()">🔧 Format</button>
+                        <button type="button" class="btn btn-warning" onclick="validateSchema()">🔍 Validate Schema</button>
+                    </div>
+                </div>
+            }
+        </form>
+    }
+    else
+    {
+        <!-- Non-JSON files - Raw text only -->
+        <form method="post" class="editor-form">
+            <input type="hidden" name="path" value="@Model.FilePath" />
+            <div class="raw-editor">
+                <textarea name="rawContent"
+                          class="form-control"
+                          rows="25"
+                          spellcheck="false">@Model.RawContent</textarea>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">💾 Save</button>
+                    <a href="~/Specs" class="btn btn-secondary">Cancel</a>
+                </div>
+            </div>
+        </form>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function setMode(mode) {
+            document.getElementById('editMode').value = mode;
+            window.location.href = `@Url.Page("/Specs/View", new { path = Model.FilePath })?editMode=${mode}`;
+        }
+
+        function formatJson() {
+            const textarea = document.querySelector('textarea[name="rawContent"]');
+            try {
+                const obj = JSON.parse(textarea.value);
+                textarea.value = JSON.stringify(obj, null, 2);
+            } catch (e) {
+                alert('Invalid JSON: ' + e.message);
+            }
+        }
+
+        function validateSchema() {
+            const textarea = document.querySelector('textarea[name="rawContent"]');
+            const path = '@Model.FilePath';
+
+            fetch('@Url.Page("/Specs/View", "Validate")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                },
+                body: JSON.stringify({ path: path, content: textarea.value })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.valid) {
+                    alert('✅ Valid JSON!');
+                } else {
+                    alert('❌ Validation Errors:\n' + data.errors.join('\n'));
+                }
+            })
+            .catch(err => {
+                alert('Validation error: ' + err.message);
+            });
+        }
+
+        function toggleDiff() {
+            const panel = document.getElementById('diff-panel');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                loadCurrentDiff();
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        function loadCurrentDiff() {
+            const commit = document.getElementById('commit-select').value;
+            loadDiffForCommit(commit);
+        }
+
+        function loadDiffForCommit(commit = '') {
+            const path = '@Model.FilePath';
+            const url = `@Url.Page("/Specs/View", "Diff")?path=${encodeURIComponent(path)}${commit ? '&commit=' + commit : ''}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('diff-content').innerHTML = `<div class="alert alert-error">Error: ${data.error}</div>`;
+                        return;
+                    }
+                    renderDiff(data.diff);
+                })
+                .catch(err => {
+                    document.getElementById('diff-content').innerHTML = `<div class="alert alert-error">Failed to load diff: ${err.message}</div>`;
+                });
+        }
+
+        function renderDiff(diffLines) {
+            if (!diffLines || diffLines.length === 0) {
+                document.getElementById('diff-content').innerHTML = '<div class="alert alert-info">No changes found - file is identical to selected version</div>';
+                return;
+            }
+
+            let html = '<table class="diff-table">';
+            html += '<thead><tr><th class="line-num">Old</th><th class="line-num">New</th><th class="code">Code</th></tr></thead>';
+            html += '<tbody>';
+
+            diffLines.forEach(line => {
+                const typeClass = line.type === 1 ? 'added' : line.type === 2 ? 'removed' : '';
+                const oldNum = line.oldLineNumber || '';
+                const newNum = line.newLineNumber || '';
+                const content = escapeHtml(line.content);
+
+                html += `<tr class="${typeClass}">
+                    <td class="line-num">${oldNum}</td>
+                    <td class="line-num">${newNum}</td>
+                    <td class="code"><pre>${content}</pre></td>
+                </tr>`;
+            });
+
+            html += '</tbody></table>';
+            document.getElementById('diff-content').innerHTML = html;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+}

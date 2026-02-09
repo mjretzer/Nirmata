@@ -1,0 +1,150 @@
+{
+  "$id": "gmsd:aos:schema:context-pack:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "task"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "drivingId": {
+            "pattern": "^TSK-[0-9]{6}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "phase"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "drivingId": {
+            "pattern": "^PH-[0-9]{4}$"
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "budget": {
+      "additionalProperties": false,
+      "properties": {
+        "maxBytes": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maxItems": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "maxBytes",
+        "maxItems"
+      ],
+      "type": "object"
+    },
+    "drivingId": {
+      "type": "string"
+    },
+    "entries": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "content": {
+            "type": "string"
+          },
+          "contentType": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "contractPath": {
+            "minLength": 1,
+            "pattern": "^\\.aos\\/[^\\\\]*$",
+            "type": "string"
+          },
+          "sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "contractPath",
+          "contentType",
+          "content",
+          "sha256",
+          "bytes"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "mode": {
+      "enum": [
+        "task",
+        "phase"
+      ],
+      "type": "string"
+    },
+    "packId": {
+      "pattern": "^PCK-[0-9]{4}$",
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    },
+    "summary": {
+      "additionalProperties": false,
+      "properties": {
+        "totalBytes": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "totalItems": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "totalBytes",
+        "totalItems"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "packId",
+    "mode",
+    "drivingId",
+    "budget",
+    "summary",
+    "entries"
+  ],
+  "title": "AOS Context Pack (context-pack.json)",
+  "type": "object"
+}
+

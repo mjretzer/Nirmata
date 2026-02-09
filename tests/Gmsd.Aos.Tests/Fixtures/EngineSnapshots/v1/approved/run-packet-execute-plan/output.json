@@ -1,0 +1,22 @@
+{
+  "args": [
+    "--plan",
+    "plans/plan.json",
+    "--dry-run"
+  ],
+  "command": "execute-plan",
+  "executePlan": {
+    "configContractPath": ".aos/config/config.json",
+    "configSha256": "98fa016c75207356747aa83efa1f787274409dd9f62a460ef95ed55c0babe281",
+    "planPath": "plans/plan.json",
+    "planSha256": "8da0caffe295644af5d81a5484ed06c3263a058212522e9e974910f37dbb9803",
+    "plannedOutputs": [
+      "a.txt",
+      "b.txt"
+    ],
+    "policyContractPath": ".aos/config/policy.json",
+    "policySha256": "6ca7178d46480400f651e7cc66cbce0589ec577281184ec45a5ebdcee264d21c"
+  },
+  "runId": "RUN_ID",
+  "schemaVersion": 1
+}
