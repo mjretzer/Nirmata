@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-schema-validation-failure",
+  "generatedAt": "2026-02-20T00:16:40.1943871+00:00",
+  "readBoundary": "test-suite",
+  "artifactPath": "test/plan.json",
+  "schemaId": "gmsd:aos:schema:task-plan:v1",
+  "declaredVersion": null,
+  "supportedVersions": [
+    1
+  ],
+  "errors": [
+    {
+      "path": "$",
+      "message": "Required properties [\u0022schemaVersion\u0022] are not present"
+    }
+  ],
+  "message": "Artifact contract validation failed for gmsd:aos:schema:task-plan:v1. Ensure the artifact matches the canonical schema version 1."
+}

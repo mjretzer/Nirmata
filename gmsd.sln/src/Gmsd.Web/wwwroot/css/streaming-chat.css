@@ -1,0 +1,581 @@
+/* ============================================
+   Streaming Chat Styles
+   ============================================ */
+
+/* Streaming Message */
+.chat-message.message-streaming {
+    animation: pulse-streaming 2s infinite;
+}
+
+@keyframes pulse-streaming {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.9;
+    }
+}
+
+.message-streaming .message-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.streaming-badge {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    background-color: var(--color-primary);
+    color: white;
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    animation: pulse-badge 1.5s infinite;
+}
+
+@keyframes pulse-badge {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Streaming Content */
+.message-streaming-content {
+    font-family: inherit;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Cursor Blink */
+.cursor-blink {
+    display: inline-block;
+    width: 2px;
+    height: 1.2em;
+    background-color: var(--color-primary);
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    animation: blink-cursor 1s infinite;
+}
+
+@keyframes blink-cursor {
+    0%, 50% {
+        opacity: 1;
+    }
+    51%, 100% {
+        opacity: 0;
+    }
+}
+
+/* Streaming Indicator (global) */
+.streaming-indicator {
+    display: none;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    margin-top: var(--spacing-md);
+    background-color: var(--color-bg-light);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+}
+
+.streaming-indicator.active {
+    display: flex;
+    animation: fadeIn 0.3s ease;
+}
+
+.streaming-indicator .streaming-text {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+/* Cancel Button in Streaming Indicator */
+.cancel-stream-btn-global {
+    margin-left: auto;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background-color: var(--color-error);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color var(--transition-fast);
+}
+
+.cancel-stream-btn-global:hover {
+    background-color: var(--color-error-dark);
+}
+
+/* Cancel Button in Message */
+.cancel-stream-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background-color: var(--color-error-light);
+    color: var(--color-error-dark);
+    border: 1px solid var(--color-error);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all var(--transition-fast);
+}
+
+.cancel-stream-btn:hover {
+    background-color: var(--color-error);
+    color: white;
+}
+
+/* Cancelled Message */
+.message-cancelled {
+    opacity: 0.7;
+}
+
+.message-cancelled .cancelled-indicator {
+    font-style: italic;
+    color: var(--color-text-muted);
+}
+
+/* Typing Dots Animation */
+.typing-dots {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.typing-dots span {
+    width: 8px;
+    height: 8px;
+    background-color: var(--color-primary);
+    border-radius: var(--radius-full);
+    animation: typing-dot 1.4s infinite ease-in-out both;
+}
+
+.typing-dots span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.typing-dots span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes typing-dot {
+    0%, 80%, 100% {
+        transform: scale(0);
+    }
+    40% {
+        transform: scale(1);
+    }
+}
+
+/* Input disabled state during streaming */
+.chat-input:disabled,
+.send-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Error Message */
+.message-error {
+    border-left: 3px solid var(--color-error);
+}
+
+.message-error-content {
+    color: var(--color-error-dark);
+    font-size: 0.9rem;
+}
+
+.message-error .message-avatar {
+    background-color: var(--color-error-light);
+    color: var(--color-error);
+}
+
+/* ============================================
+   Confirmation Card Styles
+   ============================================ */
+
+.confirmation-card {
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-light);
+    margin: var(--spacing-md) 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.confirmation-card--pending {
+    border-color: var(--color-warning);
+    animation: pulse-pending 2s infinite;
+}
+
+@keyframes pulse-pending {
+    0%, 100% { border-color: var(--color-warning); }
+    50% { border-color: var(--color-warning-dark); }
+}
+
+.confirmation-card--accepted {
+    border-color: var(--color-success);
+    opacity: 0.8;
+}
+
+.confirmation-card--rejected {
+    border-color: var(--color-error);
+    opacity: 0.8;
+}
+
+.confirmation-card--timeout {
+    border-color: var(--color-text-muted);
+    opacity: 0.7;
+}
+
+/* Header */
+.confirmation-card__header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background: var(--color-bg-white);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.confirmation-card__icon {
+    font-size: 1.2rem;
+}
+
+.confirmation-card__title {
+    font-weight: 600;
+    flex: 1;
+    color: var(--color-text-primary);
+}
+
+.confirmation-card__risk-badge {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.confirmation-card__status-badge {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.confirmation-card__status-badge.status--accepted {
+    background: var(--color-success-light);
+    color: var(--color-success);
+}
+
+.confirmation-card__status-badge.status--rejected {
+    background: var(--color-error-light);
+    color: var(--color-error);
+}
+
+.confirmation-card__status-badge.status--timeout {
+    background: var(--color-bg-dark);
+    color: var(--color-text-muted);
+}
+
+/* Risk Level Styles */
+.risk--read {
+    background: var(--color-info-light);
+    color: var(--color-info);
+}
+
+.risk--write-safe {
+    background: var(--color-success-light);
+    color: var(--color-success);
+}
+
+.risk--destructive,
+.risk--destructive-git,
+.risk--workspace-destructive {
+    background: var(--color-error-light);
+    color: var(--color-error);
+}
+
+.risk--unknown {
+    background: var(--color-bg-dark);
+    color: var(--color-text-muted);
+}
+
+/* Body */
+.confirmation-card__body {
+    padding: var(--spacing-md);
+}
+
+.confirmation-card__action {
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background: var(--color-bg-white);
+    border-radius: var(--radius-md);
+}
+
+.confirmation-card__phase {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+}
+
+.confirmation-card__phase-label {
+    font-weight: 500;
+    color: var(--color-text-muted);
+}
+
+.confirmation-card__phase-value {
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.confirmation-card__description {
+    margin: var(--spacing-sm) 0;
+}
+
+.confirmation-card__description-label {
+    display: block;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    margin-bottom: var(--spacing-xs);
+}
+
+.confirmation-card__description-text {
+    margin: 0;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+}
+
+.confirmation-card__resources {
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: var(--color-bg-dark);
+    border-radius: var(--radius-sm);
+}
+
+.confirmation-card__resources-label {
+    font-weight: 500;
+    color: var(--color-text-muted);
+    margin-bottom: var(--spacing-xs);
+    display: block;
+}
+
+.confirmation-card__resources-list {
+    margin: 0;
+    padding-left: var(--spacing-md);
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+
+.confirmation-card__resource-item {
+    margin: var(--spacing-xs) 0;
+}
+
+/* Reason Section */
+.confirmation-card__reason {
+    margin: var(--spacing-md) 0;
+    padding: var(--spacing-sm);
+    border-left: 3px solid var(--color-warning);
+    background: var(--color-warning-light);
+}
+
+.confirmation-card__reason-label {
+    display: block;
+    font-weight: 500;
+    color: var(--color-warning-dark);
+    margin-bottom: var(--spacing-xs);
+}
+
+.confirmation-card__reason-text {
+    margin: 0;
+    color: var(--color-text-primary);
+}
+
+/* Details */
+.confirmation-card__details {
+    display: flex;
+    gap: var(--spacing-md);
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+/* Metadata */
+.confirmation-card__metadata {
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: var(--color-bg-dark);
+    border-radius: var(--radius-sm);
+}
+
+.confirmation-card__metadata-label {
+    font-weight: 500;
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    display: block;
+    margin-bottom: var(--spacing-xs);
+}
+
+.confirmation-card__metadata-list {
+    margin: 0;
+    padding-left: var(--spacing-md);
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+}
+
+/* Timeout */
+.confirmation-card__timeout {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+}
+
+.confirmation-card__timeout--none {
+    background: var(--color-bg-dark);
+    color: var(--color-text-muted);
+}
+
+.confirmation-card__timeout--limited {
+    background: var(--color-warning-light);
+    color: var(--color-warning-dark);
+}
+
+.confirmation-card__timeout-icon {
+    margin-right: var(--spacing-xs);
+}
+
+.confirmation-card__timeout-bar {
+    height: 4px;
+    background: var(--color-bg-dark);
+    border-radius: var(--radius-sm);
+    margin-top: var(--spacing-xs);
+    overflow: hidden;
+}
+
+.confirmation-card__timeout-progress {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-warning), var(--color-error));
+    border-radius: var(--radius-sm);
+    width: 100%;
+    transform-origin: left;
+    transform: scaleX(1);
+}
+
+.confirmation-card__timeout-progress--animating {
+    animation: timeout-progress linear forwards;
+}
+
+@keyframes timeout-progress {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0); }
+}
+
+/* Controls */
+.confirmation-card__controls {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background: var(--color-bg-white);
+    border-top: 1px solid var(--color-border);
+}
+
+.confirmation-card__btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.confirmation-card__btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.confirmation-card__btn--accept {
+    background: var(--color-success);
+    color: white;
+}
+
+.confirmation-card__btn--accept:hover:not(:disabled) {
+    background: var(--color-success-dark);
+}
+
+.confirmation-card__btn--reject {
+    background: var(--color-error-light);
+    color: var(--color-error);
+    border: 1px solid var(--color-error);
+}
+
+.confirmation-card__btn--reject:hover:not(:disabled) {
+    background: var(--color-error);
+    color: white;
+}
+
+.confirmation-card__btn-icon {
+    font-size: 1rem;
+}
+
+/* Footer */
+.confirmation-card__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-bg-dark);
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+/* Response Info (Accepted/Rejected/Timeout) */
+.confirmation-card__accepted-info,
+.confirmation-card__rejected-info,
+.confirmation-card__timeout-info {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+}
+
+.confirmation-card__accepted-info {
+    background: var(--color-success-light);
+    color: var(--color-success);
+}
+
+.confirmation-card__rejected-info {
+    background: var(--color-error-light);
+    color: var(--color-error);
+}
+
+.confirmation-card__timeout-info {
+    background: var(--color-bg-dark);
+    color: var(--color-text-muted);
+}
+
+.confirmation-card__user-message {
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: var(--color-bg-white);
+    border-radius: var(--radius-sm);
+}
+
+.confirmation-card__user-message-label {
+    font-weight: 500;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.confirmation-card__user-message-text {
+    margin: var(--spacing-xs) 0 0 0;
+    font-style: italic;
+    color: var(--color-text-primary);
+}

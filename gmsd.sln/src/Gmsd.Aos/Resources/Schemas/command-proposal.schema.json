@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gmsd:aos:schema:command-proposal:v1",
+  "title": "AOS Command Proposal",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "intent",
+    "command",
+    "group",
+    "rationale",
+    "expectedOutcome"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "intent": {
+      "type": "object",
+      "required": [
+        "goal"
+      ],
+      "properties": {
+        "goal": {
+          "type": "string"
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "command": {
+      "type": "string",
+      "pattern": "^/[a-z-]+$"
+    },
+    "group": {
+      "type": "string"
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 10
+    },
+    "expectedOutcome": {
+      "type": "string",
+      "minLength": 10
+    }
+  }
+}

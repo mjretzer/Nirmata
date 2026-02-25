@@ -1,0 +1,5 @@
+@{
+    // Layout is dynamically selected by LayoutSelectorFilter based on ChatForwardUI feature flag
+    // The filter sets ViewData["Layout"] to either "_Layout" (classic) or "_MainLayout" (chat-forward)
+    Layout = ViewData["Layout"] as string ?? "_Layout";
+}

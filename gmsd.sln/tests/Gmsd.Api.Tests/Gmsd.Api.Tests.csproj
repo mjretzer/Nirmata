@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0" />
+    <PackageReference Include="xunit" Version="2.8.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Gmsd.Api\Gmsd.Api.csproj" />
+    <ProjectReference Include="..\..\src\Gmsd.Data\Gmsd.Data.csproj" />
+    <ProjectReference Include="..\..\src\Gmsd.Data.Dto\Gmsd.Data.Dto.csproj" />
+  </ItemGroup>
+
+</Project>

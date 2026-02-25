@@ -1,0 +1,140 @@
+@{
+    var currentPage = ViewContext.RouteData.Values["Page"]?.ToString() ?? "";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0" />
+    <title>@ViewData["Title"] - GMSD</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/feature-flags.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/accessibility.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/streaming-chat.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/context-sidebar.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/detail-panel.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/keyboard-shortcuts.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/user-feedback.css" asp-append-version="true" />
+    <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7PPXtAQG8x6AiKRp5OQo5D5z5L5z5L5z5L5" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+</head>
+<body class="main-layout-body">
+    <!-- Skip Links for Accessibility -->
+    <div class="skip-links">
+        <a href="#chat-area" class="skip-link">Skip to main content</a>
+        <a href="#chat-input" class="skip-link">Skip to chat input</a>
+        <a href="#sidebar" class="skip-link">Skip to context sidebar</a>
+        <a href="#detail-panel" class="skip-link">Skip to detail panel</a>
+    </div>
+    <header class="main-header" role="banner">
+        <div class="header-brand">
+            <a href="~/" class="header-logo" aria-label="GMSD Home">GMSD</a>
+            <partial name="_WorkspaceBadge" />
+        </div>
+        <div class="header-actions">
+            <partial name="_FeatureFlagToggle" />
+            <button id="user-menu-btn" class="header-btn" aria-label="User menu" aria-haspopup="true" aria-expanded="false">
+                <span aria-hidden="true">👤</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="main-layout" id="main-layout">
+        <aside class="panel sidebar" id="sidebar" data-panel="sidebar" role="complementary" aria-label="Context sidebar">
+            <div class="panel-header">
+                <button class="panel-toggle" id="sidebar-toggle" aria-label="Toggle sidebar" title="Toggle sidebar (Cmd+1)">
+                    <span class="toggle-icon">◀</span>
+                </button>
+            </div>
+            <partial name="_ContextSidebar" model="new Gmsd.Web.Models.ContextSidebarViewModel()" />
+            <div class="panel-collapsed-content" aria-hidden="true">
+                <button class="collapsed-btn" data-panel="sidebar" title="Expand sidebar" aria-label="Expand sidebar">
+                    <span aria-hidden="true">📁</span>
+                </button>
+                <button class="collapsed-btn" data-command="/status" title="Check workspace status" aria-label="Check status">
+                    <span aria-hidden="true">📊</span>
+                </button>
+                <button class="collapsed-btn" data-command="/help" title="Get help" aria-label="Get help">
+                    <span aria-hidden="true">❓</span>
+                </button>
+            </div>
+        </aside>
+
+        <main class="chat-area" id="chat-area" role="main" aria-label="Chat conversation area">
+            <!-- Live region for dynamic content updates -->
+            <div id="chat-live-region" aria-live="polite" aria-atomic="false" class="sr-only"></div>
+            @RenderBody()
+        </main>
+
+        <aside class="panel detail-panel" id="detail-panel" data-panel="detail" role="complementary" aria-label="Detail panel">
+            <div class="panel-header">
+                <button class="panel-toggle" id="detail-toggle" aria-label="Toggle detail panel" title="Toggle detail panel (Cmd+2)">
+                    <span class="toggle-icon">▶</span>
+                </button>
+            </div>
+            <div class="panel-content">
+                @await Html.PartialAsync("_DetailPanel", new Gmsd.Web.Models.DetailPanelViewModel())
+            </div>
+            <div class="panel-collapsed-content" aria-hidden="true">
+                <button class="collapsed-btn" data-panel="detail" title="Expand detail panel" aria-label="Expand detail panel">
+                    <span aria-hidden="true">📋</span>
+                </button>
+            </div>
+        </aside>
+    </div>
+
+    <div class="chat-input-bar" id="chat-input-bar" role="region" aria-label="Chat input">
+        <div class="chat-input-wrapper">
+            <form id="chat-form" class="chat-form" hx-post="/api/agent/execute" hx-target="#chat-thread" hx-swap="beforeend">
+                <div class="input-container">
+                    <textarea 
+                        id="chat-input" 
+                        class="chat-input" 
+                        placeholder="Type a command or message... (Press / to focus)"
+                        rows="1"
+                        maxlength="2000"
+                        aria-label="Chat input"
+                    ></textarea>
+                    <div class="input-actions">
+                        <button type="button" class="feedback-btn-inline" id="feedback-btn-inline" aria-label="Send feedback" title="Send feedback">
+                            <span aria-hidden="true">💬</span>
+                        </button>
+                        <button type="submit" class="send-btn" aria-label="Send message">
+                            <span>➤</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="input-hints">
+                    <span class="hint">Press <kbd>/</kbd> to focus</span>
+                    <span class="hint">Shift+Enter for new line</span>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container" role="region" aria-label="Notifications" aria-live="polite"></div>
+
+    @{
+        var toastJson = Gmsd.Web.Helpers.ToastHelper.GetToastsJson(this.Model);
+    }
+    <script>
+        window.GmsdServerToasts = @Html.Raw(toastJson);
+    </script>
+
+    <script src="~/js/main-layout.js" asp-append-version="true"></script>
+    <script src="~/js/context-sidebar.js" asp-append-version="true"></script>
+    <script src="~/js/detail-panel.js" asp-append-version="true"></script>
+    <script src="~/js/chat-input.js" asp-append-version="true"></script>
+    <script src="~/js/chat-thread.js" asp-append-version="true"></script>
+    <script src="~/js/streaming-chat.js" asp-append-version="true"></script>
+    <script src="~/js/command-palette.js" asp-append-version="true"></script>
+    <script src="~/js/artifact-links.js" asp-append-version="true"></script>
+    <script src="~/js/toasts.js" asp-append-version="true"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/context-aware-panels.js" asp-append-version="true"></script>
+    <script src="~/js/user-feedback.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,568 @@
+/**
+ * User Feedback Component Styles
+ * Includes: feedback button, modals, survey forms, and preferences panel
+ */
+
+/* ============================================
+   Feedback Button
+   ============================================ */
+.feedback-btn {
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--primary-color, #4a90d9);
+    color: white;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    z-index: 1000;
+}
+
+.feedback-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.feedback-btn:focus-visible {
+    outline: 2px solid var(--focus-color, #fff);
+    outline-offset: 2px;
+}
+
+.feedback-btn:active {
+    transform: scale(0.95);
+}
+
+/* Alternative: In chat input bar */
+#chat-input-bar .feedback-btn {
+    position: static;
+    width: 36px;
+    height: 36px;
+    margin-left: 8px;
+    font-size: 16px;
+}
+
+/* Inline feedback button in chat input */
+.feedback-btn-inline {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary, #888);
+    border: 1px solid var(--border-color, #3a3a3a);
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    margin-right: 8px;
+}
+
+.feedback-btn-inline:hover {
+    background: var(--hover-bg, #3a3a3a);
+    color: var(--text-primary, #fff);
+    border-color: var(--primary-color, #4a90d9);
+}
+
+.feedback-btn-inline:focus-visible {
+    outline: 2px solid var(--focus-color, #4a90d9);
+    outline-offset: 2px;
+}
+
+/* ============================================
+   Modal Base Styles
+   ============================================ */
+.feedback-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.feedback-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(2px);
+}
+
+.feedback-modal-content {
+    position: relative;
+    background: var(--surface-color, #2a2a2a);
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+}
+
+.feedback-modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color, #3a3a3a);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.feedback-modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text-primary, #fff);
+}
+
+.feedback-modal-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary, #888);
+    font-size: 24px;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: color 0.2s, background 0.2s;
+}
+
+.feedback-modal-close:hover {
+    color: var(--text-primary, #fff);
+    background: var(--hover-bg, #3a3a3a);
+}
+
+.feedback-modal-close:focus-visible {
+    outline: 2px solid var(--focus-color, #4a90d9);
+    outline-offset: 2px;
+}
+
+.feedback-modal-body {
+    padding: 20px 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.feedback-modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color, #3a3a3a);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* ============================================
+   Survey Modal Styles
+   ============================================ */
+.survey-modal .feedback-modal-body p {
+    color: var(--text-secondary, #aaa);
+    margin-bottom: 20px;
+}
+
+.survey-rating {
+    margin-bottom: 20px;
+}
+
+.survey-rating label {
+    display: block;
+    margin-bottom: 10px;
+    color: var(--text-primary, #fff);
+    font-weight: 500;
+}
+
+.star-rating {
+    display: flex;
+    gap: 8px;
+}
+
+.star-btn {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: var(--text-secondary, #666);
+    cursor: pointer;
+    transition: color 0.2s, transform 0.2s;
+    padding: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.star-btn:hover,
+.star-btn.active {
+    color: #ffc107;
+    transform: scale(1.1);
+}
+
+.star-btn:focus-visible {
+    outline: 2px solid var(--focus-color, #4a90d9);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.survey-comment {
+    margin-bottom: 20px;
+}
+
+.survey-comment label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-primary, #fff);
+    font-weight: 500;
+}
+
+.survey-comment textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color, #3a3a3a);
+    border-radius: 8px;
+    background: var(--input-bg, #1a1a1a);
+    color: var(--text-primary, #fff);
+    resize: vertical;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.survey-comment textarea:focus {
+    outline: none;
+    border-color: var(--primary-color, #4a90d9);
+}
+
+.survey-followup {
+    color: var(--text-secondary, #aaa);
+}
+
+.survey-followup label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.survey-followup input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.survey-followup input[type="email"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color, #3a3a3a);
+    border-radius: 6px;
+    background: var(--input-bg, #1a1a1a);
+    color: var(--text-primary, #fff);
+}
+
+.survey-followup input[type="email"]:focus {
+    outline: none;
+    border-color: var(--primary-color, #4a90d9);
+}
+
+/* ============================================
+   Feedback Type Selector
+   ============================================ */
+.feedback-type-selector {
+    margin-bottom: 20px;
+}
+
+.feedback-type-selector > label {
+    display: block;
+    margin-bottom: 10px;
+    color: var(--text-primary, #fff);
+    font-weight: 500;
+}
+
+.feedback-types {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.feedback-type-btn {
+    padding: 10px 16px;
+    border: 1px solid var(--border-color, #3a3a3a);
+    border-radius: 8px;
+    background: var(--surface-color, #2a2a2a);
+    color: var(--text-secondary, #aaa);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.feedback-type-btn:hover {
+    background: var(--hover-bg, #3a3a3a);
+    color: var(--text-primary, #fff);
+}
+
+.feedback-type-btn.active {
+    background: var(--primary-color, #4a90d9);
+    color: white;
+    border-color: var(--primary-color, #4a90d9);
+}
+
+.feedback-type-btn:focus-visible {
+    outline: 2px solid var(--focus-color, #4a90d9);
+    outline-offset: 2px;
+}
+
+.feedback-message label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-primary, #fff);
+    font-weight: 500;
+}
+
+.feedback-message textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color, #3a3a3a);
+    border-radius: 8px;
+    background: var(--input-bg, #1a1a1a);
+    color: var(--text-primary, #fff);
+    resize: vertical;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.feedback-message textarea:focus {
+    outline: none;
+    border-color: var(--primary-color, #4a90d9);
+}
+
+/* ============================================
+   Preferences Panel
+   ============================================ */
+.feedback-preferences-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--surface-color, #2a2a2a);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    z-index: 2001;
+    max-width: 400px;
+    width: 90%;
+}
+
+.feedback-preferences-panel h3 {
+    margin: 0 0 20px 0;
+    color: var(--text-primary, #fff);
+    font-size: 1.125rem;
+}
+
+.preference-item {
+    margin-bottom: 20px;
+}
+
+.toggle-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.toggle-label input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: relative;
+    width: 48px;
+    height: 24px;
+    background: var(--border-color, #3a3a3a);
+    border-radius: 12px;
+    transition: background 0.2s;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.toggle-slider::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+}
+
+.toggle-label input:checked + .toggle-slider {
+    background: var(--primary-color, #4a90d9);
+}
+
+.toggle-label input:checked + .toggle-slider::after {
+    transform: translateX(24px);
+}
+
+.toggle-label input:focus-visible + .toggle-slider {
+    outline: 2px solid var(--focus-color, #4a90d9);
+    outline-offset: 2px;
+}
+
+.toggle-text {
+    display: flex;
+    flex-direction: column;
+    color: var(--text-primary, #fff);
+}
+
+.toggle-text strong {
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.toggle-text small {
+    color: var(--text-secondary, #888);
+    font-size: 0.875rem;
+}
+
+.preference-actions {
+    margin-top: 24px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* ============================================
+   Button Styles
+   ============================================ */
+.btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn:focus-visible {
+    outline: 2px solid var(--focus-color, #4a90d9);
+    outline-offset: 2px;
+}
+
+.btn-primary {
+    background: var(--primary-color, #4a90d9);
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--primary-hover, #3a7bc8);
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--text-secondary, #aaa);
+    border: 1px solid var(--border-color, #3a3a3a);
+}
+
+.btn-secondary:hover {
+    background: var(--hover-bg, #3a3a3a);
+    color: var(--text-primary, #fff);
+}
+
+/* ============================================
+   Accessibility
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+    .feedback-btn,
+    .star-btn,
+    .feedback-type-btn,
+    .btn,
+    .toggle-slider,
+    .toggle-slider::after {
+        transition: none;
+    }
+}
+
+@media (prefers-contrast: more) {
+    .feedback-btn,
+    .btn-primary {
+        border: 2px solid currentColor;
+    }
+
+    .star-btn.active {
+        outline: 2px solid #ffc107;
+        outline-offset: 2px;
+    }
+}
+
+/* High contrast mode support */
+@media (forced-colors: active) {
+    .feedback-btn,
+    .btn-primary,
+    .btn-secondary {
+        border: 2px solid ButtonText;
+    }
+
+    .star-btn.active {
+        forced-color-adjust: none;
+        background: Highlight;
+        color: HighlightText;
+    }
+
+    .toggle-slider {
+        border: 1px solid ButtonText;
+    }
+}
+
+/* ============================================
+   Responsive Adjustments
+   ============================================ */
+@media (max-width: 480px) {
+    .feedback-modal-content {
+        width: 95%;
+        max-height: 95vh;
+    }
+
+    .feedback-types {
+        flex-direction: column;
+    }
+
+    .feedback-type-btn {
+        justify-content: center;
+    }
+
+    .star-rating {
+        justify-content: center;
+    }
+
+    .feedback-btn {
+        bottom: 80px;
+        right: 16px;
+        width: 44px;
+        height: 44px;
+    }
+}

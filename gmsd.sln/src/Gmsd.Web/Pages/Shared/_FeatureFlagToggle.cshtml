@@ -1,0 +1,248 @@
+@* Feature Flag Toggle Component - UI for switching between old and new layout *@
+@* Usage: <partial name="_FeatureFlagToggle" /> in header or footer areas *@
+
+<div id="feature-flag-toggle-container" class="feature-flag-toggle" style="display: none;">
+    <button id="feature-flag-toggle-btn" class="header-btn" aria-label="Toggle new UI experience" title="Toggle new chat-forward UI">
+        <span id="feature-flag-icon" aria-hidden="true">🔄</span>
+        <span id="feature-flag-label" class="toggle-label">New UI</span>
+    </button>
+    <div id="feature-flag-menu" class="feature-flag-menu" role="menu" aria-hidden="true">
+        <div class="menu-header">
+            <span>UI Experience</span>
+        </div>
+        <button class="menu-item" data-value="classic" role="menuitem">
+            <span class="check">✓</span>
+            <span>Classic Layout</span>
+        </button>
+        <button class="menu-item" data-value="chat-forward" role="menuitem">
+            <span class="check">✓</span>
+            <span>Chat-Forward UI</span>
+        </button>
+        <div class="menu-divider"></div>
+        <button class="menu-item menu-item-reset" data-value="auto" role="menuitem">
+            <span>Use system default</span>
+        </button>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initFeatureFlagToggle);
+    } else {
+        initFeatureFlagToggle();
+    }
+
+    function initFeatureFlagToggle() {
+        const container = document.getElementById('feature-flag-toggle-container');
+        const btn = document.getElementById('feature-flag-toggle-btn');
+        const menu = document.getElementById('feature-flag-menu');
+
+        if (!container || !btn || !menu) return;
+
+        // Fetch current status from API
+        fetchFeatureFlagStatus().then(status => {
+            if (!status.allowUserOverride) {
+                // User override not allowed, hide the toggle
+                return;
+            }
+
+            // Show the toggle
+            container.style.display = 'block';
+            updateToggleUI(status);
+
+            // Setup event handlers
+            btn.addEventListener('click', toggleMenu);
+            menu.addEventListener('click', handleMenuSelection);
+            document.addEventListener('click', closeMenuOnClickOutside);
+            document.addEventListener('keydown', handleKeyboardNavigation);
+        }).catch(err => {
+            console.warn('Failed to load feature flag status:', err);
+        });
+    }
+
+    async function fetchFeatureFlagStatus() {
+        const response = await fetch('/api/feature-flags/chat-forward-ui');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        return response.json();
+    }
+
+    function updateToggleUI(status) {
+        const label = document.getElementById('feature-flag-label');
+        const menu = document.getElementById('feature-flag-menu');
+
+        // Update label
+        if (status.userOverride === null) {
+            label.textContent = 'UI: Auto';
+        } else if (status.enabled) {
+            label.textContent = 'New UI';
+        } else {
+            label.textContent = 'Classic';
+        }
+
+        // Update menu selections
+        const items = menu.querySelectorAll('.menu-item');
+        items.forEach(item => {
+            const check = item.querySelector('.check');
+            if (check) {
+                check.style.visibility = 'hidden';
+            }
+        });
+
+        if (status.userOverride === null) {
+            // Auto mode
+            const autoItem = menu.querySelector('[data-value="auto"]');
+            if (autoItem) {
+                autoItem.classList.add('active');
+            }
+        } else if (status.enabled) {
+            // Chat-forward selected
+            const chatForwardItem = menu.querySelector('[data-value="chat-forward"]');
+            if (chatForwardItem) {
+                const check = chatForwardItem.querySelector('.check');
+                if (check) check.style.visibility = 'visible';
+            }
+        } else {
+            // Classic selected
+            const classicItem = menu.querySelector('[data-value="classic"]');
+            if (classicItem) {
+                const check = classicItem.querySelector('.check');
+                if (check) check.style.visibility = 'visible';
+            }
+        }
+    }
+
+    function toggleMenu() {
+        const menu = document.getElementById('feature-flag-menu');
+        const btn = document.getElementById('feature-flag-toggle-btn');
+        const isOpen = menu.classList.contains('open');
+
+        if (isOpen) {
+            closeMenu();
+        } else {
+            openMenu();
+        }
+    }
+
+    function openMenu() {
+        const menu = document.getElementById('feature-flag-menu');
+        const btn = document.getElementById('feature-flag-toggle-btn');
+
+        menu.classList.add('open');
+        menu.setAttribute('aria-hidden', 'false');
+        btn.setAttribute('aria-expanded', 'true');
+
+        // Focus first menu item
+        const firstItem = menu.querySelector('[role="menuitem"]');
+        if (firstItem) firstItem.focus();
+    }
+
+    function closeMenu() {
+        const menu = document.getElementById('feature-flag-menu');
+        const btn = document.getElementById('feature-flag-toggle-btn');
+
+        menu.classList.remove('open');
+        menu.setAttribute('aria-hidden', 'true');
+        btn.setAttribute('aria-expanded', 'false');
+    }
+
+    function closeMenuOnClickOutside(event) {
+        const container = document.getElementById('feature-flag-toggle-container');
+        if (!container.contains(event.target)) {
+            closeMenu();
+        }
+    }
+
+    async function handleMenuSelection(event) {
+        const item = event.target.closest('.menu-item');
+        if (!item) return;
+
+        const value = item.dataset.value;
+        closeMenu();
+
+        try {
+            if (value === 'auto') {
+                await clearPreference();
+            } else {
+                const enabled = value === 'chat-forward';
+                await setPreference(enabled);
+            }
+
+            // Refresh page to apply new layout
+            window.location.reload();
+        } catch (err) {
+            console.error('Failed to update preference:', err);
+            showToast('Failed to update UI preference. Please try again.', 'error');
+        }
+    }
+
+    async function setPreference(enabled) {
+        const response = await fetch('/api/feature-flags/chat-forward-ui/preference', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+    }
+
+    async function clearPreference() {
+        const response = await fetch('/api/feature-flags/chat-forward-ui/preference', {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+    }
+
+    function handleKeyboardNavigation(event) {
+        const menu = document.getElementById('feature-flag-menu');
+        if (!menu.classList.contains('open')) return;
+
+        const items = Array.from(menu.querySelectorAll('[role="menuitem"]'));
+        const currentIndex = items.indexOf(document.activeElement);
+
+        switch (event.key) {
+            case 'Escape':
+                closeMenu();
+                document.getElementById('feature-flag-toggle-btn').focus();
+                break;
+            case 'ArrowDown':
+                event.preventDefault();
+                const nextIndex = (currentIndex + 1) % items.length;
+                items[nextIndex].focus();
+                break;
+            case 'ArrowUp':
+                event.preventDefault();
+                const prevIndex = (currentIndex - 1 + items.length) % items.length;
+                items[prevIndex].focus();
+                break;
+            case 'Home':
+                event.preventDefault();
+                items[0].focus();
+                break;
+            case 'End':
+                event.preventDefault();
+                items[items.length - 1].focus();
+                break;
+        }
+    }
+
+    function showToast(message, type = 'info') {
+        // Use existing toast system if available
+        if (window.GmsdToasts) {
+            window.GmsdToasts.show(message, type);
+        } else {
+            alert(message);
+        }
+    }
+})();
+</script>

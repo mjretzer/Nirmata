@@ -1,0 +1,77 @@
+@model Gmsd.Web.Models.ArtifactValidationStatusViewModel
+
+@if (Model != null)
+{
+    <div class="validation-status-indicator">
+        @if (Model.IsValid)
+        {
+            <div class="status-badge status-valid">
+                <i class="bi bi-check-circle-fill"></i>
+                <span>Valid</span>
+            </div>
+        }
+        else
+        {
+            <div class="status-badge status-invalid">
+                <i class="bi bi-x-circle-fill"></i>
+                <span>Invalid</span>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.ValidationMessage))
+        {
+            <div class="status-message">
+                @Model.ValidationMessage
+            </div>
+        }
+
+        @if (Model.ValidatedAt.HasValue)
+        {
+            <div class="status-timestamp">
+                <small class="text-muted">
+                    Validated: @Model.ValidatedAt.Value.ToString("yyyy-MM-dd HH:mm:ss")
+                </small>
+            </div>
+        }
+    </div>
+
+    <style>
+        .validation-status-indicator {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            font-weight: 600;
+            width: fit-content;
+        }
+
+        .status-valid {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-invalid {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-message {
+            padding: 0.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        .status-timestamp {
+            padding: 0.25rem 0;
+        }
+    </style>
+}

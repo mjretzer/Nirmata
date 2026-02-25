@@ -1,0 +1,527 @@
+/**
+ * Reasoning Block Styles
+ * Visual styling for intent.classified and gate.selected event renderers
+ */
+
+/* ==========================================================================
+   Reasoning Block Base
+   ========================================================================== */
+
+.reasoning-block {
+    background: linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin: 12px 0;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.2s ease;
+}
+
+.reasoning-block:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.reasoning-block--collapsed {
+    background: #f8fafc;
+}
+
+/* ==========================================================================
+   Header & Toggle
+   ========================================================================== */
+
+.reasoning-block__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.6);
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;
+}
+
+.reasoning-block:not(.reasoning-block--collapsed) .reasoning-block__header {
+    border-bottom-color: #e2e8f0;
+}
+
+.reasoning-block__toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: #1e293b;
+    cursor: pointer;
+    text-align: left;
+    transition: color 0.2s ease;
+}
+
+.reasoning-block__toggle:hover {
+    color: #0f172a;
+}
+
+.reasoning-block__toggle:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.reasoning-block__icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.reasoning-block__title {
+    font-weight: 600;
+    font-size: 14px;
+    flex: 1;
+}
+
+.reasoning-block__chevron {
+    color: #64748b;
+    transition: transform 0.2s ease;
+    display: flex;
+    align-items: center;
+}
+
+.reasoning-block__chevron svg {
+    width: 16px;
+    height: 16px;
+}
+
+.reasoning-block--collapsed .reasoning-block__chevron {
+    transform: rotate(-90deg);
+}
+
+/* ==========================================================================
+   Badge
+   ========================================================================== */
+
+.reasoning-block__badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.reasoning-block__badge--confirm {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+}
+
+/* ==========================================================================
+   Content Area
+   ========================================================================== */
+
+.reasoning-block__content {
+    padding: 0;
+    animation: reasoningExpand 0.2s ease;
+}
+
+@keyframes reasoningExpand {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.reasoning-block--collapsed .reasoning-block__content {
+    display: none;
+}
+
+/* ==========================================================================
+   Reasoning Section
+   ========================================================================== */
+
+.reasoning-block__reasoning {
+    padding: 16px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.reasoning-block__subtitle {
+    margin: 0 0 8px 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.reasoning-block__reasoning-text {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #475569;
+    font-style: italic;
+}
+
+/* ==========================================================================
+   Confidence Bar
+   ========================================================================== */
+
+.confidence-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 100px;
+}
+
+.confidence-bar__track {
+    flex: 1;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.confidence-bar__fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease, background-color 0.2s ease;
+}
+
+.confidence-bar__label {
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 32px;
+    text-align: right;
+}
+
+/* Confidence Levels */
+.confidence-bar--high .confidence-bar__fill {
+    background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+}
+
+.confidence-bar--high .confidence-bar__label {
+    color: #16a34a;
+}
+
+.confidence-bar--medium .confidence-bar__fill {
+    background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+}
+
+.confidence-bar--medium .confidence-bar__label {
+    color: #d97706;
+}
+
+.confidence-bar--low .confidence-bar__fill {
+    background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+.confidence-bar--low .confidence-bar__label {
+    color: #dc2626;
+}
+
+/* ==========================================================================
+   Confirmation Card
+   ========================================================================== */
+
+.confirmation-card {
+    margin: 16px;
+    background: #ffffff;
+    border: 2px solid #fbbf24;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.confirmation-card__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-bottom: 1px solid #fcd34d;
+}
+
+.confirmation-card__icon {
+    font-size: 18px;
+}
+
+.confirmation-card__title {
+    font-weight: 600;
+    font-size: 13px;
+    color: #92400e;
+}
+
+.confirmation-card__body {
+    padding: 16px;
+}
+
+.confirmation-card__description {
+    margin: 0 0 12px 0;
+    font-size: 13px;
+    color: #475569;
+}
+
+.confirmation-card__params {
+    margin: 0;
+    padding: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    font-size: 12px;
+    overflow-x: auto;
+}
+
+.confirmation-card__params code {
+    font-family: 'SF Mono', Monaco, monospace;
+    color: #334155;
+}
+
+.confirmation-card__actions {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+}
+
+.confirmation-card__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.confirmation-card__btn:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+.confirmation-card__btn--confirm {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: white;
+}
+
+.confirmation-card__btn--confirm:hover {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(22, 163, 74, 0.3);
+}
+
+.confirmation-card__btn--cancel {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.confirmation-card__btn--cancel:hover {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.confirmation-card__btn-icon {
+    font-size: 14px;
+    line-height: 1;
+}
+
+/* Success/Cancelled States */
+.confirmation-card--confirmed {
+    border-color: #22c55e;
+}
+
+.confirmation-card--cancelled {
+    border-color: #ef4444;
+}
+
+.confirmation-card__success,
+.confirmation-card__cancelled {
+    padding: 16px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.confirmation-card__success {
+    color: #16a34a;
+    background: #f0fdf4;
+}
+
+.confirmation-card__cancelled {
+    color: #dc2626;
+    background: #fef2f2;
+}
+
+/* ==========================================================================
+   Meta Footer
+   ========================================================================== */
+
+.reasoning-block__meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.4);
+    border-top: 1px solid #f1f5f9;
+}
+
+.reasoning-block__timestamp {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+/* ==========================================================================
+   Type-Specific Variants
+   ========================================================================== */
+
+/* Intent Classification */
+.reasoning-block--intent {
+    border-left: 3px solid #3b82f6;
+}
+
+.reasoning-block--intent .reasoning-block__header {
+    background: linear-gradient(145deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.02) 100%);
+}
+
+/* Gate Selection */
+.reasoning-block--gate {
+    border-left: 3px solid #8b5cf6;
+}
+
+.reasoning-block--gate .reasoning-block__header {
+    background: linear-gradient(145deg, rgba(139, 92, 246, 0.05) 0%, rgba(139, 92, 246, 0.02) 100%);
+}
+
+/* ==========================================================================
+   Dark Mode Support
+   ========================================================================== */
+
+@media (prefers-color-scheme: dark) {
+    .reasoning-block {
+        background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+        border-color: #334155;
+    }
+
+    .reasoning-block__header {
+        background: rgba(30, 41, 59, 0.6);
+    }
+
+    .reasoning-block:not(.reasoning-block--collapsed) .reasoning-block__header {
+        border-bottom-color: #334155;
+    }
+
+    .reasoning-block__toggle {
+        color: #e2e8f0;
+    }
+
+    .reasoning-block__toggle:hover {
+        color: #f8fafc;
+    }
+
+    .reasoning-block__chevron {
+        color: #94a3b8;
+    }
+
+    .reasoning-block__title {
+        color: #f1f5f9;
+    }
+
+    .reasoning-block__reasoning {
+        border-bottom-color: #334155;
+    }
+
+    .reasoning-block__subtitle {
+        color: #94a3b8;
+    }
+
+    .reasoning-block__reasoning-text {
+        color: #cbd5e1;
+    }
+
+    .confidence-bar__track {
+        background: #334155;
+    }
+
+    .confirmation-card {
+        background: #1e293b;
+        border-color: #d97706;
+    }
+
+    .confirmation-card__header {
+        background: linear-gradient(135deg, rgba(217, 119, 6, 0.2) 0%, rgba(180, 83, 9, 0.1) 100%);
+        border-bottom-color: #b45309;
+    }
+
+    .confirmation-card__title {
+        color: #fbbf24;
+    }
+
+    .confirmation-card__description {
+        color: #cbd5e1;
+    }
+
+    .confirmation-card__params {
+        background: #0f172a;
+        border-color: #334155;
+    }
+
+    .confirmation-card__params code {
+        color: #e2e8f0;
+    }
+
+    .confirmation-card__actions {
+        background: #1e293b;
+        border-top-color: #334155;
+    }
+
+    .confirmation-card__btn--cancel {
+        background: #334155;
+        color: #94a3b8;
+    }
+
+    .confirmation-card__btn--cancel:hover {
+        background: #475569;
+        color: #e2e8f0;
+    }
+
+    .reasoning-block__meta {
+        background: rgba(30, 41, 59, 0.4);
+        border-top-color: #334155;
+    }
+
+    .reasoning-block__timestamp {
+        color: #64748b;
+    }
+
+    .confirmation-card__success {
+        background: rgba(22, 163, 74, 0.1);
+        color: #4ade80;
+    }
+
+    .confirmation-card__cancelled {
+        background: rgba(220, 38, 38, 0.1);
+        color: #f87171;
+    }
+}
+
+/* ==========================================================================
+   Reduced Motion Support
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .reasoning-block,
+    .reasoning-block__chevron,
+    .confidence-bar__fill,
+    .confirmation-card__btn {
+        transition: none;
+    }
+
+    .reasoning-block__content {
+        animation: none;
+    }
+}

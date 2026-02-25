@@ -1,0 +1,7 @@
+C:\Users\James Lestler\Desktop\Projects\GMSD\tests\Gmsd.Agents.Tests\bin\Release\net10.0-windows\.msCoverageSourceRootsMapping_Gmsd.Agents.Tests
+C:\Users\James Lestler\Desktop\Projects\GMSD\tests\Gmsd.Agents.Tests\obj\Release\net10.0-windows\Gmsd.Agents.Tests.csproj.AssemblyReference.cache
+C:\Users\James Lestler\Desktop\Projects\GMSD\tests\Gmsd.Agents.Tests\obj\Release\net10.0-windows\Gmsd.Agents.Tests.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\James Lestler\Desktop\Projects\GMSD\tests\Gmsd.Agents.Tests\obj\Release\net10.0-windows\Gmsd.Agents.Tests.AssemblyInfoInputs.cache
+C:\Users\James Lestler\Desktop\Projects\GMSD\tests\Gmsd.Agents.Tests\obj\Release\net10.0-windows\Gmsd.Agents.Tests.AssemblyInfo.cs
+C:\Users\James Lestler\Desktop\Projects\GMSD\tests\Gmsd.Agents.Tests\obj\Release\net10.0-windows\Gmsd.Agents.Tests.csproj.CoreCompileInputs.cache
+C:\Users\James Lestler\Desktop\Projects\GMSD\tests\Gmsd.Agents.Tests\obj\Release\net10.0-windows\Gmsd.Agents.Tests.sourcelink.json

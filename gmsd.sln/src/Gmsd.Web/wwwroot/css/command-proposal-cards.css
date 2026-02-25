@@ -1,0 +1,300 @@
+/**
+ * Command Proposal Card Styles
+ * Styling for AI-suggested command proposals with accept/reject controls
+ */
+
+.command-proposal-card {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--color-border, #e0e0e0);
+    border-radius: 8px;
+    background: var(--color-background, #ffffff);
+    margin: 12px 0;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.command-proposal-card--pending {
+    border-color: #ffa500;
+    background: linear-gradient(135deg, #fffbf0 0%, #ffffff 100%);
+}
+
+.command-proposal-card--confirmed {
+    border-color: #4caf50;
+    background: linear-gradient(135deg, #f1f8f4 0%, #ffffff 100%);
+}
+
+.command-proposal-card--rejected {
+    border-color: #f44336;
+    background: linear-gradient(135deg, #fef5f5 0%, #ffffff 100%);
+    opacity: 0.8;
+}
+
+.command-proposal-card__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.command-proposal-card__icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.command-proposal-card__title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--color-text-primary, #333);
+    flex: 1;
+}
+
+.command-proposal-card__confidence {
+    font-size: 12px;
+    color: var(--color-text-secondary, #666);
+    background: rgba(0, 0, 0, 0.05);
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.command-proposal-card__status-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status--confirmed {
+    background: #4caf50;
+    color: white;
+}
+
+.status--rejected {
+    background: #f44336;
+    color: white;
+}
+
+.command-proposal-card__body {
+    padding: 16px;
+    flex: 1;
+}
+
+.command-proposal-card__command {
+    margin-bottom: 12px;
+}
+
+.command-proposal-card__command-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-secondary, #666);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.command-proposal-card__command-text {
+    display: block;
+    background: var(--color-code-background, #f5f5f5);
+    border: 1px solid var(--color-border, #e0e0e0);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    color: var(--color-code-text, #333);
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.command-proposal-card__reasoning {
+    margin-bottom: 12px;
+}
+
+.command-proposal-card__reasoning-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-secondary, #666);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.command-proposal-card__reasoning-text {
+    margin: 0;
+    font-size: 13px;
+    color: var(--color-text-primary, #333);
+    line-height: 1.5;
+}
+
+.command-proposal-card__outcome {
+    margin-bottom: 0;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.command-proposal-card__outcome-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-secondary, #666);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.command-proposal-card__outcome-text {
+    margin: 0;
+    font-size: 13px;
+    color: var(--color-text-primary, #333);
+    line-height: 1.5;
+}
+
+.command-proposal-card__confirmed-info,
+.command-proposal-card__rejected-info {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.command-proposal-card__confirmed-at,
+.command-proposal-card__rejected-at {
+    display: block;
+    font-size: 12px;
+    color: var(--color-text-secondary, #666);
+    margin-bottom: 6px;
+}
+
+.command-proposal-card__user-message {
+    margin-top: 8px;
+}
+
+.command-proposal-card__user-message-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-text-secondary, #666);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.command-proposal-card__user-message-text {
+    margin: 0;
+    font-size: 12px;
+    color: var(--color-text-primary, #333);
+    line-height: 1.4;
+    font-style: italic;
+}
+
+.command-proposal-card__controls {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.command-proposal-card__btn {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.command-proposal-card__btn-icon {
+    font-size: 14px;
+}
+
+.command-proposal-card__btn--accept {
+    background: #4caf50;
+    color: white;
+}
+
+.command-proposal-card__btn--accept:hover {
+    background: #45a049;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.command-proposal-card__btn--accept:active {
+    transform: scale(0.98);
+}
+
+.command-proposal-card__btn--reject {
+    background: #f44336;
+    color: white;
+}
+
+.command-proposal-card__btn--reject:hover {
+    background: #da190b;
+    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+}
+
+.command-proposal-card__btn--reject:active {
+    transform: scale(0.98);
+}
+
+.command-proposal-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.02);
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    font-size: 11px;
+    color: var(--color-text-secondary, #999);
+}
+
+.command-proposal-card__timestamp {
+    font-style: italic;
+}
+
+.command-proposal-card__id {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .command-proposal-card {
+        margin: 8px 0;
+    }
+
+    .command-proposal-card__header {
+        padding: 12px;
+    }
+
+    .command-proposal-card__body {
+        padding: 12px;
+    }
+
+    .command-proposal-card__controls {
+        padding: 8px 12px;
+        gap: 6px;
+    }
+
+    .command-proposal-card__btn {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
+    .command-proposal-card__footer {
+        padding: 6px 12px;
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-start;
+    }
+}

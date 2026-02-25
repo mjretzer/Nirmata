@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Gmsd.Agents\Gmsd.Agents.csproj" />
+    <ProjectReference Include="..\Gmsd.Aos\Gmsd.Aos.csproj" />
+    <ProjectReference Include="..\Gmsd.Services\Gmsd.Services.csproj" />
+    <ProjectReference Include="..\Gmsd.Data\Gmsd.Data.csproj" />
+    <ProjectReference Include="..\Gmsd.Data.Dto\Gmsd.Data.Dto.csproj" />
+    <ProjectReference Include="..\Gmsd.Common\Gmsd.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0" />
+    <PackageReference Include="AutoMapper" Version="13.0.1" />
+    <PackageReference Include="NJsonSchema" Version="11.0.0" />
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App" />
+  </ItemGroup>
+
+</Project>

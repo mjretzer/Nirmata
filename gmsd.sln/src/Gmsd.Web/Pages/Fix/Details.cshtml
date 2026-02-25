@@ -1,0 +1,274 @@
+@page "{loopId}"
+@model Gmsd.Web.Pages.Fix.DetailsModel
+@using Gmsd.Web.Models
+@{
+    ViewData["Title"] = $"Fix Details - {Model.RepairLoop?.Id ?? "Not Found"}";
+}
+
+@if (Model.RepairLoop == null)
+{
+    <div class="error-state">
+        <h1>Repair Loop Not Found</h1>
+        <p>@Model.NotFoundMessage</p>
+        <a href="~/Fix" class="btn btn-secondary">Back to Fix Planning</a>
+    </div>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-error">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success">
+            @Model.SuccessMessage
+        </div>
+    }
+
+    <div class="detail-page">
+        <div class="detail-header">
+            <div class="detail-title">
+                <h1>Repair Loop: @Model.RepairLoop.IssueTitle</h1>
+                <span class="badge badge-@GetStatusClass(Model.RepairLoop.Status)">
+                    @Model.RepairLoop.Status
+                </span>
+            </div>
+            <div class="detail-meta">
+                <span>ID: <code>@Model.RepairLoop.Id</code></span>
+                <span>Iteration: @Model.RepairLoop.CurrentIteration / @Model.RepairLoop.MaxIterations</span>
+                @if (Model.RepairLoop.CreatedAt.HasValue)
+                {
+                    <span>Created: @Model.RepairLoop.CreatedAt.Value.ToString("yyyy-MM-dd HH:mm")</span>
+                }
+            </div>
+            <div class="detail-actions">
+                <a href="~/Fix" class="btn btn-secondary">← Back to Fix Planning</a>
+                @if (!string.IsNullOrEmpty(Model.RepairLoop.IssueId))
+                {
+                    <a href="~/Issues/Details/@Model.RepairLoop.IssueId" class="btn btn-secondary">View Issue</a>
+                }
+                @if (!string.IsNullOrEmpty(Model.RepairLoop.RunId))
+                {
+                    <a href="~/Runs/Details/@Model.RepairLoop.RunId" class="btn btn-secondary">View Run</a>
+                }
+            </div>
+        </div>
+
+        @if (Model.FixPlanValidationStatus != null)
+        {
+            @await Html.PartialAsync("_ValidationStatusIndicator", Model.FixPlanValidationStatus)
+        }
+        
+        @if (Model.FixPlanDiagnostic != null)
+        {
+            @await Html.PartialAsync("_DiagnosticArtifactRenderer", Model.FixPlanDiagnostic)
+            @await Html.PartialAsync("_RepairSuggestionsPanel", Model.FixPlanDiagnostic)
+        }
+
+        <div class="detail-tabs">
+            <div class="tab-content active">
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">Fix Plan Tasks</h3>
+                    </div>
+                    <div class="section-content">
+                        @if (Model.FixPlanTasks.Count == 0)
+                        {
+                            <p class="text-muted">No fix plan tasks defined yet.</p>
+                        }
+                        else
+                        {
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Step</th>
+                                        <th>Task</th>
+                                        <th>Status</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var task in Model.FixPlanTasks.OrderBy(t => t.StepNumber))
+                                    {
+                                        <tr>
+                                            <td>@task.StepNumber</td>
+                                            <td><strong>@task.Title</strong></td>
+                                            <td>
+                                                <span class="badge badge-@GetTaskStatusClass(task.Status)">
+                                                    @task.Status
+                                                </span>
+                                            </td>
+                                            <td>@task.Description</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">Loop State</h3>
+                    </div>
+                    <div class="section-content">
+                        @if (string.IsNullOrEmpty(Model.LoopStateJson))
+                        {
+                            <p class="text-muted">No loop state available.</p>
+                        }
+                        else
+                        {
+                            @await Html.PartialAsync("_JsonViewer", new JsonViewerModel
+                            {
+                                JsonContent = Model.LoopStateJson,
+                                FileName = "loop-state.json",
+                                ShowToolbar = true,
+                                AllowDownload = false
+                            })
+                        }
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">Actions</h3>
+                    </div>
+                    <div class="section-content">
+                        <div class="action-buttons">
+                            @if (Model.CanPlanFix)
+                            {
+                                <form method="post" asp-page-handler="PlanFix" asp-route-loopId="@Model.RepairLoop.Id" style="display: inline-block; margin-right: 10px;">
+                                    <button type="submit" class="btn btn-primary">Plan Fix</button>
+                                </form>
+                            }
+                            @if (Model.CanExecuteFix)
+                            {
+                                <form method="post" asp-page-handler="ExecuteFix" asp-route-loopId="@Model.RepairLoop.Id" style="display: inline-block; margin-right: 10px;">
+                                    <button type="submit" class="btn btn-success">Execute Fix</button>
+                                </form>
+                            }
+                            @if (Model.CanReverify)
+                            {
+                                <form method="post" asp-page-handler="Reverify" asp-route-loopId="@Model.RepairLoop.Id" style="display: inline-block; margin-right: 10px;">
+                                    <button type="submit" class="btn btn-warning">Re-verify</button>
+                                </form>
+                            }
+                            @if (Model.CanAbort)
+                            {
+                                <form method="post" asp-page-handler="Abort" asp-route-loopId="@Model.RepairLoop.Id" style="display: inline-block;"
+                                      onsubmit="return confirm('Are you sure you want to abort this repair loop?');">
+                                    <button type="submit" class="btn btn-danger">Abort Loop</button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                @if (Model.VerificationResults.Count > 0)
+                {
+                    <div class="section-card">
+                        <div class="section-header">
+                            <h3 class="section-title">Verification History</h3>
+                        </div>
+                        <div class="section-content">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Iteration</th>
+                                        <th>Status</th>
+                                        <th>Timestamp</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var result in Model.VerificationResults.OrderByDescending(r => r.Iteration))
+                                    {
+                                        <tr>
+                                            <td>@result.Iteration</td>
+                                            <td>
+                                                <span class="badge badge-@GetVerificationClass(result.Status)">
+                                                    @result.Status
+                                                </span>
+                                            </td>
+                                            <td>
+                                                @if (result.Timestamp.HasValue)
+                                                {
+                                                    @result.Timestamp.Value.ToString("yyyy-MM-dd HH:mm")
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td>@result.Notes</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">Related Items</h3>
+                    </div>
+                    <div class="section-content">
+                        @if (!string.IsNullOrEmpty(Model.RepairLoop.IssueId))
+                        {
+                            <div class="related-link">
+                                <strong>Issue:</strong>
+                                <a href="~/Issues/Details/@Model.RepairLoop.IssueId">@Model.RepairLoop.IssueTitle (@Model.RepairLoop.IssueId)</a>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.RepairLoop.RunId))
+                        {
+                            <div class="related-link">
+                                <strong>Run:</strong>
+                                <a href="~/Runs/Details/@Model.RepairLoop.RunId">@Model.RepairLoop.RunId</a>
+                            </div>
+                        }
+                        @if (string.IsNullOrEmpty(Model.RepairLoop.IssueId) && string.IsNullOrEmpty(Model.RepairLoop.RunId))
+                        {
+                            <p class="text-muted">No related items.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@functions {
+    string GetStatusClass(string? status) => status?.ToLower() switch
+    {
+        "active" => "info",
+        "planning" => "secondary",
+        "executing" => "primary",
+        "verifying" => "warning",
+        "completed" => "success",
+        "failed" => "danger",
+        _ => "secondary"
+    };
+
+    string GetTaskStatusClass(string? status) => status?.ToLower() switch
+    {
+        "pending" => "secondary",
+        "inprogress" => "primary",
+        "completed" => "success",
+        "failed" => "danger",
+        _ => "secondary"
+    };
+
+    string GetVerificationClass(string? status) => status?.ToLower() switch
+    {
+        "passed" => "success",
+        "failed" => "danger",
+        "pending" => "warning",
+        _ => "secondary"
+    };
+}

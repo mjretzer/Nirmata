@@ -1,0 +1,40 @@
+# web-agent-runner Specification
+
+## Purpose
+
+Defines the in-process agent runner integration used by `Gmsd.Web` to execute orchestrator commands without requiring an external Windows Service host.
+
+- **Lives in:** `Gmsd.Web/AgentRunner/WorkflowClassifier*`, `Gmsd.Web/Composition/*`
+- **Owns:** Web-layer command normalization and delegation into the orchestrator boundary
+- **Does not own:** Control-plane workflow semantics or engine contract enforcement
+## Requirements
+### Requirement: Workflow Classifier in Web Project
+
+The `Gmsd.Web` project SHALL provide a `WorkflowClassifier` class that enables in-process agent execution without requiring the Windows Service host.
+
+The implementation MUST:
+- Accept `IOrchestrator` via constructor injection
+- Provide `ExecuteAsync(string inputRaw, CancellationToken)` method
+- Generate correlation IDs for each execution
+- Normalize inputs into `WorkflowIntent` for the orchestrator
+- Return `OrchestratorResult` with run status and artifacts
+- Handle execution exceptions gracefully
+
+#### Scenario: Execute no-op command via WorkflowClassifier
+- **GIVEN** the Web application is configured with `AddGmsdAgents()`
+- **WHEN** `WorkflowClassifier.ExecuteAsync("status")` is called
+- **THEN** the orchestrator executes without spawning external processes
+- **AND** a valid `OrchestratorResult` is returned with run ID
+
+#### Scenario: WorkflowClassifier generates correlation IDs
+- **GIVEN** a call to `ExecuteAsync()` without explicit correlation ID
+- **WHEN** execution begins
+- **THEN** a unique correlation ID is generated and passed to the orchestrator
+- **AND** the correlation ID appears in run evidence
+
+#### Scenario: WorkflowClassifier handles execution failures
+- **GIVEN** an orchestrator that throws an exception
+- **WHEN** `ExecuteAsync()` is called
+- **THEN** the exception is caught and wrapped in a failed `OrchestratorResult`
+- **AND** error details are logged
+
