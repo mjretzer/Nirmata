@@ -1,0 +1,126 @@
+<Project>
+  <Target
+    Name="EnforcenirmataReferenceBoundaries"
+    BeforeTargets="ResolveReferences"
+    Condition="'$(nirmataBoundaryEnforcementEnabled)' == 'true' and '$(DesignTimeBuild)' != 'true'">
+
+    <!-- 2.1: Canonical layer classification must exist for baseline projects. -->
+    <Error
+      Condition="'$(nirmataDomain)' == 'Unknown' or '$(nirmataLayer)' == 'Unknown'"
+      Text="nirmata0000: Project '$(MSBuildProjectName)' is not assigned to a canonical layer (nirmataDomain/nirmataLayer). Add it to the centralized mapping in 'Directory.Build.props' (OpenSpec: add-engine-project-skeletons-and-boundaries)." />
+
+    <!-- Tests are allowed to reference across layers. -->
+    <PropertyGroup Condition="'$(nirmataDomain)' == 'Test'">
+      <_nirmataSkipBoundaryChecks>true</_nirmataSkipBoundaryChecks>
+    </PropertyGroup>
+
+    <!-- Classify all direct ProjectReference edges into canonical layers. -->
+    <ItemGroup Condition="'$(_nirmataSkipBoundaryChecks)' != 'true'">
+      <_nirmataUnmappedRef Include="@(ProjectReference)" />
+
+      <_nirmataMappedRef Include="@(ProjectReference)" Condition="'%(ProjectReference.Filename)' == 'nirmata.Common'">
+        <RefDomain>Shared</RefDomain>
+        <RefLayer>Shared</RefLayer>
+        <RefStackRank>0</RefStackRank>
+        <RefEngineRank>0</RefEngineRank>
+      </_nirmataMappedRef>
+
+      <_nirmataMappedRef Include="@(ProjectReference)" Condition="'%(ProjectReference.Filename)' == 'nirmata.Data.Dto'">
+        <RefDomain>Product</RefDomain>
+        <RefLayer>Product.Dto</RefLayer>
+        <RefStackRank>10</RefStackRank>
+        <RefEngineRank>0</RefEngineRank>
+      </_nirmataMappedRef>
+
+      <_nirmataMappedRef Include="@(ProjectReference)" Condition="'%(ProjectReference.Filename)' == 'nirmata.Data'">
+        <RefDomain>Product</RefDomain>
+        <RefLayer>Product.Data</RefLayer>
+        <RefStackRank>20</RefStackRank>
+        <RefEngineRank>0</RefEngineRank>
+      </_nirmataMappedRef>
+
+      <_nirmataMappedRef Include="@(ProjectReference)" Condition="'%(ProjectReference.Filename)' == 'nirmata.Services'">
+        <RefDomain>Product</RefDomain>
+        <RefLayer>Product.Services</RefLayer>
+        <RefStackRank>30</RefStackRank>
+        <RefEngineRank>0</RefEngineRank>
+      </_nirmataMappedRef>
+
+      <_nirmataMappedRef Include="@(ProjectReference)" Condition="'%(ProjectReference.Filename)' == 'nirmata.Api'">
+        <RefDomain>Host</RefDomain>
+        <RefLayer>Host.Api</RefLayer>
+        <RefStackRank>40</RefStackRank>
+        <RefEngineRank>0</RefEngineRank>
+      </_nirmataMappedRef>
+
+      <_nirmataMappedRef Include="@(ProjectReference)" Condition="'%(ProjectReference.Filename)' == 'nirmata.Web'">
+        <RefDomain>Host</RefDomain>
+        <RefLayer>Host.Web</RefLayer>
+        <RefStackRank>50</RefStackRank>
+        <RefEngineRank>0</RefEngineRank>
+      </_nirmataMappedRef>
+
+      <_nirmataMappedRef Include="@(ProjectReference)" Condition="'%(ProjectReference.Filename)' == 'nirmata.Windows.Service'">
+        <RefDomain>Host</RefDomain>
+        <RefLayer>Host.Windows.Service</RefLayer>
+        <RefStackRank>60</RefStackRank>
+        <RefEngineRank>0</RefEngineRank>
+      </_nirmataMappedRef>
+
+      <_nirmataMappedRef Include="@(ProjectReference)" Condition="'%(ProjectReference.Filename)' == 'nirmata.Windows.Service.Api'">
+        <RefDomain>Host</RefDomain>
+        <RefLayer>Host.Windows.Service.Api</RefLayer>
+        <RefStackRank>61</RefStackRank>
+        <RefEngineRank>0</RefEngineRank>
+      </_nirmataMappedRef>
+
+      <_nirmataMappedRef Include="@(ProjectReference)" Condition="'%(ProjectReference.Filename)' == 'nirmata.Aos'">
+        <RefDomain>Engine</RefDomain>
+        <RefLayer>Engine.Aos</RefLayer>
+        <RefStackRank>0</RefStackRank>
+        <RefEngineRank>10</RefEngineRank>
+      </_nirmataMappedRef>
+
+      <_nirmataMappedRef Include="@(ProjectReference)" Condition="'%(ProjectReference.Filename)' == 'nirmata.Agents'">
+        <RefDomain>Engine</RefDomain>
+        <RefLayer>Engine.Agents</RefLayer>
+        <RefStackRank>0</RefStackRank>
+        <RefEngineRank>20</RefEngineRank>
+      </_nirmataMappedRef>
+
+      <_nirmataUnmappedRef Remove="@(_nirmataMappedRef)" />
+    </ItemGroup>
+
+    <!-- Unknown referenced project classification should fail (baseline should be fully mapped). -->
+    <Error
+      Condition="'$(_nirmataSkipBoundaryChecks)' != 'true' and '@(_nirmataUnmappedRef)' != ''"
+      Text="nirmata0000: Project '$(MSBuildProjectName)' (Layer=$(nirmataLayer)) references '%(_nirmataUnmappedRef.Filename)' (path: %(_nirmataUnmappedRef.Identity)), but the referenced project is not assigned to a canonical layer. Add '%(_nirmataUnmappedRef.Filename)' to the centralized mapping in 'Directory.Build.props'." />
+
+    <!-- Rule: Shared projects may only depend on Shared. -->
+    <Error
+      Condition="'$(_nirmataSkipBoundaryChecks)' != 'true' and '@(_nirmataMappedRef)' != '' and '$(nirmataDomain)' == 'Shared' and '%(_nirmataMappedRef.RefDomain)' != 'Shared'"
+      Text="nirmata1001: Forbidden project reference. '$(MSBuildProjectName)' (Layer=$(nirmataLayer)) -> '%(_nirmataMappedRef.Filename)' (Layer=%(_nirmataMappedRef.RefLayer)). Rule: Shared projects may only reference Shared projects." />
+
+    <!-- Rule: Engine projects MUST NOT reference Product or Host projects. -->
+    <Error
+      Condition="'$(_nirmataSkipBoundaryChecks)' != 'true' and '@(_nirmataMappedRef)' != '' and '$(nirmataDomain)' == 'Engine' and ( '%(_nirmataMappedRef.RefDomain)' == 'Product' or '%(_nirmataMappedRef.RefDomain)' == 'Host' )"
+      Text="nirmata1002: Forbidden project reference. '$(MSBuildProjectName)' (Layer=$(nirmataLayer)) -> '%(_nirmataMappedRef.Filename)' (Layer=%(_nirmataMappedRef.RefLayer)). Rule: Engine projects MUST NOT reference Product/Host projects." />
+
+    <!-- Rule: Product/Host projects MUST NOT reference Engine workflow internals (nirmata.Aos / nirmata.Agents). -->
+    <!-- EXCEPTION: nirmata.Web may reference Engine projects for the Direct Agent Runner MVP/debugging feature.
+         This is a temporary exception for development/debugging scenarios. See OpenSpec: add-direct-agent-runner -->
+    <Error
+      Condition="'$(_nirmataSkipBoundaryChecks)' != 'true' and '@(_nirmataMappedRef)' != '' and ( '$(nirmataDomain)' == 'Product' or '$(nirmataDomain)' == 'Host' ) and '%(_nirmataMappedRef.RefDomain)' == 'Engine' and '$(MSBuildProjectName)' != 'nirmata.Web'"
+      Text="nirmata1003: Forbidden project reference. '$(MSBuildProjectName)' (Layer=$(nirmataLayer)) -> '%(_nirmataMappedRef.Filename)' (Layer=%(_nirmataMappedRef.RefLayer)). Rule: Product/Host projects MUST NOT reference Engine workflow internals (nirmata.Aos/nirmata.Agents)." />
+
+    <!-- Rule: Product stack order must only point down: DTO → Data → Services → API → Web. -->
+    <Error
+      Condition="'$(_nirmataSkipBoundaryChecks)' != 'true' and '@(_nirmataMappedRef)' != '' and ( '$(nirmataDomain)' == 'Product' or '$(nirmataDomain)' == 'Host' ) and '%(_nirmataMappedRef.RefDomain)' != 'Shared' and $([System.Int32]::Parse('%(_nirmataMappedRef.RefStackRank)')) &gt; $([System.Int32]::Parse('$(nirmataStackRank)'))"
+      Text="nirmata1004: Forbidden project reference. '$(MSBuildProjectName)' (Layer=$(nirmataLayer)) -> '%(_nirmataMappedRef.Filename)' (Layer=%(_nirmataMappedRef.RefLayer)). Rule: Product stack order is DTO → Data → Services → API → Web (higher layers may reference lower layers; lower layers MUST NOT reference higher layers)." />
+
+    <!-- Rule: Engine order is Aos → Agents (Agents may depend on Aos, not vice versa). -->
+    <Error
+      Condition="'$(_nirmataSkipBoundaryChecks)' != 'true' and '@(_nirmataMappedRef)' != '' and '$(nirmataDomain)' == 'Engine' and '%(_nirmataMappedRef.RefDomain)' == 'Engine' and $([System.Int32]::Parse('%(_nirmataMappedRef.RefEngineRank)')) &gt; $([System.Int32]::Parse('$(nirmataEngineRank)'))"
+      Text="nirmata1005: Forbidden project reference. '$(MSBuildProjectName)' (Layer=$(nirmataLayer)) -> '%(_nirmataMappedRef.Filename)' (Layer=%(_nirmataMappedRef.RefLayer)). Rule: Engine order is Aos → Agents (Agents may depend on Aos; Aos MUST NOT depend on Agents)." />
+  </Target>
+</Project>

@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nirmata:aos:schema:task-evidence-latest:v1",
+  "title": "AOS Task Evidence Latest Pointer (.aos/evidence/task-evidence/<task-id>/latest.json)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "taskId",
+    "runId",
+    "gitCommit",
+    "diffstat"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "taskId": {
+      "type": "string",
+      "pattern": "^TSK-[0-9]{6}$"
+    },
+    "runId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "gitCommit": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "diffstat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "filesChanged",
+        "insertions",
+        "deletions"
+      ],
+      "properties": {
+        "filesChanged": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "insertions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deletions": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
+

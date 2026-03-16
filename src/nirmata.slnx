@@ -1,0 +1,16 @@
+<Solution>
+  <Project Path="nirmata.Api/nirmata.Api.csproj" />
+  <Project Path="nirmata.Agents/nirmata.Agents.csproj" Id="4c6a406e-1237-4b3d-82ad-587bba33ca98" />
+  <Project Path="nirmata.Aos/nirmata.Aos.csproj" Id="ec413b12-7a43-4682-a7d1-b0d10fe7c22f" />
+  <Project Path="nirmata.Common/nirmata.Common.csproj" Id="b2bdd543-7dc2-49e3-95d1-5b645d7eed98" />
+  <Project Path="nirmata.Data.Dto/nirmata.Data.Dto.csproj" Id="d1c42e68-a2e4-4649-a0d3-90acb28eb2cf" />
+  <Project Path="nirmata.Data/nirmata.Data.csproj" Id="49c9b499-0459-4c37-b07e-c822cef42e5a" />
+  <Project Path="nirmata.Services/nirmata.Services.csproj" Id="32860186-234d-4ee9-a605-eaefd93bacca" />
+  <Project Path="../tests/nirmata.Aos.Tests/nirmata.Aos.Tests.csproj" Id="d2fe990c-a9be-4c45-96cb-5cbbd0f1df66" />
+  <Project Path="../tests/nirmata.Agents.Tests/nirmata.Agents.Tests.csproj" Id="e3af0a1d-b8cf-4d56-a7dc-6ddbe1f2e077" />
+  <Project Path="../tests/nirmata.Services.Tests/nirmata.Services.Tests.csproj" Id="fa55f89f-914d-4505-b2b6-b3b567d31f92" />
+  <Project Path="../tests/nirmata.Api.Tests/nirmata.Api.Tests.csproj" Id="a5b05dd8-4a2b-41e4-92f4-7e73a7d9e81b" />
+  <Project Path="nirmata.Windows.Service/nirmata.Windows.Service.csproj" Id="4117a5bb-0a29-450e-bcc5-8ba986728f37" />
+  <Project Path="nirmata.Windows.Service.Api/nirmata.Windows.Service.Api.csproj" Id="46aa42aa-b14b-4b51-9eb5-6199d8123c8f" />
+  <Project Path="../tests/TestTargets/TestTargets.csproj" Id="f1a2b3c4-d5e6-7890-abcd-ef1234567890" />
+</Solution>

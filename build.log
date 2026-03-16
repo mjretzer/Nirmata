@@ -1,0 +1,16 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  nirmata.Common -> C:\Users\James Lestler\Desktop\Projects\nirmata\nirmata.sln\src\nirmata.Common\bin\Debug\net10.0\nirmata.Common.dll
+  nirmata.Aos -> C:\Users\James Lestler\Desktop\Projects\nirmata\nirmata.sln\src\nirmata.Aos\bin\Debug\net10.0\aos.dll
+  nirmata.Data.Dto -> C:\Users\James Lestler\Desktop\Projects\nirmata\nirmata.sln\src\nirmata.Data.Dto\bin\Debug\net10.0\nirmata.Data.Dto.dll
+  nirmata.Data -> C:\Users\James Lestler\Desktop\Projects\nirmata\nirmata.sln\src\nirmata.Data\bin\Debug\net10.0\nirmata.Data.dll
+  nirmata.Agents -> C:\Users\James Lestler\Desktop\Projects\nirmata\nirmata.sln\src\nirmata.Agents\bin\Debug\net10.0\nirmata.Agents.dll
+  nirmata.Services -> C:\Users\James Lestler\Desktop\Projects\nirmata\nirmata.sln\src\nirmata.Services\bin\Debug\net10.0\nirmata.Services.dll
+  nirmata.Web -> C:\Users\James Lestler\Desktop\Projects\nirmata\nirmata.sln\src\nirmata.Web\bin\Debug\net10.0-windows\nirmata.Web.dll
+  nirmata.Web.Tests -> C:\Users\James Lestler\Desktop\Projects\nirmata\nirmata.sln\tests\nirmata.Web.Tests\bin\Debug\net10.0-windows\nirmata.Web.Tests.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:02.94

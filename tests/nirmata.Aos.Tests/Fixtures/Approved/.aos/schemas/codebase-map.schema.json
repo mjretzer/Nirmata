@@ -1,0 +1,107 @@
+{
+  "$id": "nirmata:aos:schema:codebase-map:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "High-level codebase overview with repository metadata and summary statistics",
+  "properties": {
+    "repository": {
+      "additionalProperties": false,
+      "properties": {
+        "branch": {
+          "description": "Current branch name",
+          "type": "string"
+        },
+        "commit": {
+          "description": "Current commit hash",
+          "type": "string"
+        },
+        "name": {
+          "description": "Repository name",
+          "type": "string"
+        },
+        "remoteUrl": {
+          "description": "Primary remote repository URL",
+          "type": "string"
+        },
+        "root": {
+          "description": "Absolute path to repository root",
+          "type": "string"
+        },
+        "type": {
+          "description": "Version control system type",
+          "enum": [
+            "git",
+            "svn",
+            "mercurial",
+            "none"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "root",
+        "name",
+        "type"
+      ],
+      "type": "object"
+    },
+    "scanTimestamp": {
+      "description": "ISO 8601 timestamp when the scan was performed",
+      "format": "date-time",
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    },
+    "summary": {
+      "additionalProperties": false,
+      "properties": {
+        "fileTypeBreakdown": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "description": "Count of files by extension/type",
+          "type": "object"
+        },
+        "projectCount": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "totalDirectories": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "totalFiles": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "totalLinesOfCode": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "totalFiles",
+        "totalDirectories",
+        "totalLinesOfCode",
+        "projectCount"
+      ],
+      "type": "object"
+    },
+    "version": {
+      "description": "Schema version identifier for the map format",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "version",
+    "repository",
+    "scanTimestamp",
+    "summary"
+  ],
+  "title": "Codebase Map (map.json)",
+  "type": "object"
+}

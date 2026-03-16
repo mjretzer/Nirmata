@@ -1,0 +1,33 @@
+{
+  "$id": "nirmata:aos:schema:checkpoint:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "checkpointId": {
+      "minLength": 1,
+      "pattern": "^CHK-[A-Za-z0-9][A-Za-z0-9-]*$",
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    },
+    "snapshotFile": {
+      "const": "state.json",
+      "type": "string"
+    },
+    "sourceStateContractPath": {
+      "const": ".aos/state/state.json",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "checkpointId",
+    "sourceStateContractPath",
+    "snapshotFile"
+  ],
+  "title": "AOS Checkpoint Metadata (checkpoint.json)",
+  "type": "object"
+}
+

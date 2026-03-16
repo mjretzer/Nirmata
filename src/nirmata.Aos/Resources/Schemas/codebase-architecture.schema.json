@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nirmata:aos:schema:codebase-architecture:v1",
+  "title": "Codebase Architecture (architecture.json)",
+  "description": "Architectural patterns, layer boundaries, and application entry points",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "layers",
+    "patterns",
+    "entryPoints"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "layers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "responsibility"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Layer name (e.g., 'Presentation', 'Domain', 'Infrastructure')"
+          },
+          "responsibility": {
+            "type": "string",
+            "description": "Brief description of layer responsibility"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of project names/IDs belonging to this layer"
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Names of layers this layer depends on"
+          }
+        }
+      }
+    },
+    "boundaries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "fromLayer",
+          "toLayer"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Boundary identifier"
+          },
+          "fromLayer": {
+            "type": "string",
+            "description": "Source layer name"
+          },
+          "toLayer": {
+            "type": "string",
+            "description": "Target layer name"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Enforced architectural rules for this boundary"
+          }
+        }
+      }
+    },
+    "patterns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "type"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Pattern name (e.g., 'Repository', 'CQRS', 'Dependency Injection')"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["creational", "structural", "behavioral", "architectural"],
+            "description": "Pattern classification"
+          },
+          "implementation": {
+            "type": "string",
+            "description": "How the pattern is implemented in this codebase"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Key files implementing this pattern"
+          }
+        }
+      }
+    },
+    "entryPoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "path"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["console", "web", "api", "background", "library"],
+            "description": "Application entry point type"
+          },
+          "name": {
+            "type": "string",
+            "description": "Entry point name or description"
+          },
+          "path": {
+            "type": "string",
+            "description": "File path to the entry point"
+          },
+          "project": {
+            "type": "string",
+            "description": "Project containing this entry point"
+          }
+        }
+      }
+    }
+  }
+}

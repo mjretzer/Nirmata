@@ -1,0 +1,23 @@
+{
+  "$id": "nirmata:aos:schema:schema-registry:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    },
+    "schemas": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "schemas"
+  ],
+  "title": "AOS Schema Registry (registry.json)",
+  "type": "object"
+}

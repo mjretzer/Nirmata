@@ -1,0 +1,57 @@
+{
+  "$id": "nirmata:aos:schema:todo:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "properties": {
+    "capturedAt": {
+      "description": "ISO 8601 timestamp when the TODO was captured",
+      "format": "date-time",
+      "type": "string"
+    },
+    "description": {
+      "description": "Description of the work item",
+      "type": "string"
+    },
+    "id": {
+      "description": "Unique identifier for the TODO",
+      "type": "string"
+    },
+    "priority": {
+      "description": "Priority level of the TODO",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "urgent"
+      ],
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    },
+    "source": {
+      "description": "Origin context (e.g., file path, conversation reference)",
+      "type": "string"
+    },
+    "status": {
+      "description": "Current status in the TODO lifecycle",
+      "enum": [
+        "captured",
+        "reviewing",
+        "promoted",
+        "discarded"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "id",
+    "description",
+    "capturedAt",
+    "status"
+  ],
+  "title": "AOS TODO (context/todos/TODO-{id}.json)",
+  "type": "object"
+}

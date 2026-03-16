@@ -1,0 +1,38 @@
+name: build-test
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore "nirmata.slnx"
+
+      - name: Build
+        run: dotnet build "nirmata.slnx" --configuration Release --no-restore -p:nirmataBoundaryEnforcementEnabled=true
+
+      - name: Test (Fast)
+        run: dotnet test "nirmata.slnx" --configuration Release --no-build --no-restore --filter "Category!=E2E"
+
+      - name: Test (E2E)
+        run: dotnet test "nirmata.slnx" --configuration Release --no-build --no-restore --filter "Category=E2E"
+        timeout-minutes: 10

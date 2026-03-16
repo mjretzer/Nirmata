@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\nirmata.Data\nirmata.Data.csproj" />
+    <ProjectReference Include="..\nirmata.Common\nirmata.Common.csproj" />
+  </ItemGroup>
+
+</Project>

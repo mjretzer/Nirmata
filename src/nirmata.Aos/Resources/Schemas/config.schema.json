@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nirmata:aos:schema:config:v1",
+  "title": "AOS Config (config.json)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "secrets"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "secrets": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "nirmata:aos:schema:secret-ref:v1"
+      }
+    }
+  }
+}
+

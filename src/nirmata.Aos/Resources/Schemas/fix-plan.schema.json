@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nirmata:aos:schema:fix-plan:v1",
+  "title": "AOS Fix Plan",
+  "description": "Canonical schema for fix plan artifacts, defining remediation tasks for verification failures.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "fixes"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "The schema version of this artifact."
+    },
+    "fixes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "issueId",
+          "description",
+          "proposedChanges",
+          "tests"
+        ],
+        "properties": {
+          "issueId": {
+            "type": "string",
+            "description": "The identifier of the issue being fixed."
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10,
+            "description": "Detailed description of the fix."
+          },
+          "proposedChanges": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "file",
+                "changeDescription"
+              ],
+              "properties": {
+                "file": {
+                  "type": "string",
+                  "description": "Workspace-relative path to the file to be changed."
+                },
+                "changeDescription": {
+                  "type": "string",
+                  "description": "Description of the specific change."
+                }
+              }
+            }
+          },
+          "tests": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "description": "Verification steps to confirm the fix works."
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "$id": "nirmata:aos:schema:triage-event:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "properties": {
+    "eventType": {
+      "const": "triage",
+      "type": "string"
+    },
+    "issueId": {
+      "description": "Reference to the triaged issue",
+      "type": "string"
+    },
+    "metadata": {
+      "additionalProperties": true,
+      "description": "Additional triage metadata",
+      "type": "object"
+    },
+    "rationale": {
+      "description": "Reasoning behind the routing decision",
+      "type": "string"
+    },
+    "routingDecision": {
+      "description": "Routing decision from triage",
+      "enum": [
+        "main-loop",
+        "deferred",
+        "discarded"
+      ],
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    },
+    "severity": {
+      "description": "Assessed severity level",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "type": "string"
+    },
+    "timestampUtc": {
+      "description": "ISO 8601 timestamp when the triage occurred",
+      "format": "date-time",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "eventType",
+    "timestampUtc",
+    "issueId",
+    "routingDecision"
+  ],
+  "title": "AOS Triage Event (state/events.ndjson)",
+  "type": "object"
+}

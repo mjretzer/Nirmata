@@ -1,0 +1,142 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!--
+      Canonical layer classification (centralized).
+
+      Enforced by `Directory.Build.targets`.
+      See OpenSpec change: `add-engine-project-skeletons-and-boundaries`.
+    -->
+    <nirmataBoundaryEnforcementEnabled>true</nirmataBoundaryEnforcementEnabled>
+
+    <!-- Defaults; overridden by mapping below. -->
+    <nirmataDomain>Unknown</nirmataDomain>
+    <nirmataLayer>Unknown</nirmataLayer>
+    <nirmataStackRank>-1</nirmataStackRank>
+    <nirmataEngineRank>-1</nirmataEngineRank>
+  </PropertyGroup>
+
+  <Choose>
+    <!-- Tests are allowed to reference across layers for integration/unit testing. -->
+    <When Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+      <PropertyGroup>
+        <nirmataDomain>Test</nirmataDomain>
+        <nirmataLayer>Test</nirmataLayer>
+        <nirmataStackRank>100</nirmataStackRank>
+        <nirmataEngineRank>0</nirmataEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <!-- Test infrastructure (fixture repos, test utilities) -->
+    <When Condition="'$(MSBuildProjectName)' == 'TestTargets'">
+      <PropertyGroup>
+        <nirmataDomain>Test</nirmataDomain>
+        <nirmataLayer>Test.Fixtures</nirmataLayer>
+        <nirmataStackRank>99</nirmataStackRank>
+        <nirmataEngineRank>0</nirmataEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <!-- Shared -->
+    <When Condition="'$(MSBuildProjectName)' == 'nirmata.Common'">
+      <PropertyGroup>
+        <nirmataDomain>Shared</nirmataDomain>
+        <nirmataLayer>Shared</nirmataLayer>
+        <nirmataStackRank>0</nirmataStackRank>
+        <nirmataEngineRank>0</nirmataEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <!-- Product stack (DTO → Data → Services → API → Web) -->
+    <When Condition="'$(MSBuildProjectName)' == 'nirmata.Data.Dto'">
+      <PropertyGroup>
+        <nirmataDomain>Product</nirmataDomain>
+        <nirmataLayer>Product.Dto</nirmataLayer>
+        <nirmataStackRank>10</nirmataStackRank>
+        <nirmataEngineRank>0</nirmataEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(MSBuildProjectName)' == 'nirmata.Data'">
+      <PropertyGroup>
+        <nirmataDomain>Product</nirmataDomain>
+        <nirmataLayer>Product.Data</nirmataLayer>
+        <nirmataStackRank>20</nirmataStackRank>
+        <nirmataEngineRank>0</nirmataEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(MSBuildProjectName)' == 'nirmata.Services'">
+      <PropertyGroup>
+        <nirmataDomain>Product</nirmataDomain>
+        <nirmataLayer>Product.Services</nirmataLayer>
+        <nirmataStackRank>30</nirmataStackRank>
+        <nirmataEngineRank>0</nirmataEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <!-- Hosts -->
+    <When Condition="'$(MSBuildProjectName)' == 'nirmata.Api'">
+      <PropertyGroup>
+        <nirmataDomain>Host</nirmataDomain>
+        <nirmataLayer>Host.Api</nirmataLayer>
+        <nirmataStackRank>40</nirmataStackRank>
+        <nirmataEngineRank>0</nirmataEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(MSBuildProjectName)' == 'nirmata.Web'">
+      <PropertyGroup>
+        <nirmataDomain>Host</nirmataDomain>
+        <nirmataLayer>Host.Web</nirmataLayer>
+        <nirmataStackRank>50</nirmataStackRank>
+        <nirmataEngineRank>0</nirmataEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(MSBuildProjectName)' == 'nirmata.Windows.Service'">
+      <PropertyGroup>
+        <nirmataDomain>Host</nirmataDomain>
+        <nirmataLayer>Host.Windows.Service</nirmataLayer>
+        <nirmataStackRank>60</nirmataStackRank>
+        <nirmataEngineRank>0</nirmataEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(MSBuildProjectName)' == 'nirmata.Windows.Service.Api'">
+      <PropertyGroup>
+        <nirmataDomain>Host</nirmataDomain>
+        <nirmataLayer>Host.Windows.Service.Api</nirmataLayer>
+        <nirmataStackRank>61</nirmataStackRank>
+        <nirmataEngineRank>0</nirmataEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <!-- Engine (AOS) -->
+    <When Condition="'$(MSBuildProjectName)' == 'nirmata.Aos'">
+      <PropertyGroup>
+        <nirmataDomain>Engine</nirmataDomain>
+        <nirmataLayer>Engine.Aos</nirmataLayer>
+        <nirmataStackRank>0</nirmataStackRank>
+        <nirmataEngineRank>10</nirmataEngineRank>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(MSBuildProjectName)' == 'nirmata.Agents'">
+      <PropertyGroup>
+        <nirmataDomain>Engine</nirmataDomain>
+        <nirmataLayer>Engine.Agents</nirmataLayer>
+        <nirmataStackRank>0</nirmataStackRank>
+        <nirmataEngineRank>20</nirmataEngineRank>
+      </PropertyGroup>
+    </When>
+  </Choose>
+</Project>

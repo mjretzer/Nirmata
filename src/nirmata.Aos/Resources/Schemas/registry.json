@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "schemas": [
+    "nirmata:aos:schema:phase-plan:v1",
+    "nirmata:aos:schema:task-plan:v1",
+    "nirmata:aos:schema:verifier-input:v1",
+    "nirmata:aos:schema:verifier-output:v1",
+    "nirmata:aos:schema:fix-plan:v1",
+    "nirmata:aos:schema:diagnostic:v1"
+  ],
+  "artifactContracts": [
+    {
+      "schemaId": "nirmata:aos:schema:phase-plan:v1",
+      "currentVersion": 1,
+      "supportedVersions": [1],
+      "deprecatedVersions": []
+    },
+    {
+      "schemaId": "nirmata:aos:schema:task-plan:v1",
+      "currentVersion": 1,
+      "supportedVersions": [1],
+      "deprecatedVersions": []
+    },
+    {
+      "schemaId": "nirmata:aos:schema:verifier-input:v1",
+      "currentVersion": 1,
+      "supportedVersions": [1],
+      "deprecatedVersions": []
+    },
+    {
+      "schemaId": "nirmata:aos:schema:verifier-output:v1",
+      "currentVersion": 1,
+      "supportedVersions": [1],
+      "deprecatedVersions": []
+    },
+    {
+      "schemaId": "nirmata:aos:schema:fix-plan:v1",
+      "currentVersion": 1,
+      "supportedVersions": [1],
+      "deprecatedVersions": []
+    },
+    {
+      "schemaId": "nirmata:aos:schema:diagnostic:v1",
+      "currentVersion": 1,
+      "supportedVersions": [1],
+      "deprecatedVersions": []
+    }
+  ]
+}

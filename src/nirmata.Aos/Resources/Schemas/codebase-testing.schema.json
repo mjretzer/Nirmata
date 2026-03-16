@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nirmata:aos:schema:codebase-testing:v1",
+  "title": "Codebase Testing (testing.json)",
+  "description": "Test project structure, coverage metrics, and testing frameworks",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "testProjects",
+    "frameworks"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "testProjects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "path",
+          "type"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Test project name"
+          },
+          "path": {
+            "type": "string",
+            "description": "Relative path to test project file"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["unit", "integration", "e2e", "performance", "acceptance", "contract"],
+            "description": "Test project type"
+          },
+          "targetProject": {
+            "type": "string",
+            "description": "Project being tested (for unit/integration tests)"
+          },
+          "framework": {
+            "type": "string",
+            "description": "Testing framework used"
+          },
+          "testCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of test cases"
+          },
+          "fileCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of test files"
+          },
+          "linesOfCode": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Lines of test code"
+          }
+        }
+      }
+    },
+    "frameworks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Framework name (e.g., 'xUnit', 'NUnit', 'MSTest')"
+          },
+          "version": {
+            "type": "string",
+            "description": "Framework version"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["unit", "integration", "e2e", "performance", "mock", "assertion"],
+            "description": "Framework purpose"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Projects using this framework"
+          }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "overall": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "lineCoverage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Line coverage percentage"
+            },
+            "branchCoverage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Branch coverage percentage"
+            },
+            "methodCoverage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Method coverage percentage"
+            }
+          }
+        },
+        "byProject": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "projectName"
+            ],
+            "properties": {
+              "projectName": {
+                "type": "string"
+              },
+              "lineCoverage": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "branchCoverage": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "testCount": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Coverage tool name (e.g., 'Coverlet', 'dotCover')"
+              },
+              "version": {
+                "type": "string"
+              },
+              "configuration": {
+                "type": "string",
+                "description": "Path to coverage configuration file"
+              }
+            }
+          }
+        }
+      }
+    },
+    "patterns": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "testNaming": {
+          "type": "string",
+          "description": "Test method naming convention"
+        },
+        "testOrganization": {
+          "type": "string",
+          "description": "How tests are organized (e.g., 'Arrange-Act-Assert', 'Given-When-Then')"
+        },
+        "mockingFramework": {
+          "type": "string",
+          "description": "Mocking framework in use"
+        },
+        "fixturePattern": {
+          "type": "string",
+          "description": "Test fixture/factory pattern used"
+        }
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "runSettings": {
+          "type": "string",
+          "description": "Path to .runsettings file"
+        },
+        "parallelExecution": {
+          "type": "boolean",
+          "description": "Whether tests run in parallel"
+        },
+        "targetFrameworks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Target frameworks for tests"
+        },
+        "collectors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Data collectors enabled (coverage, diagnostics, etc.)"
+        }
+      }
+    }
+  }
+}

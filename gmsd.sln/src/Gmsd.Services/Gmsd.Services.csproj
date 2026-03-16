@@ -1,8 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <ItemGroup>
-    <ProjectReference Include="..\Gmsd.Data\Gmsd.Data.csproj" />
-    <ProjectReference Include="..\Gmsd.Common\Gmsd.Common.csproj" />
-  </ItemGroup>
-
-</Project>

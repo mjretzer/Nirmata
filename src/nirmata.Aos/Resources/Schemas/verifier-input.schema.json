@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nirmata:aos:schema:verifier-input:v1",
+  "title": "AOS Verifier Input",
+  "description": "Canonical schema for verifier input artifacts, used to orchestrate UAT verification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "taskId",
+    "runId",
+    "acceptanceCriteria"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "The schema version of this artifact."
+    },
+    "taskId": {
+      "type": "string",
+      "description": "The identifier of the task being verified."
+    },
+    "runId": {
+      "type": "string",
+      "description": "The unique identifier for the execution run."
+    },
+    "acceptanceCriteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "description",
+          "checkType",
+          "isRequired"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the criterion."
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description of what is being verified."
+          },
+          "checkType": {
+            "type": "string",
+            "description": "The type of check to perform (e.g., file_exists, content_contains, test_passes, build_succeeds)."
+          },
+          "targetPath": {
+            "type": "string",
+            "description": "Optional path or command argument for the check."
+          },
+          "expectedContent": {
+            "type": "string",
+            "description": "Optional expected content or outcome for the check."
+          },
+          "isRequired": {
+            "type": "boolean",
+            "description": "Whether this criterion is required for overall success."
+          }
+        }
+      }
+    },
+    "fileScopes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Workspace-relative path to a file in scope."
+          },
+          "scopeType": {
+            "type": "string",
+            "description": "The type of scope (read, write, etc.)."
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

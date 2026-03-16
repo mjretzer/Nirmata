@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nirmata:aos:schema:codebase-file-graph:v1",
+  "title": "Codebase File Graph (cache/file-graph.json)",
+  "description": "File dependency graph capturing relationships between files, directories, and projects with coupling weights",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "generatedAt",
+    "nodes",
+    "edges"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the file graph was generated"
+    },
+    "nodes": {
+      "type": "array",
+      "description": "All nodes in the graph (projects, directories, source files)",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "type",
+          "path"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique node identifier (deterministic, relative path or project name)"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["project", "directory", "source", "config", "resource"],
+            "description": "Node classification"
+          },
+          "path": {
+            "type": "string",
+            "description": "Relative path from repository root"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name of the node"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Additional node metadata (e.g., language, size, lastModified)"
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "description": "Relationships between nodes with coupling weights",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source",
+          "target",
+          "type",
+          "weight"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "Source node id (dependent entity)"
+          },
+          "target": {
+            "type": "string",
+            "description": "Target node id (dependency)"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["project-reference", "using", "import", "include", "inheritance", "invocation"],
+            "description": "Type of dependency relationship"
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Coupling strength (0.0 = loose, 1.0 = tight)"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Additional edge metadata (e.g., usage count, files involved)"
+          }
+        }
+      }
+    }
+  }
+}

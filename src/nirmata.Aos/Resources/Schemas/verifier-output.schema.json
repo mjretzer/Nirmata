@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nirmata:aos:schema:verifier-output:v1",
+  "title": "AOS Verifier Output",
+  "description": "Canonical schema for verifier output artifacts (UAT results).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "isPassed",
+    "runId",
+    "checks"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "The schema version of this artifact."
+    },
+    "isPassed": {
+      "type": "boolean",
+      "description": "Whether the overall verification passed."
+    },
+    "runId": {
+      "type": "string",
+      "description": "The unique identifier for the execution run."
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "criterionId",
+          "passed",
+          "isRequired"
+        ],
+        "properties": {
+          "criterionId": {
+            "type": "string",
+            "description": "The ID of the criterion that was checked."
+          },
+          "passed": {
+            "type": "boolean",
+            "description": "Whether this specific check passed."
+          },
+          "isRequired": {
+            "type": "boolean",
+            "description": "Whether this check was required for overall success."
+          },
+          "message": {
+            "type": "string",
+            "description": "Diagnostic message or error details for this check."
+          },
+          "actualValue": {
+            "type": "string",
+            "description": "The actual value or state observed during the check."
+          }
+        }
+      }
+    },
+    "issuesCreated": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "issueId",
+          "criterionId",
+          "issuePath"
+        ],
+        "properties": {
+          "issueId": {
+            "type": "string",
+            "description": "The identifier of the issue created for a failure."
+          },
+          "criterionId": {
+            "type": "string",
+            "description": "The ID of the criterion that triggered this issue."
+          },
+          "issuePath": {
+            "type": "string",
+            "description": "Workspace-relative path to the issue artifact."
+          }
+        }
+      }
+    }
+  }
+}

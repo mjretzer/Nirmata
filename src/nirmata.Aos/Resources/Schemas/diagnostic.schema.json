@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nirmata:aos:schema:diagnostic:v1",
+  "title": "AOS Diagnostic Artifact",
+  "description": "Canonical schema for diagnostic artifacts produced on validation failures.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "schemaId",
+    "artifactPath",
+    "failedSchemaId",
+    "failedSchemaVersion",
+    "timestamp",
+    "phase",
+    "validationErrors"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "The schema version of this diagnostic artifact."
+    },
+    "schemaId": {
+      "type": "string",
+      "const": "nirmata:aos:schema:diagnostic:v1"
+    },
+    "artifactPath": {
+      "type": "string",
+      "description": "Workspace-relative path to the artifact that failed validation."
+    },
+    "failedSchemaId": {
+      "type": "string",
+      "description": "The ID of the schema that failed validation."
+    },
+    "failedSchemaVersion": {
+      "type": "integer",
+      "description": "The version of the schema that failed validation."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the validation failure occurred."
+    },
+    "phase": {
+      "type": "string",
+      "description": "The workflow phase where validation failed (e.g., phase-planning, task-execution)."
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Optional phase-specific context (e.g., taskId, runId)."
+    },
+    "validationErrors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "message"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "JSON path to the failing element."
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message."
+          },
+          "expected": {
+            "type": "string",
+            "description": "Optional description of what was expected."
+          },
+          "actual": {
+            "type": "string",
+            "description": "Optional description of what was actually found."
+          }
+        }
+      }
+    },
+    "repairSuggestions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Actionable suggestions to repair the validation failure."
+    }
+  }
+}
