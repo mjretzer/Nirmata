@@ -1,5 +1,5 @@
 # Claude Code local settings (machine-specific, not for sharing)
-.claude/settings.local.json
+.claude/
 
 # SQLite local database artifacts — never commit runtime database files.
 # The sqllitedb/ directory is tracked via .gitkeep so fresh clones have it,
@@ -7,3 +7,48 @@
 *.db
 *.db-wal
 *.db-shm
+
+# Build artifacts and logs
+*.log
+build.log
+*.bak
+*.tmp
+
+# Environment files (keep .env.example but ignore actual .env files)
+.env
+.env.local
+.env.production
+.env.development
+
+# .NET build artifacts
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dll
+*.exe
+*.pdb
+
+# Node.js artifacts
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE and editor files
+.vs/
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
