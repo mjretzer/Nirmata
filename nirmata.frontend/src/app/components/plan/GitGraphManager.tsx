@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect, type ReactElement } from "react";
 import {
   GitBranch,
   GitMerge,
@@ -1269,7 +1269,7 @@ export function GitGraphManager() {
                     {(() => {
                       const ROW1_Y = ncy - 20;
                       let bx = INFO_X;
-                      const els: JSX.Element[] = [];
+                      const els: ReactElement[] = [];
 
                       // SHA hash
                       els.push(

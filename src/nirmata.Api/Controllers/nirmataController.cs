@@ -23,13 +23,13 @@ public abstract class nirmataController : ControllerBase
     /// Returns a 404 Not Found result with an optional message.
     /// </summary>
     protected IActionResult NotFoundResult(string message = "Resource not found")
-        => NotFound(new { message });
+        => Problem(title: "Not found", detail: message, statusCode: StatusCodes.Status404NotFound);
 
     /// <summary>
     /// Returns a 400 Bad Request result with validation errors.
     /// </summary>
     protected IActionResult BadRequestResult(string message)
-        => BadRequest(new { message });
+        => Problem(title: "Bad request", detail: message, statusCode: StatusCodes.Status400BadRequest);
 
     /// <summary>
     /// Returns a 400 Bad Request result with model state errors.

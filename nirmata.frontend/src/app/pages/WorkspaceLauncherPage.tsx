@@ -20,7 +20,7 @@ import { Label } from "../components/ui/label";
 import { Checkbox } from "../components/ui/checkbox";
 import { cn } from "../components/ui/utils";
 import { toast } from "sonner";
-import { useWorkspaces } from "../hooks/useAosData";
+import { useWorkspaces, useRegisterWorkspace } from "../hooks/useAosData";
 import type { WorkspaceSummary } from "../hooks/useAosData";
 import { WorkspaceStatusBadge } from "../components/WorkspaceStatusBadge";
 import { relativeTime } from "../utils/format";
@@ -32,11 +32,10 @@ export function WorkspaceLauncherPage() {
   const [recentOpen, setRecentOpen] = useState(true);
 
   // Inline form mode
-  const [openMode, setOpenMode] = useState<"idle" | "open" | "init">("idle");
-
-  // "Open Folder" form state
-  const [pathInput, setPathInput] = useState("");
-  const [pathError, setPathError] = useState("");
+  const [openMode, setOpenMode] = useState<"idle" | "init" | "confirm-init">("idle");
+  const [pendingFolderName, setPendingFolderName] = useState<string | null>(null);
+  const [confirmInitPath, setConfirmInitPath] = useState("");
+  const [confirmInitPathError, setConfirmInitPathError] = useState("");
 
   // "Init New Project" form state
   const [initName, setInitName] = useState("");
@@ -54,9 +53,44 @@ export function WorkspaceLauncherPage() {
     return "";
   };
 
-  const handleOpenFolder = useCallback(() => {
-    setOpenMode("open");
-  }, []);
+  const handleOpenFolder = useCallback(async () => {
+    type FullHandle = { name?: string; getDirectoryHandle: (n: string) => Promise<unknown> };
+    const picker = (window as unknown as { showDirectoryPicker?: () => Promise<FullHandle> })
+      .showDirectoryPicker;
+
+    if (!picker) {
+      toast.error("Folder picker is not supported in this browser");
+      return;
+    }
+
+    try {
+      const dirHandle = await picker();
+      const name = dirHandle?.name?.trim() ?? "";
+      if (!name) {
+        toast.error("No folder selected");
+        return;
+      }
+
+      // Check whether an .aos workspace exists in the selected folder.
+      try {
+        await dirHandle.getDirectoryHandle(".aos");
+        navigate(`/ws/${name}`);
+        toast.success(`Opened ${name}`);
+      } catch (err) {
+        const e = err as { name?: string } | undefined;
+        if (e?.name === "NotFoundError") {
+          setPendingFolderName(name);
+          setOpenMode("confirm-init");
+        } else {
+          toast.error("Could not read folder contents");
+        }
+      }
+    } catch (err) {
+      const e = err as { name?: string } | undefined;
+      if (e?.name === "AbortError") return;
+      toast.error("Failed to open folder picker");
+    }
+  }, [navigate]);
 
   const handleInitNew = useCallback(() => {
     setOpenMode("init");
@@ -70,7 +104,8 @@ export function WorkspaceLauncherPage() {
     [navigate]
   );
 
-  const { workspaces } = useWorkspaces();
+  const { workspaces, refresh: refreshWorkspaces } = useWorkspaces();
+  const { register: registerWorkspace, isRegistering } = useRegisterWorkspace();
 
   return (
     <div className="flex h-full items-start justify-center overflow-y-auto py-12 px-4">
@@ -117,40 +152,61 @@ export function WorkspaceLauncherPage() {
               Init New Project
             </Button>
 
-            {/* ── Open Folder inline form ── */}
-            {openMode === "open" && (
-              <div className="border border-dashed border-border/40 rounded-lg p-4 space-y-3 mt-2">
+            {/* ── Initialize workspace prompt (empty folder selected) ── */}
+            {openMode === "confirm-init" && pendingFolderName && (
+              <div className="border border-dashed border-primary/40 rounded-lg p-4 space-y-3 mt-2">
+                <div className="space-y-1">
+                  <p className="text-sm">Initialize workspace</p>
+                  <p className="text-xs text-muted-foreground">
+                    <code className="font-mono">{pendingFolderName}</code> doesn't have an AOS
+                    workspace yet. Enter its absolute path to continue.
+                  </p>
+                </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="open-path" className="text-xs">Repository root path</Label>
+                  <Label htmlFor="confirm-init-path" className="text-xs">Root path</Label>
                   <Input
-                    id="open-path"
-                    value={pathInput}
+                    id="confirm-init-path"
+                    value={confirmInitPath}
                     placeholder="/absolute/path/to/your/repo"
                     className="h-8 text-xs font-mono"
                     onChange={(e) => {
-                      setPathInput(e.target.value);
-                      setPathError(validatePath(e.target.value));
+                      setConfirmInitPath(e.target.value);
+                      setConfirmInitPathError(validatePath(e.target.value));
                     }}
                   />
-                  {pathError && (
-                    <p className="text-[10px] text-red-400">{pathError}</p>
+                  {confirmInitPathError && (
+                    <p className="text-[10px] text-red-400">{confirmInitPathError}</p>
                   )}
                 </div>
                 <Button
-                  className="w-full h-9 text-sm"
-                  onClick={() => {
-                    const err = validatePath(pathInput);
-                    if (err) { setPathError(err); return; }
-                    const projectName = pathInput.trim().split("/").at(-1) ?? "workspace";
-                    navigate(`/ws/${projectName}`);
+                  className="w-full h-9 text-sm gap-2"
+                  disabled={isRegistering}
+                  onClick={async () => {
+                    const pathErr = validatePath(confirmInitPath);
+                    setConfirmInitPathError(pathErr);
+                    if (pathErr) return;
+                    const name = pendingFolderName!;
+                    const created = await registerWorkspace(name, confirmInitPath.trim());
+                    if (!created) return;
+                    refreshWorkspaces();
+                    navigate(`/ws/${created.name}/settings/workspace`, {
+                      state: { rootPath: confirmInitPath.trim() },
+                    });
+                    toast.info("Save the root path and run aos init to finish setup");
                   }}
                 >
-                  Open Workspace
+                  <Zap className="h-4 w-4" aria-hidden="true" />
+                  Initialize Workspace
                 </Button>
                 <Button
                   variant="ghost"
                   className="w-full h-8 text-xs"
-                  onClick={() => { setOpenMode("idle"); setPathInput(""); setPathError(""); }}
+                  onClick={() => {
+                    setOpenMode("idle");
+                    setPendingFolderName(null);
+                    setConfirmInitPath("");
+                    setConfirmInitPathError("");
+                  }}
                 >
                   Cancel
                 </Button>
@@ -204,14 +260,20 @@ export function WorkspaceLauncherPage() {
                 </div>
                 <Button
                   className="w-full h-9 text-sm"
-                  onClick={() => {
+                  disabled={isRegistering}
+                  onClick={async () => {
                     const nameErr = !NAME_RE.test(initName) ? "Invalid project name" : "";
                     const pathErr = validatePath(initPath);
                     setInitNameError(nameErr);
                     setInitPathError(pathErr);
                     if (nameErr || pathErr) return;
-                    navigate(`/ws/${initName}/settings/workspace`);
-                    toast.info("Set your root path and run aos init to finish setup");
+                    const created = await registerWorkspace(initName, initPath.trim());
+                    if (!created) return;
+                    refreshWorkspaces();
+                    navigate(`/ws/${created.name}/settings/workspace`, {
+                      state: { rootPath: initPath.trim() },
+                    });
+                    toast.info("Save the root path and run aos init to finish setup");
                   }}
                 >
                   Create Workspace

@@ -53,7 +53,23 @@ public class DependencyHealth
 }
 
 /// <summary>
-/// Controller providing detailed health check endpoints for monitoring and observability.
+/// Response model for the simple health check endpoint.
+/// </summary>
+public class HealthStatusResponse
+{
+    /// <summary>
+    /// Overall health status of the API.
+    /// </summary>
+    public string Status { get; set; } = "Unknown";
+
+    /// <summary>
+    /// UTC timestamp when the health check was performed.
+    /// </summary>
+    public DateTime Timestamp { get; set; }
+}
+
+/// <summary>
+/// Controller providing health check endpoints for monitoring and observability.
 /// </summary>
 [ApiController]
 [Route("api/health")]
@@ -67,11 +83,12 @@ public class HealthController : nirmataController
     }
 
     /// <summary>
-    /// Performs detailed health checks on all system dependencies.
+    /// Performs detailed health checks on all system dependencies including database connectivity.
     /// </summary>
-    /// <returns>Detailed health status including database connectivity and timing metrics.</returns>
     [HttpGet]
-    public async Task<IActionResult> GetDetailedHealth(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(HealthCheckResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(HealthCheckResponse), StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> GetHealthAsync(CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
         var response = new HealthCheckResponse
@@ -101,11 +118,33 @@ public class HealthController : nirmataController
         return StatusCode(statusCode, response);
     }
 
+    /// <summary>
+    /// Returns a simple health status indicating whether the API is operational.
+    /// </summary>
+    [HttpGet("simple")]
+    [ProducesResponseType(typeof(HealthStatusResponse), StatusCodes.Status200OK)]
+    public IActionResult GetSimpleHealth()
+    {
+        return Ok(new HealthStatusResponse
+        {
+            Status = "Healthy",
+            Timestamp = DateTime.UtcNow
+        });
+    }
+
+    /// <summary>
+    /// Alias route for detailed health checks.
+    /// </summary>
+    [HttpGet("detailed")]
+    [ProducesResponseType(typeof(HealthCheckResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(HealthCheckResponse), StatusCodes.Status503ServiceUnavailable)]
+    public Task<IActionResult> GetDetailedHealthAsync(CancellationToken cancellationToken)
+        => GetHealthAsync(cancellationToken);
+
     private async Task<(bool IsHealthy, string? Error)> CheckDatabaseHealthAsync(CancellationToken cancellationToken)
     {
         try
         {
-            // Attempt a simple database query to verify connectivity
             await _dbContext.Database.ExecuteSqlRawAsync("SELECT 1", cancellationToken);
             return (true, null);
         }

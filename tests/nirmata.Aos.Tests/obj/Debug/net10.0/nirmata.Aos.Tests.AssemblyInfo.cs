@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("nirmata.Aos.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0e528097883500f3142d5d17ed65a668c46183d2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+219a7df9c4417e852307499e0b0e315f1688e9fb")]
 [assembly: System.Reflection.AssemblyProductAttribute("nirmata.Aos.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("nirmata.Aos.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

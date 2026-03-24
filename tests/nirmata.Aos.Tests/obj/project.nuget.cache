@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "B28ChzuE/xM=",
+  "dgSpecHash": "owQOjM8jvx4=",
   "success": true,
-  "projectFilePath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\tests\\nirmata.Aos.Tests\\nirmata.Aos.Tests.csproj",
+  "projectFilePath": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\tests\\nirmata.Aos.Tests\\nirmata.Aos.Tests.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\James Lestler\\.nuget\\packages\\azure.ai.openai\\2.7.0-beta.2\\azure.ai.openai.2.7.0-beta.2.nupkg.sha512",
     "C:\\Users\\James Lestler\\.nuget\\packages\\azure.core\\1.50.0\\azure.core.1.50.0.nupkg.sha512",

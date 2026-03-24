@@ -14,6 +14,8 @@ public class MappingProfile : Profile // Inherit from AutoMapper.Profile to defi
         CreateMap<Project, ProjectResponseDto>();
         CreateMap<ProjectCreateRequestDto, Project>()
             .ForMember(destination => destination.ProjectId, options => options.Ignore());
-
+        CreateMap<ProjectUpdateRequestDto, Project>()
+            .ForMember(destination => destination.ProjectId, options => options.Ignore())
+            .ForMember(destination => destination.Steps, options => options.Ignore());
     }
 }

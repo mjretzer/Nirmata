@@ -21,6 +21,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { getAosLink } from "../../utils/aosResolver";
 import { useWorkspace, useFileSystem } from "../../hooks/useAosData";
 import { useVerification } from "../../context/VerificationContext";
+import { useWorkspaceContext } from "../../context/WorkspaceContext";
 
 // Map folder paths to their operational console labels
 const CONSOLE_FOLDERS: Record<string, { label: string; color: string }> = {
@@ -37,6 +38,7 @@ export function FileExplorer() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { checkedUatIds } = useVerification();
+  const { activeWorkspaceId } = useWorkspaceContext();
   
   // Expanded IDs
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set([
@@ -51,9 +53,9 @@ export function FileExplorer() {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
 
-  const { workspace: currentWs } = useWorkspace();
+  const { workspace: currentWs } = useWorkspace(activeWorkspaceId);
   const { fileSystem } = useFileSystem();
-  const wsId = currentWs.projectName;
+  const wsId = activeWorkspaceId || location.pathname.split("/")[2] || currentWs.projectName;
   
   // Sync state with location/context
   useEffect(() => {

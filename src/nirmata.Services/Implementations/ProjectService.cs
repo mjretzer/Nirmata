@@ -6,7 +6,6 @@ using nirmata.Data.Dto.Requests.Projects;
 using nirmata.Data.Entities.Projects;
 using nirmata.Data.Repositories;
 using nirmata.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
 
 namespace nirmata.Services.Implementations;
 
@@ -46,18 +45,44 @@ public class ProjectService : IProjectService // Service implementation for proj
         return _mapper.Map<ProjectResponseDto>(project);
     }
 
-    public async Task<List<ProjectDto>> GetAllProjectsAsync() // Implements retrieval of all project records
+    public async Task<List<ProjectDto>> GetAllProjectsAsync(CancellationToken cancellationToken = default)
     {
-        var projects = await _dbContext.Projects.ToListAsync(); // Executes the query and returns a list of projects
-        return _mapper.Map<List<ProjectDto>>(projects);
+        var (items, _) = await _projectRepository.GetAllAsync(cancellationToken: cancellationToken);
+        return _mapper.Map<List<ProjectDto>>(items);
     }
 
-    public async Task<List<ProjectDto>> SearchProjectsAsync(string query) // Implements search functionality
+    public async Task<(IReadOnlyList<ProjectDto> Items, int TotalCount)> SearchProjectsAsync(ProjectSearchRequestDto request, CancellationToken cancellationToken = default)
     {
-        var projects = await _dbContext.Projects // Accesses the Projects table
-            .Where(p => EF.Functions.Like(p.Name, $"%{query}%")) // Filters projects using a SQL LIKE comparison
-            .ToListAsync(); // Executes the search and returns matching projects as a list
+        var (items, totalCount) = await _projectRepository.GetAllAsync(
+            request.SearchTerm,
+            request.PageNumber,
+            request.PageSize,
+            cancellationToken);
 
-        return _mapper.Map<List<ProjectDto>>(projects);
+        return (_mapper.Map<IReadOnlyList<ProjectDto>>(items), totalCount);
+    }
+
+    public async Task<ProjectDto> UpdateProjectAsync(string projectId, ProjectUpdateRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var project = await _projectRepository.GetByIdAsync(projectId, cancellationToken);
+
+        if (project is null)
+            throw new NotFoundException($"Project '{projectId}' was not found.");
+
+        _mapper.Map(request, project);
+        _projectRepository.Update(project);
+        await _projectRepository.SaveChangesAsync(cancellationToken);
+
+        return _mapper.Map<ProjectDto>(project);
+    }
+
+    public async Task DeleteProjectAsync(string projectId, CancellationToken cancellationToken = default)
+    {
+        var deleted = await _projectRepository.DeleteAsync(projectId, cancellationToken);
+
+        if (!deleted)
+            throw new NotFoundException($"Project '{projectId}' was not found.");
+
+        await _projectRepository.SaveChangesAsync(cancellationToken);
     }
 }

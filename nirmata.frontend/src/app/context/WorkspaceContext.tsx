@@ -13,10 +13,19 @@ import {
   useState,
   useEffect,
   useMemo,
+  useRef,
+  useCallback,
   type ReactNode,
 } from "react";
+import { DAEMON_BASE_URL } from "../api/routing";
 
 // ── Types ─────────────────────────────────────────────────────
+
+interface DaemonHealthResponse {
+  ok: boolean;
+  version: string;
+  uptimeMs: number;
+}
 
 export type EngineStatus = "idle" | "running" | "paused" | "waiting";
 
@@ -27,10 +36,18 @@ export interface GitState {
   behind: number;
 }
 
+export type DaemonConnectionState = "connecting" | "connected" | "disconnected";
+
+export type WorkspaceBootstrapError = "not-found" | "error" | null;
+
 interface WorkspaceContextValue {
   // Active workspace
   activeWorkspaceId: string;
   setActiveWorkspaceId: (id: string) => void;
+
+  // Workspace bootstrap error — set by useWorkspace on lookup failure, cleared on success or ID change
+  workspaceBootstrapError: WorkspaceBootstrapError;
+  setWorkspaceBootstrapError: (error: WorkspaceBootstrapError) => void;
 
   // Engine
   engineStatus: EngineStatus;
@@ -39,6 +56,9 @@ interface WorkspaceContextValue {
   // Daemon
   daemonConnected: boolean;
   setDaemonConnected: (connected: boolean) => void;
+  daemonConnectionState: DaemonConnectionState;
+  daemonPollingActive: boolean;
+  reconnect: () => void;
 
   // Git
   gitState: GitState;
@@ -55,36 +75,64 @@ const defaultGitState: GitState = {
 const WorkspaceContext = createContext<WorkspaceContextValue>({
   activeWorkspaceId: "my-app",
   setActiveWorkspaceId: () => {},
+  workspaceBootstrapError: null,
+  setWorkspaceBootstrapError: () => {},
   engineStatus: "idle",
   setEngineStatus: () => {},
   daemonConnected: false,          // honest default — unknown until first ping
   setDaemonConnected: () => {},
+  daemonConnectionState: "connecting",
+  daemonPollingActive: true,
+  reconnect: () => {},
   gitState: defaultGitState,
   setGitState: () => {},
 });
 
 // ── Constants ─────────────────────────────────────────────────
 
-/** Override with VITE_DAEMON_URL in .env.local when the real daemon ships. */
-const DAEMON_BASE_URL =
-  typeof import.meta !== "undefined" && (import.meta as { env?: Record<string, string> }).env?.VITE_DAEMON_URL
-    ? (import.meta as { env?: Record<string, string> }).env!.VITE_DAEMON_URL
-    : "http://localhost:9000";
+// DAEMON_BASE_URL is resolved from VITE_DAEMON_URL via routing.ts (single source of truth)
 
 const HEALTH_ENDPOINT = `${DAEMON_BASE_URL}/api/v1/health`;
 const POLL_INTERVAL_MS = 30_000;
 const PING_TIMEOUT_MS  = 3_000;
 
+// After this many consecutive failures the poll stops to avoid console spam.
+// Call reconnect() to restart.
+const MAX_CONSECUTIVE_FAILURES = 1;
+
 // ── Provider ──────────────────────────────────────────────────
 
-export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState("my-app");
+export function WorkspaceProvider({
+  children,
+  initialWorkspaceId = "my-app",
+}: {
+  children: ReactNode;
+  initialWorkspaceId?: string;
+}) {
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState(initialWorkspaceId);
+
+  const [workspaceBootstrapError, setWorkspaceBootstrapError] = useState<WorkspaceBootstrapError>(null);
   const [engineStatus, setEngineStatus] = useState<EngineStatus>("idle");
   const [daemonConnected, setDaemonConnected] = useState(false); // false until proven otherwise
+  const [daemonConnectionState, setDaemonConnectionState] = useState<DaemonConnectionState>("connecting");
+  const [daemonPollingActive, setDaemonPollingActive] = useState(true);
   const [gitState, setGitState] = useState<GitState>(defaultGitState);
 
-  // ── Daemon health poll ───────────────────────────────────────
+  // Tracks consecutive ping failures — not state because we don't need re-renders per failure.
+  const consecutiveFailures = useRef(0);
+
+  // Clear bootstrap error whenever the active workspace changes so a new lookup is allowed to succeed or fail fresh.
   useEffect(() => {
+    setWorkspaceBootstrapError(null);
+  }, [activeWorkspaceId]);
+
+  // ── Daemon health poll ───────────────────────────────────────
+  // Gated on daemonPollingActive. When MAX_CONSECUTIVE_FAILURES is reached the poll
+  // sets daemonPollingActive=false, which triggers cleanup (clears the interval) and
+  // prevents the effect from restarting until reconnect() is called.
+  useEffect(() => {
+    if (!daemonPollingActive) return;
+
     let cancelled = false;
 
     async function ping() {
@@ -93,12 +141,43 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       try {
         const res = await fetch(HEALTH_ENDPOINT, {
           signal: controller.signal,
-          // no credentials / no cookies — plain reachability check
           cache: "no-store",
         });
-        if (!cancelled) setDaemonConnected(res.ok);
+        if (res.ok) {
+          const body: DaemonHealthResponse = await res.json();
+          if (!cancelled) {
+            if (body.ok) {
+              setDaemonConnected(true);
+              setDaemonConnectionState("connected");
+              consecutiveFailures.current = 0;
+            } else {
+              setDaemonConnected(false);
+              setDaemonConnectionState("disconnected");
+              consecutiveFailures.current += 1;
+              if (consecutiveFailures.current >= MAX_CONSECUTIVE_FAILURES) {
+                setDaemonPollingActive(false);
+              }
+            }
+          }
+        } else {
+          if (!cancelled) {
+            consecutiveFailures.current += 1;
+            setDaemonConnected(false);
+            setDaemonConnectionState("disconnected");
+            if (consecutiveFailures.current >= MAX_CONSECUTIVE_FAILURES) {
+              setDaemonPollingActive(false);
+            }
+          }
+        }
       } catch {
-        if (!cancelled) setDaemonConnected(false);
+        if (!cancelled) {
+          consecutiveFailures.current += 1;
+          setDaemonConnected(false);
+          setDaemonConnectionState("disconnected");
+          if (consecutiveFailures.current >= MAX_CONSECUTIVE_FAILURES) {
+            setDaemonPollingActive(false);
+          }
+        }
       } finally {
         clearTimeout(timer);
       }
@@ -112,20 +191,32 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       clearInterval(id);
     };
+  }, [daemonPollingActive]);
+
+  // Resets the failure counter and restarts polling. Call this after fixing daemon configuration.
+  const reconnect = useCallback(() => {
+    consecutiveFailures.current = 0;
+    setDaemonPollingActive(true);
+    setDaemonConnectionState("connecting");
   }, []);
 
   const value = useMemo<WorkspaceContextValue>(
     () => ({
       activeWorkspaceId,
       setActiveWorkspaceId,
+      workspaceBootstrapError,
+      setWorkspaceBootstrapError,
       engineStatus,
       setEngineStatus,
       daemonConnected,
       setDaemonConnected,
+      daemonConnectionState,
+      daemonPollingActive,
+      reconnect,
       gitState,
       setGitState,
     }),
-    [activeWorkspaceId, engineStatus, daemonConnected, gitState]
+    [activeWorkspaceId, workspaceBootstrapError, engineStatus, daemonConnected, daemonConnectionState, daemonPollingActive, reconnect, gitState]
   );
 
   return (

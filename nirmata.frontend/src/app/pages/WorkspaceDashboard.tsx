@@ -45,10 +45,15 @@ import { Input } from "../components/ui/input";
 import { cn } from "../components/ui/utils";
 import { toast } from "sonner";
 import { WorkspaceConfigPanel } from "../components/workspace-config-panel";
-import { useWorkspaces, useCodebaseIntel } from "../hooks/useAosData";
+import {
+  useWorkspaces,
+  useCodebaseIntel,
+  useOrchestratorState,
+} from "../hooks/useAosData";
 import type { WorkspaceSummary } from "../hooks/useAosData";
 import { WorkspaceStatusBadge } from "../components/WorkspaceStatusBadge";
 import { relativeTime } from "../utils/format";
+import { useWorkspaceContext } from "../context/WorkspaceContext";
 
 // ── Gating types ────────────────────────────────────────────────────
 type GatingStep =
@@ -158,17 +163,18 @@ const gatingMap: Record<GatingStep, GatingMeta> = {
   },
 };
 
-// ── Workspace status helpers ─────────────────────────────────────────
+// ── Orchestrator gate → gating step ──────────────────────────────────
 
-function deriveGating(ws: WorkspaceSummary): GatingStep {
-  if (!ws.hasAosDir) return "missing-spec";
-  if (!ws.hasProjectSpec) return "missing-spec";
-  if (!ws.hasRoadmap) return "missing-roadmap";
-  if (!ws.hasTaskPlans) return "needs-plan";
-  if (ws.lastRun?.status === "running") return "ready-to-execute";
-  if (ws.lastRun?.status === "success" && ws.lastRun.id) return "needs-verify";
-  if (ws.lastRun?.status === "failed") return "needs-fix";
-  return "ready-to-execute";
+function recommendedActionToGatingStep(action: string): GatingStep {
+  switch (action) {
+    case "new-project":    return "missing-spec";
+    case "create-roadmap": return "missing-roadmap";
+    case "plan-phase":     return "needs-plan";
+    case "execute-plan":   return "ready-to-execute";
+    case "verify-work":    return "needs-verify";
+    case "plan-fix":       return "needs-fix";
+    default:               return "ready-to-execute";
+  }
 }
 
 // ── Skeleton loader ──────────────────────────────────────────────────
@@ -417,34 +423,37 @@ export function WorkspaceDashboard() {
   const navigate = useNavigate();
   const { workspaceId } = useParams<{ workspaceId: string }>();
 
-  const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
   const [_recentOpen, _setRecentOpen] = useState(true);
 
-  const { workspaces: allWorkspaces } = useWorkspaces();
+  const { setActiveWorkspaceId } = useWorkspaceContext();
+  const { workspaces: allWorkspaces, isLoading: wsListLoading, errorDiagnostic, refresh: refreshWorkspaces } = useWorkspaces();
   const { artifacts: codebaseArtifacts } = useCodebaseIntel();
+
+  const { runnableGate, blockedGate, isLoading: gateLoading } = useOrchestratorState();
+  const activeGate = runnableGate.runnable ? runnableGate : blockedGate;
+  const gatingStep: GatingStep = recommendedActionToGatingStep(activeGate.recommendedAction);
+
+  const isLoading = wsListLoading;
+
+  // Resolve workspace from list using URL slug or UUID
   const workspace = workspaceId
-    ? allWorkspaces.find(
-        (ws) => ws.projectName === workspaceId || ws.id === workspaceId
-      ) ?? null
+    ? allWorkspaces.find((ws) => ws.projectName === workspaceId || ws.id === workspaceId) ?? null
     : null;
 
+  // Sync activeWorkspaceId so gate and codebase hooks target the right workspace
+  const resolvedId = workspace?.id;
   useEffect(() => {
-    setIsLoading(true);
-    setLoadError(false);
-    const t = setTimeout(() => {
-      setIsLoading(false);
-    }, 480);
-    return () => clearTimeout(t);
-  }, [workspaceId]);
+    if (resolvedId) {
+      setActiveWorkspaceId(resolvedId);
+    }
+  }, [resolvedId, setActiveWorkspaceId]);
 
   const handleRetry = useCallback(() => {
     setLoadError(false);
-    setIsLoading(true);
-    const t = setTimeout(() => setIsLoading(false), 600);
-    return () => clearTimeout(t);
-  }, []);
+    refreshWorkspaces();
+  }, [refreshWorkspaces]);
 
   const _handleOpenFolder = useCallback(() => {
     navigate(`/ws/my-app`);
@@ -484,14 +493,22 @@ export function WorkspaceDashboard() {
       <div>
         <h2 className="text-base">Could not load workspace</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          The workspace data failed to load. Check your connection and try again.
+          {errorDiagnostic
+            ? "The workspace request failed. Review the diagnostic details below and retry."
+            : "The workspace data failed to load. Check your connection and try again."}
         </p>
       </div>
+      {errorDiagnostic && (
+        <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-left text-[11px] font-mono whitespace-pre-wrap text-muted-foreground/80">
+          {errorDiagnostic}
+        </div>
+      )}
       <div className="flex gap-2 justify-center">
         <Button variant="outline" className="gap-2" onClick={handleRetry}>
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
           Retry
         </Button>
+
         <Button variant="ghost" className="gap-2" onClick={() => navigate("/")}>
           Go Home
         </Button>
@@ -531,7 +548,7 @@ export function WorkspaceDashboard() {
 
   // ── Render: workspace loaded ─────────────────────────────────────
   const renderWorkspace = (ws: WorkspaceSummary) => {
-    const gating = deriveGating(ws);
+    const gating = gatingStep;
     const step = gatingMap[gating];
     const StepIcon = step.icon;
 
@@ -568,6 +585,9 @@ export function WorkspaceDashboard() {
         />
 
         {/* ── Next Step card ─────── */}
+        {gateLoading ? (
+          <Skeleton className="h-36 w-full rounded-xl" />
+        ) : (
         <div
           className={cn(
             "rounded-xl border p-5 space-y-4 relative overflow-hidden",
@@ -613,12 +633,12 @@ export function WorkspaceDashboard() {
             </div>
           </div>
 
-          {ws.cursor.milestone && (
+          {(activeGate.phaseId || activeGate.taskId) && (
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[10px] text-muted-foreground/40 uppercase tracking-wider">
                 Position
               </span>
-              {[ws.cursor.milestone, ws.cursor.phase, ws.cursor.task]
+              {[activeGate.phaseId, activeGate.taskId]
                 .filter(Boolean)
                 .map((seg, i, arr) => (
                   <span key={seg} className="flex items-center gap-1">
@@ -706,6 +726,7 @@ export function WorkspaceDashboard() {
             </div>
           )}
         </div>
+        )}
 
         {/* ── Stats row ─────────────────────── */}
         <div className="grid grid-cols-2 gap-3" role="list" aria-label="Workspace status">
@@ -1132,7 +1153,7 @@ export function WorkspaceDashboard() {
       <div className="w-full max-w-md">
         {isLoading
           ? renderLoading()
-          : loadError
+          : loadError || !!errorDiagnostic
           ? renderError()
           : workspace
           ? renderWorkspace(workspace)

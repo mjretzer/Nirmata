@@ -21,21 +21,24 @@ import {
   CommandList,
   CommandSeparator,
 } from "../ui/command"
-import { useNavigate, useParams } from "react-router"
+import { useNavigate, useParams, useLocation } from "react-router"
 import { toast } from "sonner"
 import { useWorkspaceContext } from "../../context/WorkspaceContext"
 
 export function GlobalCommandPalette() {
   const [open, setOpen] = React.useState(false)
   const navigate = useNavigate()
+  const { pathname } = useLocation()
 
-  // Prefer the workspaceId from the current URL; fall back to the globally
-  // active workspace so the palette always produces a valid route.
+  // Detect whether the current URL is workspace-scoped (/ws/:workspaceId/...)
   const { workspaceId: paramWsId } = useParams<{ workspaceId: string }>()
   const { activeWorkspaceId } = useWorkspaceContext()
-  const wsId = paramWsId ?? activeWorkspaceId
+  const pathParts = pathname.split('/')
+  const isWorkspaceScoped = pathParts[1] === 'ws' && Boolean(pathParts[2])
+  const wsId = isWorkspaceScoped ? (paramWsId ?? activeWorkspaceId) : null
 
-  const ws = (path: string) => `/ws/${wsId}${path}`
+  const ws = (wsPath: string, noWsPath: string) =>
+    wsId ? `/ws/${wsId}${wsPath}` : noWsPath
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -68,35 +71,35 @@ export function GlobalCommandPalette() {
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         <CommandGroup heading="Pages">
-          <CommandItem onSelect={() => runCommand(() => navigate(ws("")))}>
+          <CommandItem onSelect={() => runCommand(() => navigate(ws("", "/")))}>
             <LayoutDashboard className="mr-2 h-4 w-4" />
             <span>Workspace Dashboard</span>
           </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => navigate(ws("/chat")))}>
+          <CommandItem onSelect={() => runCommand(() => navigate(ws("/chat", "/chat")))}>
             <MessageSquare className="mr-2 h-4 w-4" />
             <span>Chat</span>
           </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => navigate(ws("/files/.aos/spec")))}>
+          <CommandItem onSelect={() => runCommand(() => navigate(ws("/files/.aos/spec", "/plan")))}>
             <Map className="mr-2 h-4 w-4" />
             <span>Plan / Roadmap</span>
           </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => navigate(ws("/files/.aos/evidence/runs")))}>
+          <CommandItem onSelect={() => runCommand(() => navigate(ws("/files/.aos/evidence/runs", "/runs")))}>
             <History className="mr-2 h-4 w-4" />
             <span>Runs</span>
           </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => navigate(ws("/files/.aos/state")))}>
+          <CommandItem onSelect={() => runCommand(() => navigate(ws("/files/.aos/state", "/continuity")))}>
             <ListChecks className="mr-2 h-4 w-4" />
             <span>Continuity</span>
           </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => navigate(ws("/files/.aos/spec/uat")))}>
+          <CommandItem onSelect={() => runCommand(() => navigate(ws("/files/.aos/spec/uat", "/verification")))}>
             <GitBranch className="mr-2 h-4 w-4" />
             <span>Verification / UAT</span>
           </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => navigate(ws("/files/.aos/codebase")))}>
+          <CommandItem onSelect={() => runCommand(() => navigate(ws("/files/.aos/codebase", "/codebase")))}>
             <Cpu className="mr-2 h-4 w-4" />
             <span>Codebase</span>
           </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => navigate(ws("/settings")))}>
+          <CommandItem onSelect={() => runCommand(() => navigate(ws("/settings", "/settings")))}>
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </CommandItem>

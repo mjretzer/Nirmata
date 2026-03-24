@@ -1,0 +1,30 @@
+# Nirmata Project Context
+
+@documents/architecture/solution.md
+@documents/architecture/data-flow.md
+@documents/architecture/schemas.md
+
+@documents/workflows/gating.md
+@documents/workflows/quick-start.md
+@documents/workflows/routing.md
+
+@documents/agents/orchestrator.md
+@documents/agents/planning.md
+@documents/agents/execution.md
+@documents/agents/verification.md
+@documents/agents/scope.md
+@documents/agents/milestones.md
+@documents/agents/brownfield.md
+@documents/agents/continuity.md
+@documents/agents/backlog.md
+@documents/agents/help.md
+
+@documents/cli/commands.md
+@documents/cli/workspace-layout.md
+
+## OpenSpec Commands
+To use OpenSpec in this terminal, prefix commands with `!`:
+- `!openspec list`: View active changes.
+- `!openspec show <id>`: View change details.
+- `!openspec validate <id> --strict`: Validate a proposal.
+- `!openspec archive <id> --yes`: Finalize a change.

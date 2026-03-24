@@ -6,8 +6,11 @@ import {
   SheetTitle,
 } from "../ui/sheet"
 import { Badge } from "../ui/badge"
+import { Button } from "../ui/button"
 import { Separator } from "../ui/separator"
-import { Activity, Server, AlertTriangle, CheckCircle, Wifi } from "lucide-react"
+import { Activity, AlertTriangle, CheckCircle, Wifi, RefreshCw } from "lucide-react"
+
+import { useWorkspaceContext } from "../../context/WorkspaceContext"
 
 interface DiagnosticsDrawerProps {
   open: boolean
@@ -15,6 +18,38 @@ interface DiagnosticsDrawerProps {
 }
 
 export function DiagnosticsDrawer({ open, onOpenChange }: DiagnosticsDrawerProps) {
+  const { daemonConnectionState, reconnect } = useWorkspaceContext()
+
+  const connectionConfig = {
+    connecting: {
+      label: "Connecting",
+      badgeClassName: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+      icon: Wifi,
+      iconClassName: "text-amber-500",
+      description: "Waiting for the daemon health check to complete.",
+      actionLabel: null,
+    },
+    connected: {
+      label: "Connected",
+      badgeClassName: "bg-green-500/10 text-green-500 border-green-500/20",
+      icon: CheckCircle,
+      iconClassName: "text-green-500",
+      description: "Connected to the Windows Service API host.",
+      actionLabel: null,
+    },
+    disconnected: {
+      label: "Reconnect required",
+      badgeClassName: "bg-red-500/10 text-red-500 border-red-500/20",
+      icon: AlertTriangle,
+      iconClassName: "text-red-500",
+      description: "Health polling stopped after a failed startup check. Fix the daemon configuration, then reconnect.",
+      actionLabel: "Reconnect",
+    },
+  } as const
+
+  const connection = connectionConfig[daemonConnectionState]
+  const StatusIcon = connection.icon
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
@@ -30,16 +65,24 @@ export function DiagnosticsDrawer({ open, onOpenChange }: DiagnosticsDrawerProps
           <div className="bg-card border border-border rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium flex items-center gap-2">
-                <Wifi className="h-4 w-4 text-green-500" />
+                <StatusIcon className={`h-4 w-4 ${connection.iconClassName}`} />
                 Connection
               </span>
-              <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
-                Connected
+              <Badge variant="outline" className={connection.badgeClassName}>
+                {connection.label}
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground">
-              Connected to Windows Service API Host
+              {connection.description}
             </p>
+            {connection.actionLabel && (
+              <div className="mt-3">
+                <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={reconnect}>
+                  <RefreshCw className="h-3 w-3" />
+                  {connection.actionLabel}
+                </Button>
+              </div>
+            )}
           </div>
 
           <Separator />

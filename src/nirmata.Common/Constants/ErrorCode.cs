@@ -8,5 +8,6 @@ public enum ErrorCode
     Conflict = 3,
     Unauthorized = 4,
     Forbidden = 5,
-    DatabaseError = 6
+    DatabaseError = 6,
+    FileTooLarge = 7,
 }

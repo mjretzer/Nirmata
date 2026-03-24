@@ -1,7 +1,6 @@
 import { Link, Outlet, useLocation } from "react-router";
 import {
   LayoutDashboard,
-  Workflow,
   Compass,
   Shield,
   History,
@@ -11,10 +10,12 @@ import {
   PauseCircle,
   GitBranch,
   MessageSquare,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { copyToClipboard } from "../utils/clipboard";
 import { useState, useMemo, useEffect } from "react";
+
 import { DiagnosticsDrawer } from "./layout/DiagnosticsDrawer";
 import { GlobalCommandPalette } from "./layout/GlobalCommandPalette";
 import { ArtifactsDrawer } from "./layout/ArtifactsDrawer";
@@ -24,7 +25,7 @@ import { cn } from "./ui/utils";
 
 import { getAosLink } from "../utils/aosResolver";
 import { useWorkspaceContext, type EngineStatus } from "../context/WorkspaceContext";
-import { useWorkspace } from "../hooks/useAosData";
+import { isGuidWorkspaceId, useWorkspace, useWorkspaces } from "../hooks/useAosData";
 
 const engineStatusConfig: Record<EngineStatus, { label: string; color: string; dot: string }> = {
   idle:    { label: "Idle",              color: "text-muted-foreground", dot: "bg-muted-foreground" },
@@ -46,6 +47,42 @@ function getNavigation(workspaceId: string) {
   ];
 }
 
+function getNoWorkspaceNavigation() {
+  return [
+    { name: "Workspace", href: "/", icon: LayoutDashboard },
+    { name: "Chat", href: "/chat", icon: MessageSquare },
+    { name: "Plan", href: "/plan", icon: Compass },
+    { name: "Verification", href: "/verification", icon: Shield },
+    { name: "Runs", href: "/runs", icon: History },
+    { name: "Continuity", href: "/continuity", icon: PauseCircle },
+    { name: "Codebase", href: "/codebase", icon: Code },
+    { name: "Settings", href: "/settings", icon: Settings },
+  ];
+}
+
+function WorkspaceScopeResolver({ workspaceToken }: { workspaceToken: string }) {
+  const { setActiveWorkspaceId } = useWorkspaceContext();
+  const { workspaces, isLoading } = useWorkspaces();
+
+  useEffect(() => {
+    if (isGuidWorkspaceId(workspaceToken)) {
+      setActiveWorkspaceId(workspaceToken);
+      return;
+    }
+
+    if (isLoading) {
+      return;
+    }
+
+    const resolved = workspaces.find((ws) => ws.projectName === workspaceToken || ws.id === workspaceToken);
+    if (resolved) {
+      setActiveWorkspaceId(resolved.id);
+    }
+  }, [isLoading, setActiveWorkspaceId, workspaces, workspaceToken]);
+
+  return null;
+}
+
 export function Layout() {
   const location = useLocation();
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
@@ -53,29 +90,36 @@ export function Layout() {
 
   // Global state from context
   const {
+    activeWorkspaceId,
     engineStatus,
-    daemonConnected,
+    daemonConnectionState,
+    reconnect,
     gitState,
-    setActiveWorkspaceId,
   } = useWorkspaceContext();
   const engineCfg = engineStatusConfig[engineStatus];
 
-  // Derive workspaceId from URL (same pattern as TopRibbon)
+  // Detect whether we are under /ws/:workspaceId/...
   const pathParts = location.pathname.split('/');
-  const workspaceId = pathParts[2] || "my-app";
+  const isWorkspaceScoped = pathParts[1] === 'ws' && Boolean(pathParts[2]);
+  const workspaceId = isWorkspaceScoped ? pathParts[2] : undefined;
 
-  // Keep the global context in sync when the URL-derived ID changes
-  useEffect(() => {
-    setActiveWorkspaceId(workspaceId);
-  }, [workspaceId, setActiveWorkspaceId]);
+  // Resolve the active workspace data via hook (undefined = no fetch)
+  const { workspace: activeWs } = useWorkspace(activeWorkspaceId);
 
-  // Resolve the active workspace data via hook
-  const { workspace: activeWs } = useWorkspace(workspaceId);
-
-  const navigation = useMemo(() => getNavigation(workspaceId), [workspaceId]);
+  const navigation = useMemo(
+    () => isWorkspaceScoped ? getNavigation(workspaceId!) : getNoWorkspaceNavigation(),
+    [isWorkspaceScoped, workspaceId]
+  );
 
   // Files-based routes always show the explorer
   const showFileExplorer = location.pathname.includes('/files/');
+
+  const daemonConnectionConfig = {
+    connecting: { label: "Connecting", dot: "bg-amber-500 animate-pulse", color: "text-amber-400" },
+    connected: { label: "Connected", dot: "bg-green-500", color: "text-green-400" },
+    disconnected: { label: "Reconnect required", dot: "bg-red-500", color: "text-red-400" },
+  } as const;
+  const daemonCfg = daemonConnectionConfig[daemonConnectionState];
 
   const copyToClipboardHandler = async (text: string, label: string) => {
     const success = await copyToClipboard(text);
@@ -91,6 +135,7 @@ export function Layout() {
       <GlobalCommandPalette />
       <DiagnosticsDrawer open={diagnosticsOpen} onOpenChange={setDiagnosticsOpen} />
       <ArtifactsDrawer open={artifactsOpen} onOpenChange={setArtifactsOpen} />
+      {isWorkspaceScoped && workspaceId ? <WorkspaceScopeResolver workspaceToken={workspaceId} /> : null}
 
       {/* Sidebar */}
       <div className="w-64 border-r border-border bg-card flex flex-col">
@@ -101,37 +146,49 @@ export function Layout() {
 
         <nav className="flex-1 p-3 space-y-1">
           {navigation.map((item) => {
-            let isActive = location.pathname === item.href || 
-              (item.href !== `/ws/${workspaceId}` && location.pathname.startsWith(item.href));
+            let isActive: boolean;
 
-            if (item.name === "Workspace") {
+            if (!isWorkspaceScoped) {
+              // No-workspace mode: simple pathname match
+              if (item.name === "Workspace") {
+                isActive = location.pathname === "/";
+              } else {
+                isActive = location.pathname === item.href ||
+                  location.pathname.startsWith(item.href + '/');
+              }
+            } else {
+              // Workspace-scoped mode: existing active-state logic
+              isActive = location.pathname === item.href ||
+                (item.href !== `/ws/${workspaceId}` && location.pathname.startsWith(item.href));
+
+              if (item.name === "Workspace") {
                 isActive = location.pathname === `/ws/${workspaceId}`;
-            }
+              }
 
-            if (item.name === "Plan") {
-                // Plan is active for .aos/spec/* BUT NOT uat, issues
-                isActive = location.pathname.includes("/.aos/spec") && 
-                           !location.pathname.includes("/.aos/spec/uat") &&
-                           !location.pathname.includes("/.aos/spec/issues");
-            }
+              if (item.name === "Plan") {
+                isActive = location.pathname.includes("/.aos/spec") &&
+                  !location.pathname.includes("/.aos/spec/uat") &&
+                  !location.pathname.includes("/.aos/spec/issues");
+              }
 
-            if (item.name === "Verification") {
+              if (item.name === "Verification") {
                 isActive = location.pathname.includes("/.aos/spec/uat") ||
-                           location.pathname.includes("/.aos/spec/issues");
-            }
+                  location.pathname.includes("/.aos/spec/issues");
+              }
 
-            if (item.name === "Runs") {
+              if (item.name === "Runs") {
                 isActive = location.pathname.includes("/.aos/evidence/runs");
-            }
+              }
 
-            if (item.name === "Codebase") {
+              if (item.name === "Codebase") {
                 isActive = location.pathname.includes("/.aos/codebase");
+              }
+
+              if (item.name === "Continuity") {
+                isActive = location.pathname.includes("/.aos/state");
+              }
             }
 
-            if (item.name === "Continuity") {
-                isActive = location.pathname.includes("/.aos/state");
-            }
-            
             return (
               <Link
                 key={item.name}
@@ -151,8 +208,8 @@ export function Layout() {
 
         </nav>
 
-        {/* Workspace Status Footer */}
-        <div className="p-2 border-t border-border space-y-1">
+        {/* Workspace Status Footer — only shown when a workspace is active */}
+        {isWorkspaceScoped && <div className="p-2 border-t border-border space-y-1">
           <div className="text-[10px] leading-tight">
 
             <div className="flex items-center justify-between mb-0.5">
@@ -204,7 +261,7 @@ export function Layout() {
             </div>
 
           </div>
-        </div>
+        </div>}
       </div>
 
       {/* Main Content */}
@@ -232,19 +289,33 @@ export function Layout() {
           </div>
 
           {/* Daemon connection — click to open diagnostics */}
-          <button
-            className="flex items-center gap-2 hover:text-foreground transition-colors cursor-pointer"
-            onClick={() => setDiagnosticsOpen(true)}
-            title="Open diagnostics"
-          >
-            <span className="text-muted-foreground">Daemon</span>
-            <span className="flex items-center gap-1.5">
-              <span className={cn("inline-block w-1.5 h-1.5 rounded-full", daemonConnected ? "bg-green-500" : "bg-red-500")} />
-              <span className={daemonConnected ? "text-green-400" : "text-red-400"}>
-                {daemonConnected ? "Connected" : "Disconnected"}
+          <div className="flex items-center gap-2">
+            <button
+              className="flex items-center gap-2 hover:text-foreground transition-colors cursor-pointer"
+              onClick={() => setDiagnosticsOpen(true)}
+              title="Open diagnostics"
+            >
+              <span className="text-muted-foreground">Daemon</span>
+              <span className="flex items-center gap-1.5">
+                <span className={cn("inline-block w-1.5 h-1.5 rounded-full", daemonCfg.dot)} />
+                <span className={daemonCfg.color}>
+                  {daemonCfg.label}
+                </span>
               </span>
-            </span>
-          </button>
+            </button>
+
+            {daemonConnectionState === "disconnected" && (
+              <button
+                type="button"
+                onClick={reconnect}
+                className="inline-flex items-center gap-1 rounded border border-border bg-background px-2 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                title="Retry daemon health check"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Reconnect
+              </button>
+            )}
+          </div>
 
           <div className="h-3.5 w-px bg-border" />
 

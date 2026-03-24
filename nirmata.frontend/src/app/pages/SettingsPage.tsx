@@ -68,6 +68,7 @@ import {
 } from "../components/workspace-config-panel";
 import { ConfigCategoryAccordion } from "../components/config-category-accordion";
 import { WorkspaceHealthPanel } from "../components/WorkspaceHealthPanel";
+import { DAEMON_BASE_URL } from "../api/routing";
 
 // ── Constants ────────────────────────────────────────────────────────
 
@@ -132,8 +133,8 @@ function useConfigState(
       if (entry.type === "int") {
         const n = Number(raw);
         if (!Number.isInteger(n)) error = "Must be an integer";
-        else if (entry.min !== undefined && n < entry.min) error = `Min: ${entry.min}`;
-        else if (entry.max !== undefined && n > entry.max) error = `Max: ${entry.max}`;
+        else if (entry.intMin !== undefined && n < entry.intMin) error = `Min: ${entry.intMin}`;
+        else if (entry.intMax !== undefined && n > entry.intMax) error = `Max: ${entry.intMax}`;
       }
       if (entry.type === "bool" && raw !== "true" && raw !== "false") {
         error = "Must be true or false";
@@ -622,7 +623,7 @@ function EngineTab({
   const hostConsolePath = `/ws/${workspaceId}/host`;
 
   const [hostLabel, setHostLabel] = useState("Local Dev Host");
-  const [hostUrl, setHostUrl] = useState("http://localhost:5000");
+  const [hostUrl, setHostUrl] = useState(DAEMON_BASE_URL);
   const [hostEnv, setHostEnv] = useState("local");
 
   const pingOk = conn.lastPing?.ok ?? true;
@@ -734,7 +735,6 @@ function EngineTab({
             onClick={async () => {
               const result = await conn.test(hostUrl);
               if (result.ok) toast.success(`Connected · ${result.version} · ${result.latencyMs}ms`);
-              else toast.error("Connection failed — check URL and token");
             }}
           >
             <RefreshCw className={cn("h-3 w-3", conn.isTesting && "animate-spin")} />
@@ -748,7 +748,6 @@ function EngineTab({
             onClick={async () => {
               const result = await conn.save({ label: hostLabel, baseUrl: hostUrl, env: hostEnv });
               if (result.ok) toast.success("Host profile saved");
-              else toast.error("Save failed");
             }}
           >
             {conn.isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
@@ -1717,16 +1716,23 @@ type RepoState = "not-initialized" | "initialized" | "attached";
 // ── WorkspaceTab ──────────────────────────────────────────────────────
 
 function WorkspaceTab({ workspaceId }: { workspaceId: string | undefined }) {
-  const { workspace } = useWorkspace(workspaceId);
+  const { workspace, bootstrapDiagnostic } = useWorkspace(workspaceId);
   const { init, isIniting, initResult } = useWorkspaceInit(workspaceId);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { hasAosDir } = workspace;
 
-  const [savedRootPath, setSavedRootPath] = useState(workspace.repoRoot);
-  const [draftRootPath, setDraftRootPath] = useState(workspace.repoRoot);
-  const [rootPathDirty, setRootPathDirty] = useState(false);
-  const [pathSaved, setPathSaved] = useState(true);
+  // Seed the root path from router state when navigating here from the launcher
+  // (e.g. after Init New Project or empty-folder initialization).
+  const passedRootPath =
+    (location.state as { rootPath?: string } | null)?.rootPath ?? "";
+  const initialRootPath = passedRootPath || workspace.repoRoot;
+
+  const [savedRootPath, setSavedRootPath] = useState(initialRootPath);
+  const [draftRootPath, setDraftRootPath] = useState(initialRootPath);
+  const [rootPathDirty, setRootPathDirty] = useState(!!passedRootPath);
+  const [pathSaved, setPathSaved] = useState(!passedRootPath);
 
   const rootPathValidationError =
     draftRootPath.trim() === ""
@@ -1758,7 +1764,7 @@ function WorkspaceTab({ workspaceId }: { workspaceId: string | undefined }) {
   };
 
   const handleBrowseRootPath = () => {
-    toast.info("Native file picker not available in browser — paste the full absolute path directly");
+    toast.info("Paste the full absolute path directly into the field");
   };
 
   return (
@@ -1775,6 +1781,18 @@ function WorkspaceTab({ workspaceId }: { workspaceId: string | undefined }) {
           <code className="font-mono text-primary/70">aos init</code>.
         </p>
       </div>
+
+      {bootstrapDiagnostic && (
+        <div className="rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-3 space-y-1.5">
+          <div className="flex items-center gap-2 text-sm text-red-400">
+            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>Workspace bootstrap failed</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground/70 whitespace-pre-wrap font-mono leading-relaxed">
+            {bootstrapDiagnostic}
+          </p>
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════
           § 0  Workspace Root Path
@@ -1837,6 +1855,7 @@ function WorkspaceTab({ workspaceId }: { workspaceId: string | undefined }) {
               <p className="text-[11px] text-red-400 leading-snug">{rootPathValidationError}</p>
             </div>
           )}
+
 
           {/* Status + action row */}
           <div className="flex items-center justify-between min-h-[1.75rem]">

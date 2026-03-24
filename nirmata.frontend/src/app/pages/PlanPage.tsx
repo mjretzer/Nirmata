@@ -147,6 +147,7 @@ export function PlanPage() {
   const navigate = useNavigate();
   const params = useParams();
   const relativePath = params["*"] || "";
+  const specPath = `.aos/spec/${relativePath}`;
 
   // All hooks at the top — unconditional
   const { workspace } = useWorkspace();
@@ -155,7 +156,7 @@ export function PlanPage() {
   const { milestones: allMilestones } = useMilestones();
   const { spec } = useProjectSpec();
   const { plans: allTaskPlans } = useTaskPlans();
-  const { fileSystem, findNode } = useFileSystem();
+  const { node: fileNode } = useFileSystem(specPath);
 
   const ws = workspace.projectName;
 
@@ -174,8 +175,6 @@ export function PlanPage() {
   }
 
   // ─── All files → DefaultFileViewer ───
-  const specPath = `.aos/spec/${relativePath}`;
-  const fileNode = findNode(specPath.split("/").filter(Boolean));
   const content = getSpecFileContent(relativePath, spec, allMilestones, allPhases, allTasks, allTaskPlans);
 
   if (fileNode && fileNode.type === "file") {

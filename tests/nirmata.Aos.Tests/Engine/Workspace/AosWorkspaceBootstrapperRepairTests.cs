@@ -40,6 +40,49 @@ public class AosWorkspaceBootstrapperRepairTests : IDisposable
     }
 
     [Fact]
+    public void EnsureInitialized_WithSpacesInRepositoryRoot_AndRepeatedInitCalls_AreIdempotent()
+    {
+        // Arrange
+        var selectedRepositoryRoot = Path.Combine(_testWorkspaceRoot, "selected workspace root");
+        Directory.CreateDirectory(selectedRepositoryRoot);
+        var expectedAosRoot = Path.Combine(selectedRepositoryRoot, ".aos");
+
+        // Act
+        var createdResult = AosWorkspaceBootstrapper.EnsureInitialized(selectedRepositoryRoot);
+        var customFilePath = Path.Combine(expectedAosRoot, "spec", "custom.md");
+        File.WriteAllText(customFilePath, "# Custom content");
+        var noChangesResult = AosWorkspaceBootstrapper.EnsureInitialized(selectedRepositoryRoot);
+
+        // Assert
+        Assert.Equal(expectedAosRoot, createdResult.AosRootPath);
+        Assert.Equal(AosWorkspaceBootstrapOutcome.Created, createdResult.Outcome);
+        Assert.Equal(expectedAosRoot, noChangesResult.AosRootPath);
+        Assert.Equal(AosWorkspaceBootstrapOutcome.NoChanges, noChangesResult.Outcome);
+        Assert.True(Directory.Exists(expectedAosRoot));
+        Assert.True(File.Exists(customFilePath));
+        Assert.Equal("# Custom content", File.ReadAllText(customFilePath));
+    }
+
+    [Fact]
+    public void EnsureInitialized_CreatesWorkspaceInTheExactSelectedRepositoryRoot()
+    {
+        // Arrange
+        var selectedRepositoryRoot = Path.Combine(_testWorkspaceRoot, "selected-root");
+        Directory.CreateDirectory(selectedRepositoryRoot);
+        var expectedAosRoot = Path.Combine(selectedRepositoryRoot, ".aos");
+        var parentAosRoot = Path.Combine(_testWorkspaceRoot, ".aos");
+
+        // Act
+        var result = AosWorkspaceBootstrapper.EnsureInitialized(selectedRepositoryRoot);
+
+        // Assert
+        Assert.Equal(expectedAosRoot, result.AosRootPath);
+        Assert.Equal(AosWorkspaceBootstrapOutcome.Created, result.Outcome);
+        Assert.True(Directory.Exists(expectedAosRoot));
+        Assert.False(Directory.Exists(parentAosRoot));
+    }
+
+    [Fact]
     public void Repair_RebuildIndexFiles_CreatesValidIndexes()
     {
         // Arrange

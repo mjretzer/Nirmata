@@ -1,6 +1,58 @@
 @nirmata.Api_HostAddress = http://localhost:5221
 
-GET {{nirmata.Api_HostAddress}}/weatherforecast/
+### Get Health (Simple)
+GET {{nirmata.Api_HostAddress}}/health
+Accept: text/plain
+
+### Get Health (Framework Detailed)
+GET {{nirmata.Api_HostAddress}}/health/detailed
 Accept: application/json
 
-###
+### Get Health (API Detailed)
+GET {{nirmata.Api_HostAddress}}/api/health
+Accept: application/json
+
+### Get Health (API Simple)
+GET {{nirmata.Api_HostAddress}}/api/health/simple
+Accept: application/json
+
+### List All Projects (Paginated)
+GET {{nirmata.Api_HostAddress}}/v1/projects?pageNumber=1&pageSize=10
+Accept: application/json
+
+### Search Projects
+GET {{nirmata.Api_HostAddress}}/v1/projects/search?searchTerm=test&pageNumber=1&pageSize=10
+Accept: application/json
+
+### Search Projects (Route)
+GET {{nirmata.Api_HostAddress}}/v1/projects/search/test?pageNumber=1&pageSize=10
+Accept: application/json
+
+### Create Project
+POST {{nirmata.Api_HostAddress}}/v1/projects
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "New Project",
+  "description": "Project Description"
+}
+
+### Get Project By ID
+@projectId = <replace-with-actual-id>
+GET {{nirmata.Api_HostAddress}}/v1/projects/{{projectId}}
+Accept: application/json
+
+### Update Project
+PUT {{nirmata.Api_HostAddress}}/v1/projects/{{projectId}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Updated Project Name",
+  "description": "Updated Description"
+}
+
+### Delete Project
+DELETE {{nirmata.Api_HostAddress}}/v1/projects/{{projectId}}
+Accept: application/json

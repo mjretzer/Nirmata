@@ -22,6 +22,17 @@ import { WorkspaceLauncherPage } from "./pages/WorkspaceLauncherPage";
 import { HostConsolePage } from "./pages/HostConsolePage";
 import { DiagnosticsPage } from "./pages/DiagnosticsPage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import {
+  NoChatPage,
+  NoPlanPage,
+  NoVerificationPage,
+  NoRunsPage,
+  NoContinuityPage,
+  NoCodebasePage,
+  NoSettingsPage,
+  NoHostPage,
+  NoDiagnosticsPage,
+} from "./pages/NoWorkspacePages";
 
 import { LegacyPathRedirect } from "./components/LegacyPathRedirect";
 
@@ -35,6 +46,18 @@ export const router = createBrowserRouter([
         index: true,
         Component: WorkspaceLauncherPage,
       },
+
+      /* --- No-workspace routes (unscoped, no :workspaceId) --- */
+      { path: "chat", Component: NoChatPage },
+      { path: "plan", Component: NoPlanPage },
+      { path: "verification", Component: NoVerificationPage },
+      { path: "runs", Component: NoRunsPage },
+      { path: "continuity", Component: NoContinuityPage },
+      { path: "codebase", Component: NoCodebasePage },
+      { path: "settings", Component: NoSettingsPage },
+      { path: "host", Component: NoHostPage },
+      { path: "diagnostics", Component: NoDiagnosticsPage },
+
       {
         path: "ws/:workspaceId/path/*",
         Component: LegacyPathRedirect,

@@ -33,7 +33,8 @@ import {
   type Checkpoint,
   type HandoffSnapshot,
 } from "../../hooks/useAosData";
-import { useWorkspace, useCheckpoints, useMilestones, usePhases } from "../../hooks/useAosData";
+import { useWorkspace, useCheckpoints, useMilestones, usePhases, useContinuityState } from "../../hooks/useAosData";
+import { useWorkspaceContext } from "../../context/WorkspaceContext";
 import { toast } from "sonner";
 import { useNavigate } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
@@ -70,15 +71,30 @@ export function InspectorPanel({
   onAction,
 }: InspectorPanelProps) {
   const navigate = useNavigate();
-  const { workspace } = useWorkspace();
+  const { activeWorkspaceId } = useWorkspaceContext();
+  const { workspace } = useWorkspace(activeWorkspaceId);
   const { checkpoints: initialCheckpoints } = useCheckpoints();
   const { milestones } = useMilestones();
   const { phases } = usePhases();
+  const { cursor: aosPosition, events: liveEvents, packs: livePacks } = useContinuityState();
   const ws = workspace.projectName;
+
+  const liveCursor = {
+    milestone: aosPosition.milestoneId,
+    phase: aosPosition.phaseId,
+    task: aosPosition.taskId,
+  };
 
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([
     ...initialCheckpoints,
   ]);
+
+  // Keep checkpoints in sync with live data
+  useEffect(() => {
+    if (initialCheckpoints.length > 0) {
+      setCheckpoints(initialCheckpoints);
+    }
+  }, [initialCheckpoints]);
 
   // Keep a "sticky" handoff so it can animate out after status changes
   const [stickyHandoff, setStickyHandoff] = useState<HandoffSnapshot | null>(handoff);
@@ -109,8 +125,8 @@ export function InspectorPanel({
     const newCp: Checkpoint = {
       id: `CHK-${num}`,
       timestamp: now.toISOString(),
-      cursor: { ...workspace.cursor },
-      description: `Saved at ${workspace.cursor.phase}/${workspace.cursor.task ?? "—"}`,
+      cursor: { ...liveCursor },
+      description: `Saved at ${liveCursor.phase}/${liveCursor.task ?? "—"}`,
       source: "manual",
     };
     setCheckpoints((prev) => [newCp, ...prev]);
@@ -126,7 +142,7 @@ export function InspectorPanel({
   };
 
   // Resolve cursor to names
-  const cursor = workspace.cursor;
+  const cursor = liveCursor;
   const _cursorMilestone = milestones.find((m) => m.id === cursor.milestone);
   const cursorPhase = phases.find((p) => p.id === cursor.phase);
   const cursorTask = cursor.task
@@ -253,7 +269,7 @@ export function InspectorPanel({
                   <div className="px-4 py-3 border-b border-amber-500/10 bg-background/50">
                     <div className="flex items-start justify-between gap-3 mb-1.5">
                       <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/50 truncate">
-                        {activeTask?.milestoneId ?? "—"}/{activeTask?.phaseId ?? "—"}/{activeTask?.id ?? "—"}
+                        {activeTask?.milestone ?? "—"}/{activeTask?.phaseId ?? "—"}/{activeTask?.id ?? "—"}
                       </span>
                       <div>
                         {activeIsRunning && (
@@ -457,22 +473,20 @@ export function InspectorPanel({
             </div>
           </div>
           <div className="p-1 max-h-[180px] overflow-y-auto custom-scrollbar">
-            {[
-              { id: "evt-1", type: "failed",       taskId: "TSK-0013", msg: "Gate validation blocked: UAT pending",    time: "Just now" },
-              { id: "evt-2", type: "checkpointed", taskId: "TSK-0012", msg: "Commit 8f92a1c created",                  time: "5m ago"   },
-              { id: "evt-3", type: "persisted",    taskId: "TSK-0012", msg: "Artifacts written to .aos/",              time: "5m ago"   },
-              { id: "evt-4", type: "validated",    taskId: "TSK-0012", msg: "All verifications passed",                time: "6m ago"   },
-              { id: "evt-5", type: "dispatched",   taskId: "TSK-0012", msg: "Run RUN-009 dispatched",                  time: "8m ago"   },
-            ].map((evt) => {
+            {liveEvents.length === 0 ? (
+              <div className="flex items-center justify-center py-6 text-[10px] font-mono text-muted-foreground/40">
+                No events recorded
+              </div>
+            ) : liveEvents.map((evt) => {
+              const evtType = (evt.type as string) ?? "";
               let Icon = Zap;
               let colorClass = "text-yellow-400";
               let bgClass = "bg-yellow-400/10";
-
-              if (evt.type === "validated")    { Icon = ShieldCheck;  colorClass = "text-cyan-400";    bgClass = "bg-cyan-400/10";    }
-              if (evt.type === "persisted")    { Icon = Save;         colorClass = "text-blue-400";    bgClass = "bg-blue-400/10";    }
-              if (evt.type === "checkpointed") { Icon = CheckCircle2; colorClass = "text-emerald-400"; bgClass = "bg-emerald-400/10"; }
-              if (evt.type === "failed")       { Icon = AlertCircle;  colorClass = "text-red-400";     bgClass = "bg-red-400/10";     }
-
+              if (evtType.includes("uat") || evtType.includes("validated"))      { Icon = ShieldCheck;  colorClass = "text-cyan-400";    bgClass = "bg-cyan-400/10";    }
+              if (evtType.includes("persisted") || evtType.includes("history"))  { Icon = Save;         colorClass = "text-blue-400";    bgClass = "bg-blue-400/10";    }
+              if (evtType.includes("checkpoint") || evtType.includes("commit"))  { Icon = CheckCircle2; colorClass = "text-emerald-400"; bgClass = "bg-emerald-400/10"; }
+              if (evtType.includes("fail") || evtType.includes("issue"))         { Icon = AlertCircle;  colorClass = "text-red-400";     bgClass = "bg-red-400/10";     }
+              const ref = evt.references?.[0] ?? "";
               return (
                 <div key={evt.id} className="flex items-start gap-3 p-2 rounded-xl hover:bg-muted/30 transition-colors group">
                   <div className={cn("mt-0.5 shrink-0 h-6 w-6 rounded-md flex items-center justify-center", bgClass)}>
@@ -480,10 +494,10 @@ export function InspectorPanel({
                   </div>
                   <div className="flex-1 min-w-0 pt-0.5">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-mono text-foreground/70">{evt.taskId}</span>
-                      <span className="text-[9px] text-muted-foreground/40 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">{evt.time}</span>
+                      <span className="text-[10px] font-mono text-foreground/70">{ref || evtType}</span>
+                      <span className="text-[9px] text-muted-foreground/40 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">{evt.timestamp ? timeAgo(evt.timestamp) : ""}</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground/60 truncate mt-0.5">{evt.msg}</p>
+                    <p className="text-[10px] text-muted-foreground/60 truncate mt-0.5">{String(evt.summary ?? "")}</p>
                   </div>
                 </div>
               );
@@ -744,20 +758,20 @@ export function InspectorPanel({
           )}
         </div>
         <div className="p-1 max-h-[180px] overflow-y-auto custom-scrollbar">
-          {[
-            { id: "evt-1", type: "failed",       taskId: "TSK-0013", msg: "Gate validation blocked: UAT pending", time: "Just now" },
-            { id: "evt-2", type: "checkpointed", taskId: "TSK-0012", msg: "Commit 8f92a1c created",               time: "5m ago"   },
-            { id: "evt-3", type: "persisted",    taskId: "TSK-0012", msg: "Artifacts written to .aos/",           time: "5m ago"   },
-            { id: "evt-4", type: "validated",    taskId: "TSK-0012", msg: "All verifications passed",             time: "6m ago"   },
-            { id: "evt-5", type: "dispatched",   taskId: "TSK-0012", msg: "Run RUN-009 dispatched",               time: "8m ago"   },
-          ].map((evt) => {
+          {liveEvents.length === 0 ? (
+            <div className="flex items-center justify-center py-6 text-[10px] font-mono text-muted-foreground/40">
+              No events recorded
+            </div>
+          ) : liveEvents.map((evt) => {
+            const evtType = (evt.type as string) ?? "";
             let Icon = Zap;
             let colorClass = "text-yellow-400";
             let bgClass = "bg-yellow-400/10";
-            if (evt.type === "validated")    { Icon = ShieldCheck;  colorClass = "text-cyan-400";    bgClass = "bg-cyan-400/10";    }
-            if (evt.type === "persisted")    { Icon = Save;         colorClass = "text-blue-400";    bgClass = "bg-blue-400/10";    }
-            if (evt.type === "checkpointed") { Icon = CheckCircle2; colorClass = "text-emerald-400"; bgClass = "bg-emerald-400/10"; }
-            if (evt.type === "failed")       { Icon = AlertCircle;  colorClass = "text-red-400";     bgClass = "bg-red-400/10";     }
+            if (evtType.includes("uat") || evtType.includes("validated"))      { Icon = ShieldCheck;  colorClass = "text-cyan-400";    bgClass = "bg-cyan-400/10";    }
+            if (evtType.includes("persisted") || evtType.includes("history"))  { Icon = Save;         colorClass = "text-blue-400";    bgClass = "bg-blue-400/10";    }
+            if (evtType.includes("checkpoint") || evtType.includes("commit"))  { Icon = CheckCircle2; colorClass = "text-emerald-400"; bgClass = "bg-emerald-400/10"; }
+            if (evtType.includes("fail") || evtType.includes("issue"))         { Icon = AlertCircle;  colorClass = "text-red-400";     bgClass = "bg-red-400/10";     }
+            const ref = evt.references?.[0] ?? "";
             return (
               <div key={evt.id} className="flex items-start gap-3 p-2 rounded-xl hover:bg-muted/30 transition-colors group">
                 <div className={cn("mt-0.5 shrink-0 h-6 w-6 rounded-md flex items-center justify-center", bgClass)}>
@@ -765,16 +779,38 @@ export function InspectorPanel({
                 </div>
                 <div className="flex-1 min-w-0 pt-0.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-mono text-foreground/70">{evt.taskId}</span>
-                    <span className="text-[9px] text-muted-foreground/40 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">{evt.time}</span>
+                    <span className="text-[10px] font-mono text-foreground/70">{ref || evtType}</span>
+                    <span className="text-[9px] text-muted-foreground/40 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">{evt.timestamp ? timeAgo(evt.timestamp) : ""}</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground/60 truncate mt-0.5">{evt.msg}</p>
+                  <p className="text-[10px] text-muted-foreground/60 truncate mt-0.5">{String(evt.summary ?? "")}</p>
                 </div>
               </div>
             );
           })}
         </div>
       </div>
+
+      {/* ─── CONTEXT PACKS ─── */}
+      {livePacks.length > 0 && (
+        <div className="shrink-0 rounded-2xl border border-border/40 overflow-hidden bg-background">
+          <div className="px-3 py-2 border-b border-border/50 bg-muted/10 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clipboard className="h-3.5 w-3.5 text-blue-400" />
+              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Context Packs</span>
+            </div>
+            <span className="text-[9px] font-mono text-muted-foreground/40">{livePacks.length}</span>
+          </div>
+          <div className="p-1 max-h-[120px] overflow-y-auto custom-scrollbar">
+            {livePacks.map((pack) => (
+              <div key={pack.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-muted/30 transition-colors">
+                <FileJson className="h-3 w-3 text-blue-400/70 shrink-0" />
+                <span className="text-[10px] font-mono text-foreground/70 truncate">{pack.id}</span>
+                {pack.size && <span className="ml-auto text-[9px] font-mono text-muted-foreground/50 shrink-0">{pack.size}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ─── BOTTOM: Checkpoints ─── */}
       <div className="flex-1 flex flex-col bg-muted/10 border border-border/50 rounded-2xl shadow-inner overflow-hidden">

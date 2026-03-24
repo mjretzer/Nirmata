@@ -13,4 +13,6 @@
   <Project Path="nirmata.Windows.Service/nirmata.Windows.Service.csproj" Id="4117a5bb-0a29-450e-bcc5-8ba986728f37" />
   <Project Path="nirmata.Windows.Service.Api/nirmata.Windows.Service.Api.csproj" Id="46aa42aa-b14b-4b51-9eb5-6199d8123c8f" />
   <Project Path="../tests/TestTargets/TestTargets.csproj" Id="f1a2b3c4-d5e6-7890-abcd-ef1234567890" />
+  <Project Path="../tests/nirmata.Data.Tests/nirmata.Data.Tests.csproj" />
+  <Project Path="../tests/nirmata.Windows.Service.Api.Tests/nirmata.Windows.Service.Api.Tests.csproj" />
 </Solution>

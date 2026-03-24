@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\tests\\nirmata.Aos.Tests\\nirmata.Aos.Tests.csproj": {}
+    "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\tests\\nirmata.Aos.Tests\\nirmata.Aos.Tests.csproj": {}
   },
   "projects": {
-    "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Agents\\nirmata.Agents.csproj": {
+    "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Agents\\nirmata.Agents.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Agents\\nirmata.Agents.csproj",
+        "projectUniqueName": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Agents\\nirmata.Agents.csproj",
         "projectName": "nirmata.Agents",
-        "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Agents\\nirmata.Agents.csproj",
+        "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Agents\\nirmata.Agents.csproj",
         "packagesPath": "C:\\Users\\James Lestler\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Agents\\obj\\",
+        "outputPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Agents\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -32,11 +32,11 @@
           "net10.0": {
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Aos\\nirmata.Aos.csproj": {
-                "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Aos\\nirmata.Aos.csproj"
+              "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Aos\\nirmata.Aos.csproj": {
+                "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Aos\\nirmata.Aos.csproj"
               },
-              "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Common\\nirmata.Common.csproj": {
-                "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Common\\nirmata.Common.csproj"
+              "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Common\\nirmata.Common.csproj": {
+                "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Common\\nirmata.Common.csproj"
               }
             }
           }
@@ -44,6 +44,9 @@
         "warningProperties": {
           "noWarn": [
             "NU1904"
+          ],
+          "warnAsError": [
+            "NU1605"
           ],
           "warnNotAsError": [
             "NU1904"
@@ -403,14 +406,14 @@
         }
       }
     },
-    "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Aos\\nirmata.Aos.csproj": {
+    "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Aos\\nirmata.Aos.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Aos\\nirmata.Aos.csproj",
+        "projectUniqueName": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Aos\\nirmata.Aos.csproj",
         "projectName": "aos",
-        "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Aos\\nirmata.Aos.csproj",
+        "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Aos\\nirmata.Aos.csproj",
         "packagesPath": "C:\\Users\\James Lestler\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Aos\\obj\\",
+        "outputPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Aos\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -434,8 +437,8 @@
           }
         },
         "warningProperties": {
-          "noWarn": [
-            "NU1904"
+          "warnAsError": [
+            "NU1605"
           ]
         },
         "restoreAuditProperties": {
@@ -764,14 +767,14 @@
         }
       }
     },
-    "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Common\\nirmata.Common.csproj": {
+    "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Common\\nirmata.Common.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Common\\nirmata.Common.csproj",
+        "projectUniqueName": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Common\\nirmata.Common.csproj",
         "projectName": "nirmata.Common",
-        "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Common\\nirmata.Common.csproj",
+        "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Common\\nirmata.Common.csproj",
         "packagesPath": "C:\\Users\\James Lestler\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Common\\obj\\",
+        "outputPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Common\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -795,8 +798,8 @@
           }
         },
         "warningProperties": {
-          "noWarn": [
-            "NU1904"
+          "warnAsError": [
+            "NU1605"
           ]
         },
         "restoreAuditProperties": {
@@ -1103,14 +1106,14 @@
         }
       }
     },
-    "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\tests\\nirmata.Aos.Tests\\nirmata.Aos.Tests.csproj": {
+    "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\tests\\nirmata.Aos.Tests\\nirmata.Aos.Tests.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\tests\\nirmata.Aos.Tests\\nirmata.Aos.Tests.csproj",
+        "projectUniqueName": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\tests\\nirmata.Aos.Tests\\nirmata.Aos.Tests.csproj",
         "projectName": "nirmata.Aos.Tests",
-        "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\tests\\nirmata.Aos.Tests\\nirmata.Aos.Tests.csproj",
+        "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\tests\\nirmata.Aos.Tests\\nirmata.Aos.Tests.csproj",
         "packagesPath": "C:\\Users\\James Lestler\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\tests\\nirmata.Aos.Tests\\obj\\",
+        "outputPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\tests\\nirmata.Aos.Tests\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -1131,21 +1134,21 @@
           "net10.0": {
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Agents\\nirmata.Agents.csproj": {
-                "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Agents\\nirmata.Agents.csproj"
+              "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Agents\\nirmata.Agents.csproj": {
+                "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Agents\\nirmata.Agents.csproj"
               },
-              "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Aos\\nirmata.Aos.csproj": {
-                "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\src\\nirmata.Aos\\nirmata.Aos.csproj"
+              "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Aos\\nirmata.Aos.csproj": {
+                "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Aos\\nirmata.Aos.csproj"
               },
-              "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\tests\\TestTargets\\TestTargets.csproj": {
-                "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\tests\\TestTargets\\TestTargets.csproj"
+              "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\tests\\TestTargets\\TestTargets.csproj": {
+                "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\tests\\TestTargets\\TestTargets.csproj"
               }
             }
           }
         },
         "warningProperties": {
-          "noWarn": [
-            "NU1904"
+          "warnAsError": [
+            "NU1605"
           ]
         },
         "restoreAuditProperties": {
@@ -1470,14 +1473,14 @@
         }
       }
     },
-    "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\tests\\TestTargets\\TestTargets.csproj": {
+    "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\tests\\TestTargets\\TestTargets.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\tests\\TestTargets\\TestTargets.csproj",
+        "projectUniqueName": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\tests\\TestTargets\\TestTargets.csproj",
         "projectName": "TestTargets",
-        "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\tests\\TestTargets\\TestTargets.csproj",
+        "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\tests\\TestTargets\\TestTargets.csproj",
         "packagesPath": "C:\\Users\\James Lestler\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\tests\\TestTargets\\obj\\",
+        "outputPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\tests\\TestTargets\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -1501,8 +1504,8 @@
           }
         },
         "warningProperties": {
-          "noWarn": [
-            "NU1904"
+          "warnAsError": [
+            "NU1605"
           ]
         },
         "restoreAuditProperties": {

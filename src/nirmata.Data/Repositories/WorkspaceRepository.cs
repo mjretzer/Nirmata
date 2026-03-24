@@ -27,26 +27,26 @@ public sealed class WorkspaceRepository : IWorkspaceRepository
 
     public async Task<List<Workspace>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return await _dbContext.Set<Workspace>()
-            .OrderByDescending(w => w.LastOpenedAt)
-            .ToListAsync(cancellationToken);
+        var workspaces = await _dbContext.Set<Workspace>().ToListAsync(cancellationToken);
+        return workspaces.OrderByDescending(w => w.LastOpenedAt).ToList();
     }
 
     public async Task<List<Workspace>> GetByHealthStatusAsync(string healthStatus, CancellationToken cancellationToken = default)
     {
-        return await _dbContext.Set<Workspace>()
+        var workspaces = await _dbContext.Set<Workspace>()
             .Where(w => w.HealthStatus == healthStatus)
-            .OrderByDescending(w => w.LastValidatedAt)
             .ToListAsync(cancellationToken);
+        return workspaces.OrderByDescending(w => w.LastValidatedAt).ToList();
     }
 
     public async Task<List<Workspace>> GetRecentlyValidatedAsync(int days, CancellationToken cancellationToken = default)
     {
         var cutoffDate = DateTimeOffset.UtcNow.AddDays(-days);
-        return await _dbContext.Set<Workspace>()
+        var workspaces = await _dbContext.Set<Workspace>().ToListAsync(cancellationToken);
+        return workspaces
             .Where(w => w.LastValidatedAt >= cutoffDate)
             .OrderByDescending(w => w.LastValidatedAt)
-            .ToListAsync(cancellationToken);
+            .ToList();
     }
 
     public void Add(Workspace workspace)
@@ -66,14 +66,7 @@ public sealed class WorkspaceRepository : IWorkspaceRepository
 
     public async Task<bool> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return true;
     }
 }

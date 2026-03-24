@@ -30,6 +30,7 @@ import {
   type HostLogLine,
 } from "../hooks/useAosData";
 import { useLiveClock, useUptime } from "../hooks/useTimers";
+import { DAEMON_BASE_URL } from "../api/routing";
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
@@ -409,7 +410,7 @@ export function HostConsolePage() {
               Local Dev Host
             </span>
             <span className="text-muted-foreground/30">·</span>
-            <span className="font-mono">http://localhost:5000</span>
+            <span className="font-mono">{DAEMON_BASE_URL}</span>
             <span className="text-muted-foreground/30">·</span>
             <span>Windows Service</span>
             <span className="text-muted-foreground/30">·</span>

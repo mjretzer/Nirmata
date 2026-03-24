@@ -168,7 +168,7 @@ export function DefaultFileViewer({ node, path, content }: DefaultFileViewerProp
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <HardDrive className="h-3 w-3" />
-            <span className="font-mono">{node.size || "—"}</span>
+            <span className="font-mono">{node.sizeBytes ?? "—"}</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock className="h-3 w-3" />
@@ -215,7 +215,7 @@ export function DefaultFileViewer({ node, path, content }: DefaultFileViewerProp
           <span>UTF-8</span>
         </div>
         <div className="flex items-center gap-4 text-[10px] text-muted-foreground font-mono">
-          <span>{node.size || "0 B"}</span>
+          <span>{node.sizeBytes ?? "0 B"}</span>
           <span>Read Only</span>
         </div>
       </div>

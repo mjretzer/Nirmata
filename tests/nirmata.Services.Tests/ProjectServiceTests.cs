@@ -143,14 +143,14 @@ public class ProjectServiceTests : IDisposable
         await _dbContext.SaveChangesAsync();
 
         // Act
-        var result = await _service.SearchProjectsAsync("Project");
+        var (items, _) = await _service.SearchProjectsAsync(new ProjectSearchRequestDto { SearchTerm = "Project" });
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Count);
-        Assert.Contains(result, p => p.Name == "Alpha Project");
-        Assert.Contains(result, p => p.Name == "Beta Project");
-        Assert.DoesNotContain(result, p => p.Name == "Gamma Test");
+        Assert.NotNull(items);
+        Assert.Equal(2, items.Count);
+        Assert.Contains(items, p => p.Name == "Alpha Project");
+        Assert.Contains(items, p => p.Name == "Beta Project");
+        Assert.DoesNotContain(items, p => p.Name == "Gamma Test");
     }
 
     [Fact]
@@ -169,10 +169,10 @@ public class ProjectServiceTests : IDisposable
         await _dbContext.SaveChangesAsync();
 
         // Act
-        var result = await _service.SearchProjectsAsync("NonExistent");
+        var (items, _) = await _service.SearchProjectsAsync(new ProjectSearchRequestDto { SearchTerm = "NonExistent" });
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        Assert.NotNull(items);
+        Assert.Empty(items);
     }
 }

@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { useParams } from "react-router";
 import {
   Send,
   Terminal,
@@ -216,7 +215,7 @@ function ArtifactRefChip({ artifact }: { artifact: { path: string; label: string
     >
       <FileText className="h-3 w-3 shrink-0" />
       <span className="truncate max-w-[180px]">{artifact.label}</span>
-      <Badge variant="outline" className="text-[8px] h-3.5 px-1 uppercase border-current/20">
+      <Badge variant="outline" className="text-[8px] h-4 px-1 uppercase font-mono shrink-0 text-muted-foreground">
         {artifact.action}
       </Badge>
     </button>
@@ -265,7 +264,15 @@ function AgentBadge({ agent }: { agent: AgentId }) {
 
 // ── Message Bubble ────────────────────────────────────────────
 
-function MessageBubble({ message, onCopy }: { message: ChatMessage; onCopy: (text: string) => void }) {
+function MessageBubble({
+  message,
+  onCopy,
+  onSubmitCommand,
+}: {
+  message: ChatMessage;
+  onCopy: (text: string) => void;
+  onSubmitCommand: (cmd: string) => void;
+}) {
   const isUser = message.role === "user";
   const isSystem = message.role === "system";
   const isResult = message.role === "result";
@@ -384,6 +391,16 @@ function MessageBubble({ message, onCopy }: { message: ChatMessage; onCopy: (tex
             <LogBlock logs={message.logs} />
           </div>
         )}
+
+        {/* Next recommended command */}
+        {message.nextCommand && !isUser && (
+          <div className="w-full max-w-sm mt-1">
+            <CommandChip
+              command={message.nextCommand}
+              onExecute={() => onSubmitCommand(message.nextCommand!)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -475,15 +492,19 @@ function QuickActionBar({
 // ── Main ChatPage ─────────────────────────────────────────────
 
 export function ChatPage() {
-  const { workspaceId } = useParams<{ workspaceId: string }>();
-  const { engineStatus } = useWorkspaceContext();
-  const { workspace } = useWorkspace(workspaceId);
-  const { messages: initialMessages, commandSuggestions } = useChatMessages();
+  const { activeWorkspaceId, engineStatus } = useWorkspaceContext();
+  const { workspace } = useWorkspace(activeWorkspaceId);
+  const {
+    messages,
+    commandSuggestions,
+    quickActions,
+    isSubmitting,
+    submitTurn,
+    refreshSnapshot,
+  } = useChatMessages(activeWorkspaceId);
 
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [inputValue, setInputValue] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isStreaming, setIsStreaming] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [chatMode, setChatMode] = useState<"chat" | "command" | "auto">("chat");
 
@@ -520,71 +541,18 @@ export function ChatPage() {
     setShowScrollButton(!isNearBottom);
   }, []);
 
-  // Detect if input is a command
-  const isCommand = inputValue.trim().startsWith("aos ");
+  // Detect if input is a command (explicit prefix or command mode active)
+  const isCommand = inputValue.trim().startsWith("aos ") || chatMode === "command";
 
   // Send message
   const handleSend = useCallback(() => {
     const content = inputValue.trim();
-    if (!content || isStreaming) return;
+    if (!content || isSubmitting) return;
 
-    const detectedCommand = content.startsWith("aos ") ? content : undefined;
-
-    const userMsg: ChatMessage = {
-      id: `msg-user-${Date.now()}`,
-      role: "user",
-      content,
-      timestamp: new Date(),
-      command: detectedCommand,
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
     setInputValue("");
     setShowSuggestions(false);
-
-    // Simulate assistant response
-    setIsStreaming(true);
-
-    // Add "thinking" placeholder
-    const thinkingId = `msg-thinking-${Date.now()}`;
-    const thinkingMsg: ChatMessage = {
-      id: thinkingId,
-      role: "assistant",
-      content: "",
-      timestamp: new Date(),
-      agent: "orchestrator",
-      streaming: true,
-    };
-    setMessages((prev) => [...prev, thinkingMsg]);
-
-    // Simulate delay then respond
-    setTimeout(() => {
-      const responseContent = detectedCommand
-        ? `Command \`${detectedCommand}\` acknowledged. In a live environment this would be dispatched to the daemon via \`POST /api/commands/execute\`. For now, this is a mock response.\n\nThe orchestrator would route this to the appropriate agent and stream results back in real-time.`
-        : `I understand your request. Let me analyze the current workspace state.\n\nBased on the cursor at \`${workspace.cursor.phase}/${workspace.cursor.task || "—"}\`, here's what I can help with:\n\n- **Current task status** and execution readiness\n- **Gate checks** for the next task in the pipeline\n- **Codebase context** from the latest intel scan\n\nWould you like me to proceed with any of these, or did you have something else in mind?`;
-
-      const responseMsg: ChatMessage = {
-        id: `msg-resp-${Date.now()}`,
-        role: "assistant",
-        content: responseContent,
-        timestamp: new Date(),
-        agent: "orchestrator",
-        gate: "idle",
-        ...(detectedCommand
-          ? {
-              artifacts: [
-                { path: ".aos/state/handoff.json", label: "Handoff context", action: "referenced" as const },
-              ],
-            }
-          : {}),
-      };
-
-      setMessages((prev) =>
-        prev.filter((m) => m.id !== thinkingId).concat(responseMsg)
-      );
-      setIsStreaming(false);
-    }, 1500);
-  }, [inputValue, isStreaming, workspace.cursor.phase, workspace.cursor.task]);
+    void submitTurn(content);
+  }, [inputValue, isSubmitting, submitTurn]);
 
   // Handle keyboard events
   const handleKeyDown = useCallback(
@@ -604,9 +572,9 @@ export function ChatPage() {
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     setInputValue(val);
-    // Show suggestions when typing "aos" or "/"
-    setShowSuggestions(val.startsWith("aos") || val.startsWith("/"));
-  }, []);
+    // In command mode, always show suggestions; otherwise trigger on "aos" / "/"
+    setShowSuggestions(chatMode === "command" || val.startsWith("aos") || val.startsWith("/"));
+  }, [chatMode]);
 
   // Select a command suggestion
   const handleSelectCommand = useCallback((cmd: string) => {
@@ -617,18 +585,10 @@ export function ChatPage() {
 
   // Quick action handler
   const handleQuickAction = useCallback((cmd: string) => {
-    setInputValue(cmd);
-    // Auto-send commands
-    const userMsg: ChatMessage = {
-      id: `msg-user-${Date.now()}`,
-      role: "user",
-      content: cmd,
-      timestamp: new Date(),
-      command: cmd,
-    };
-    setMessages((prev) => [...prev, userMsg]);
-    toast.info(`Dispatching: ${cmd}`);
-  }, []);
+    setInputValue("");
+    setShowSuggestions(false);
+    void submitTurn(cmd);
+  }, [submitTurn]);
 
   // Copy message handler
   const handleCopyMessage = useCallback(async (text: string) => {
@@ -725,8 +685,8 @@ export function ChatPage() {
             size="sm"
             className="h-7 text-[10px] font-mono gap-1.5"
             onClick={() => {
-              setMessages(initialMessages);
-              toast.success("Chat reset to initial state");
+              refreshSnapshot();
+              toast.success("Chat reloaded");
             }}
           >
             <RotateCcw className="h-3 w-3" />
@@ -763,6 +723,7 @@ export function ChatPage() {
                 key={msg.id}
                 message={msg}
                 onCopy={handleCopyMessage}
+                onSubmitCommand={handleQuickAction}
               />
             ))}
 
@@ -795,7 +756,12 @@ export function ChatPage() {
               )}
             />
             <button
-              onClick={() => setChatMode("chat")}
+              onClick={() => {
+                setChatMode("chat");
+                if (!inputValue.startsWith("aos") && !inputValue.startsWith("/")) {
+                  setShowSuggestions(false);
+                }
+              }}
               className={cn(
                 "relative z-10 flex-1 flex items-center justify-center gap-1.5 h-full rounded-full text-[11px] font-mono font-medium tracking-wide transition-colors cursor-pointer select-none",
                 chatMode === "chat" ? "text-background" : "text-muted-foreground hover:text-foreground"
@@ -805,7 +771,12 @@ export function ChatPage() {
               Chat
             </button>
             <button
-              onClick={() => setChatMode("command")}
+              onClick={() => {
+                setChatMode("command");
+                setShowSuggestions(true);
+                // Small delay so the state update and re-render complete before focus
+                setTimeout(() => inputRef.current?.focus(), 0);
+              }}
               className={cn(
                 "relative z-10 flex-1 flex items-center justify-center gap-1.5 h-full rounded-full text-[11px] font-mono font-medium tracking-wide transition-colors cursor-pointer select-none",
                 chatMode === "command" ? "text-background" : "text-muted-foreground hover:text-foreground"
@@ -815,7 +786,12 @@ export function ChatPage() {
               Cmds
             </button>
             <button
-              onClick={() => setChatMode("auto")}
+              onClick={() => {
+                setChatMode("auto");
+                if (!inputValue.startsWith("aos") && !inputValue.startsWith("/")) {
+                  setShowSuggestions(false);
+                }
+              }}
               className={cn(
                 "relative z-10 flex-1 flex items-center justify-center gap-1.5 h-full rounded-full text-[11px] font-mono font-medium tracking-wide transition-colors cursor-pointer select-none",
                 chatMode === "auto" ? "text-background" : "text-muted-foreground hover:text-foreground"
@@ -829,6 +805,13 @@ export function ChatPage() {
             {messages.length} message{messages.length !== 1 ? "s" : ""}
           </span>
         </div>
+
+        {/* Quick actions bar */}
+        {quickActions.length > 0 && (
+          <div className="px-4 pb-1">
+            <QuickActionBar actions={quickActions} onAction={handleQuickAction} />
+          </div>
+        )}
 
         {/* Input bar */}
         <div className="px-4 pb-3 relative">
@@ -859,7 +842,7 @@ export function ChatPage() {
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               onFocus={() => {
-                if (inputValue.startsWith("aos") || inputValue.startsWith("/")) {
+                if (chatMode === "command" || inputValue.startsWith("aos") || inputValue.startsWith("/")) {
                   setShowSuggestions(true);
                 }
               }}
@@ -867,8 +850,16 @@ export function ChatPage() {
                 // Delay to allow click on suggestion
                 setTimeout(() => setShowSuggestions(false), 200);
               }}
-              placeholder={isStreaming ? "Waiting for response..." : "Ask a question or type 'aos' for commands..."}
-              disabled={isStreaming}
+              placeholder={
+                isSubmitting
+                  ? "Waiting for response..."
+                  : chatMode === "command"
+                    ? "Type an aos command or select from suggestions above..."
+                    : chatMode === "auto"
+                      ? "Ask anything — auto-classifies as chat or command"
+                      : "Ask a question or type 'aos' for commands..."
+              }
+              disabled={isSubmitting}
               className="flex-1 bg-transparent text-sm font-mono text-foreground placeholder:text-muted-foreground/50 resize-none outline-none min-h-[20px] max-h-[120px] py-0.5"
               rows={1}
               style={{
@@ -891,9 +882,9 @@ export function ChatPage() {
                   : "bg-muted text-muted-foreground"
               )}
               onClick={handleSend}
-              disabled={!inputValue.trim() || isStreaming}
+              disabled={!inputValue.trim() || isSubmitting}
             >
-              {isStreaming ? (
+              {isSubmitting ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <Send className="h-3.5 w-3.5" />

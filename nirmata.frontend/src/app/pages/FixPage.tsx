@@ -1,9 +1,9 @@
 import { Wrench } from "lucide-react";
 import { useParams, Navigate } from "react-router";
 import { DefaultFileViewer } from "../components/viewers/DefaultFileViewer";
-import { useIssues, useWorkspace, useFileSystem } from "../hooks/useAosData";
+import { useIssues, useFileSystem } from "../hooks/useAosData";
 
-function getFixFileContent(relativePath: string, allIssues: { id: string; severity: string; linkedTasks: string[]; status: string }[]): string | null {
+export function getFixFileContent(relativePath: string, allIssues: { id: string; severity: string; linkedTasks: string[]; status: string }[]): string | null {
   const fileName = relativePath.replace(/\/$/, "");
 
   if (fileName === "plan.json") {
@@ -33,15 +33,14 @@ function getFixFileContent(relativePath: string, allIssues: { id: string; severi
 
 export function FixPage() {
   const params = useParams();
+  const workspaceId = params.workspaceId || "";
   const relativePath = params["*"] || "";
-  const { workspace: currentWs } = useWorkspace();
   const { issues: allIssues } = useIssues();
   const { findNode } = useFileSystem();
-  const ws = currentWs.projectName;
 
-  // Folder-level → redirect to Verification Hub
+  // Folder-level → redirect to Verification Hub (Fix Loop tab)
   if (relativePath === "") {
-    return <Navigate to={`/ws/${ws}/files/.aos/spec/uat`} replace />;
+    return <Navigate to={`/ws/${workspaceId}/files/.aos/spec/issues`} replace />;
   }
 
   // File view

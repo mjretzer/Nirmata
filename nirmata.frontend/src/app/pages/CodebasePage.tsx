@@ -277,10 +277,49 @@ function ArtifactDrawer({
   );
 }
 
+// ── Language / stack enrichment ───────────────────────────────────────
+
+const LANG_PALETTE = [
+  "#6366f1", "#10b981", "#f59e0b", "#3b82f6", "#ec4899",
+  "#8b5cf6", "#14b8a6", "#f97316", "#84cc16", "#06b6d4",
+];
+
+const STACK_TILE_PALETTE = [
+  "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+  "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  "bg-pink-500/10 text-pink-400 border-pink-500/20",
+  "bg-teal-500/10 text-teal-400 border-teal-500/20",
+  "bg-orange-500/10 text-orange-400 border-orange-500/20",
+];
+
+function enrichLanguages(raw: { name: string; pct: number; color: string }[]) {
+  if (raw.length === 0) return raw;
+  const allZero = raw.every((l) => l.pct === 0);
+  const equal = allZero ? Math.round(100 / raw.length) : 0;
+  return raw.map((l, i) => ({
+    name: l.name,
+    pct: allZero ? (i === raw.length - 1 ? 100 - equal * (raw.length - 1) : equal) : l.pct,
+    color: l.color || LANG_PALETTE[i % LANG_PALETTE.length],
+  }));
+}
+
+function enrichStack(raw: { name: string; category: string; color: string }[]) {
+  return raw.map((s, i) => ({
+    name: s.name,
+    category: s.category || "runtime",
+    color: s.color || STACK_TILE_PALETTE[i % STACK_TILE_PALETTE.length],
+  }));
+}
+
 // ── Main Page ────────────────────────────────────────────────────────
 
 export function CodebasePage() {
-  const { artifacts: ARTIFACTS, languages: LANGUAGES, stack: STACK } = useCodebaseIntel();
+  const { artifacts: ARTIFACTS, languages: rawLanguages, stack: rawStack, isLoading } = useCodebaseIntel();
+  const LANGUAGES = useMemo(() => enrichLanguages(rawLanguages), [rawLanguages]);
+  const STACK = useMemo(() => enrichStack(rawStack), [rawStack]);
   const [isIndexing, setIsIndexing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -322,6 +361,17 @@ export function CodebasePage() {
   const staleCount   = ARTIFACTS.filter(a => a.status === "stale").length;
   const missingCount = ARTIFACTS.filter(a => a.status === "missing" || a.status === "error").length;
   const intelCount   = ARTIFACTS.filter(a => a.type === "intel").length;
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <RefreshCw className="h-6 w-6 animate-spin" />
+          <span className="font-mono text-xs">Loading codebase intelligence…</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-background">

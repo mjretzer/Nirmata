@@ -96,6 +96,8 @@ const statusConfig: Record<string, { icon: typeof CheckCircle; color: string; do
   },
 };
 
+const FALLBACK_STATUS = statusConfig.failed;
+
 // ── Main Component ───────────────────────────────────────────────
 
 export function RunsDashboard() {
@@ -283,7 +285,7 @@ export function RunsDashboard() {
               </div>
             ) : (
               filteredRuns.map((run) => {
-                const status = statusConfig[run.status];
+                const status = statusConfig[run.status] ?? FALLBACK_STATUS;
                 const scope = getRunScope(run, allTasks, allPhases);
                 const runType = getRunType(run);
                 const StatusIcon = status.icon;

@@ -20,13 +20,9 @@ const DialogTrigger = React.forwardRef<
 });
 DialogTrigger.displayName = DialogPrimitive.Trigger.displayName;
 
-const DialogPortal = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Portal>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Portal>
->(({ ...props }, ref) => {
+function DialogPortal({ ...props }: React.ComponentProps<typeof DialogPrimitive.Portal>) {
   return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />;
-});
-DialogPortal.displayName = DialogPrimitive.Portal.displayName;
+}
 
 const DialogClose = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Close>,

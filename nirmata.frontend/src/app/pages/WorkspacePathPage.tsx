@@ -21,18 +21,16 @@ export function WorkspacePathPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { workspace: defaultWs } = useWorkspace();
-  const { findNode } = useFileSystem();
   const workspaceId = params.workspaceId || defaultWs.projectName;
-  
-  let relativePath = params["*"] || "";
 
-  // Map /codebase route to .aos/codebase directory
+  // Compute path before hooks so it can be passed to useFileSystem
+  let relativePath = params["*"] || "";
   if (!relativePath && location.pathname.endsWith("/codebase")) {
-     relativePath = ".aos/codebase";
+    relativePath = ".aos/codebase";
   }
 
-  // Find the node in the file system
-  const node = findNode(relativePath.split("/").filter(Boolean));
+  // Fetch the node at the requested path (directory listing or file metadata)
+  const { node } = useFileSystem(relativePath || undefined);
   
   if (!node) {
     // Path not found state
@@ -140,7 +138,7 @@ export function WorkspacePathPage() {
                       {child.status === "valid" && <Badge variant="outline" className="text-[10px] h-4 px-1 text-green-500 border-green-500/30 bg-green-500/10">Valid</Badge>}
                       {child.status === "warning" && <Badge variant="outline" className="text-[10px] h-4 px-1 text-yellow-500 border-yellow-500/30 bg-yellow-500/10">Warn</Badge>}
                     </div>
-                    <span className="text-xs text-muted-foreground text-right font-mono">{child.size}</span>
+                    <span className="text-xs text-muted-foreground text-right font-mono">{child.sizeBytes ?? "-"}</span>
                     <span className="text-xs text-muted-foreground text-right font-mono">Today</span>
                     <ChevronRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-muted-foreground" />
                   </div>
@@ -169,7 +167,7 @@ export function WorkspacePathPage() {
               <span className="text-muted-foreground">Type</span>
               <span className="text-right">{node.type}</span>
               <span className="text-muted-foreground">Size</span>
-              <span className="text-right">{node.size || "-"}</span>
+              <span className="text-right">{node.sizeBytes ?? "-"}</span>
               <span className="text-muted-foreground">Modified</span>
               <span className="text-right">Just now</span>
             </div>

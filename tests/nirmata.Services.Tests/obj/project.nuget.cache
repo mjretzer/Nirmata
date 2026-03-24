@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "kVh9UacSuD8=",
+  "dgSpecHash": "z2M1k6DFUWU=",
   "success": true,
-  "projectFilePath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\tests\\nirmata.Services.Tests\\nirmata.Services.Tests.csproj",
+  "projectFilePath": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\tests\\nirmata.Services.Tests\\nirmata.Services.Tests.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\James Lestler\\.nuget\\packages\\automapper\\13.0.1\\automapper.13.0.1.nupkg.sha512",
     "C:\\Users\\James Lestler\\.nuget\\packages\\castle.core\\5.1.1\\castle.core.5.1.1.nupkg.sha512",
@@ -51,9 +51,9 @@
       "code": "NU1903",
       "level": "Warning",
       "message": "Package 'AutoMapper' 13.0.1 has a known high severity vulnerability, https://github.com/advisories/GHSA-rvv3-g6hj-g44x",
-      "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\tests\\nirmata.Services.Tests\\nirmata.Services.Tests.csproj",
+      "projectPath": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\tests\\nirmata.Services.Tests\\nirmata.Services.Tests.csproj",
       "warningLevel": 1,
-      "filePath": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\tests\\nirmata.Services.Tests\\nirmata.Services.Tests.csproj",
+      "filePath": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\tests\\nirmata.Services.Tests\\nirmata.Services.Tests.csproj",
       "libraryId": "AutoMapper",
       "targetGraphs": [
         "net10.0"

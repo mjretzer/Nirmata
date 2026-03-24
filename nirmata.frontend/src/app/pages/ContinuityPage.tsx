@@ -17,7 +17,7 @@ import {
   Cpu,
   AlertTriangle,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import {
@@ -43,6 +43,7 @@ import {
   type Task,
   type HandoffSnapshot,
 } from "../hooks/useAosData";
+import { useWorkspaceContext } from "../context/WorkspaceContext";
 import { InspectorPanel } from "../components/continuity/InspectorPanel";
 
 // --- Components ---
@@ -84,18 +85,26 @@ function ModeToggle({ view, onChange }: { view: "atomic" | "manual"; onChange: (
 
 export function ContinuityPage() {
   const navigate = useNavigate();
-  const { workspace } = useWorkspace();
+  const { activeWorkspaceId } = useWorkspaceContext();
+  const { workspace } = useWorkspace(activeWorkspaceId);
   const { tasks: hookTasks } = useTasks();
   const { phases: allPhases } = usePhases();
   const { milestones: allMilestones } = useMilestones();
-  const { handoff: mockHandoff } = useContinuityState();
+  const { handoff: liveHandoff, cursor, isLoading: continuityLoading } = useContinuityState();
   const [executionMode, setExecutionMode] = useState<"atomic" | "manual">("atomic");
   const [pendingMode, setPendingMode] = useState<"atomic" | "manual" | null>(null);
-  const [systemStatus, setSystemStatus] = useState<"idle" | "executing" | "paused">("paused");
+  const [systemStatus, setSystemStatus] = useState<"idle" | "executing" | "paused">("idle");
+  // Track whether the initial status has been seeded from handoff.json
+  const [statusSeeded, setStatusSeeded] = useState(false);
   const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(new Set(["MS-0001"]));
   const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set(["PH-0002"]));
   const [selectedId, setSelectedId] = useState<string | null>("TSK-000003");
   const [tasks, setTasks] = useState<Task[]>([...hookTasks]);
+
+  // Keep local task list in sync with live hook data
+  useEffect(() => {
+    setTasks([...hookTasks]);
+  }, [hookTasks]);
 
   // Settings/Toggles — wired in a future iteration
   const [_runUntil, _setRunUntil] = useState<"task" | "phase" | "milestone">("task");
@@ -105,9 +114,23 @@ export function ContinuityPage() {
   // UAT check states: track pass/fail/untested per "phaseId::index" — future feature
   const [_uatStates, _setUatStates] = useState<Record<string, "pass" | "fail" | "untested">>({});
 
-  // Handoff state
-  const [handoff, setHandoff] = useState<HandoffSnapshot | null>(null);
+  // Handoff state — seeded from live data; updated on pause/resume actions
+  const [handoff, setHandoff] = useState<HandoffSnapshot | null>(liveHandoff);
   const [_showHandoff, _setShowHandoff] = useState(false);
+
+  // Keep handoff in sync with live data (e.g. on initial load when handoff.json exists)
+  useEffect(() => {
+    setHandoff(liveHandoff);
+  }, [liveHandoff]);
+
+  // Seed systemStatus once from handoff.json existence after data loads.
+  // handoff.json present → "paused"; absent → "idle". User actions override after this.
+  useEffect(() => {
+    if (!continuityLoading && !statusSeeded) {
+      setSystemStatus(liveHandoff !== null ? "paused" : "idle");
+      setStatusSeeded(true);
+    }
+  }, [continuityLoading, liveHandoff, statusSeeded]);
 
   const _toggleUat = (key: string) => {
     _setUatStates(prev => {
@@ -158,7 +181,7 @@ export function ContinuityPage() {
   const handleAction = (action: string) => {
     if (action === "Pause" || action === "pause") {
       setSystemStatus("paused");
-      setHandoff(mockHandoff);
+      setHandoff(liveHandoff);
       toast.success("Work paused. Handoff artifact written to .aos/state/handoff.json", {
         description: "Execution state captured and sealed.",
       });
@@ -236,7 +259,7 @@ export function ContinuityPage() {
         <div className="flex-1 flex flex-col min-w-0">
           <div className="flex-1 overflow-y-auto pr-4 -mr-4 space-y-3 custom-scrollbar">
             {allMilestones.map((milestone, milestoneIndex) => {
-              const isMilestoneActive = milestone.id === workspace.cursor.milestone;
+              const isMilestoneActive = milestone.id === cursor.milestoneId;
               const isMilestoneCompleted = milestone.status === "completed";
               const isMilestonePlanned = milestone.status === "planned";
               const milestonePhases = allPhases.filter(p => milestone.phases.includes(p.id));
@@ -352,7 +375,7 @@ export function ContinuityPage() {
                   {expandedMilestones.has(milestone.id) && (
                   <div className="relative ml-[15px] pl-[2px] space-y-5">
                     {milestonePhases.map((phase, phaseIndex) => {
-                      const isActive = phase.id === workspace.cursor.phase;
+                      const isActive = phase.id === cursor.phaseId;
                       const isCompleted = phase.status === "completed";
                       const isPlanned = phase.status === "planned";
                       const phaseTasks = tasks.filter(t => t.phaseId === phase.id);
@@ -459,7 +482,7 @@ export function ContinuityPage() {
                                   )}>
                                     {phaseTasks.map(task => {
                                       const isTaskCompleted = task.status === "completed";
-                                      const isTaskRunning = task.status === "in-progress" || (task.id === workspace.cursor.task && systemStatus === "executing");
+                                      const isTaskRunning = task.status === "in-progress" || (task.id === cursor.taskId && systemStatus === "executing");
                                       const isTaskFailed = task.status === "failed";
                                       const isSelectedTask = task.id === selectedId;
 

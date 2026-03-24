@@ -20,10 +20,26 @@ const basePhase: Phase = {
   summary: "Phase for testing",
   order: 1,
   status: "in-progress",
-  acceptance: { criteria: ["Unit tests pass"] },
-  brief: { goal: "Test", scope: ["src/"], constraints: [] },
-  links: { artifacts: [{ path: ".aos/spec/phases/PH-0001/phase.json" }] },
-  metadata: { createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z" },
+  brief: {
+    goal: "Test",
+    priorities: ["Correctness"],
+    nonGoals: [],
+    constraints: [],
+    dependencies: [],
+  },
+  deliverables: [],
+  acceptance: { criteria: ["Unit tests pass"], uatChecklist: [] },
+  links: {
+    roadmapPhaseRef: "",
+    tasks: [],
+    artifacts: [{ kind: "phase-file", path: ".aos/spec/phases/PH-0001/phase.json" }],
+  },
+  metadata: {
+    tags: [],
+    owner: "test",
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
+  },
 };
 
 const baseTask: Task = {
@@ -38,7 +54,10 @@ const baseTask: Task = {
 const passingPlan: TaskPlan = {
   taskId: "TSK-000001",
   fileScope: ["src/test.ts"],
-  steps: ["Write test", "Run test"],
+  steps: [
+    { order: 1, description: "Write test", done: true },
+    { order: 2, description: "Run test", done: true },
+  ],
   verification: [
     { command: "vitest run", type: "automated", passed: true },
     { command: "Manual check", type: "manual", passed: true },
@@ -49,7 +68,7 @@ const passingPlan: TaskPlan = {
 const failingPlan: TaskPlan = {
   taskId: "TSK-000001",
   fileScope: ["src/test.ts"],
-  steps: ["Write test"],
+  steps: [{ order: 1, description: "Write test", done: true }],
   verification: [
     { command: "vitest run", type: "automated", passed: false },
   ],
@@ -69,6 +88,7 @@ const pendingPlan: TaskPlan = {
 const baseIssue: Issue = {
   id: "ISS-0001",
   severity: "medium",
+  scope: "test",
   description: "Something broke",
   status: "open",
   repro: ["Step 1", "Step 2"],
@@ -82,7 +102,9 @@ const baseRun: Run = {
   status: "success",
   startTime: "2026-03-09T10:00:00Z",
   endTime: "2026-03-09T10:01:00Z",
+  artifacts: [],
   logs: ["All tests passed"],
+  changedFiles: [],
 };
 
 function makeInput(overrides: Partial<VerificationDataInput> = {}): VerificationDataInput {
@@ -187,5 +209,126 @@ describe("deriveVerificationState", () => {
     );
     expect(result.fixItems.find((f) => f.id === "ISS-0001")?.fixStatus).toBe("resolved");
     expect(result.fixItems.find((f) => f.id === "ISS-0002")?.fixStatus).toBe("executing");
+  });
+});
+
+// ── Severity & Status preservation (task 4.3) ────────────────────
+
+describe("deriveVerificationState — issue severity and status propagation", () => {
+  it("preserves severity=critical on fix item", () => {
+    const issue: Issue = { ...baseIssue, id: "ISS-C", severity: "critical" };
+    const { fixItems } = deriveVerificationState(makeInput({ issues: [issue] }));
+    expect(fixItems[0].severity).toBe("critical");
+  });
+
+  it("preserves severity=high on fix item", () => {
+    const issue: Issue = { ...baseIssue, id: "ISS-H", severity: "high" };
+    const { fixItems } = deriveVerificationState(makeInput({ issues: [issue] }));
+    expect(fixItems[0].severity).toBe("high");
+  });
+
+  it("preserves severity=medium on fix item", () => {
+    const issue: Issue = { ...baseIssue, id: "ISS-M", severity: "medium" };
+    const { fixItems } = deriveVerificationState(makeInput({ issues: [issue] }));
+    expect(fixItems[0].severity).toBe("medium");
+  });
+
+  it("preserves severity=low on fix item", () => {
+    const issue: Issue = { ...baseIssue, id: "ISS-L", severity: "low" };
+    const { fixItems } = deriveVerificationState(makeInput({ issues: [issue] }));
+    expect(fixItems[0].severity).toBe("low");
+  });
+
+  it("preserves issueStatus=open on fix item", () => {
+    const issue: Issue = { ...baseIssue, status: "open" };
+    const { fixItems } = deriveVerificationState(makeInput({ issues: [issue] }));
+    expect(fixItems[0].issueStatus).toBe("open");
+  });
+
+  it("preserves issueStatus=in-progress on fix item", () => {
+    const issue: Issue = { ...baseIssue, status: "in-progress" };
+    const { fixItems } = deriveVerificationState(makeInput({ issues: [issue] }));
+    expect(fixItems[0].issueStatus).toBe("in-progress");
+  });
+
+  it("preserves issueStatus=resolved on fix item", () => {
+    const issue: Issue = { ...baseIssue, status: "resolved" };
+    const { fixItems } = deriveVerificationState(makeInput({ issues: [issue] }));
+    expect(fixItems[0].issueStatus).toBe("resolved");
+  });
+
+  it("maps open issue with no history to fixStatus=triaging", () => {
+    const issue: Issue = { ...baseIssue, status: "open" };
+    const { fixItems } = deriveVerificationState(makeInput({ issues: [issue] }));
+    expect(fixItems[0].fixStatus).toBe("triaging");
+  });
+
+  it("maps open issue with >1 history entries to fixStatus=planned", () => {
+    const issue: Issue = {
+      ...baseIssue,
+      status: "open",
+      history: [
+        { timestamp: "2026-03-01T00:00:00Z", event: "created" },
+        { timestamp: "2026-03-02T00:00:00Z", event: "triaged" },
+      ],
+    };
+    const { fixItems } = deriveVerificationState(makeInput({ issues: [issue] }));
+    expect(fixItems[0].fixStatus).toBe("planned");
+  });
+
+  it("maps in-progress issue to fixStatus=executing", () => {
+    const issue: Issue = { ...baseIssue, status: "in-progress" };
+    const { fixItems } = deriveVerificationState(makeInput({ issues: [issue] }));
+    expect(fixItems[0].fixStatus).toBe("executing");
+  });
+
+  it("maps resolved issue to fixStatus=resolved", () => {
+    const issue: Issue = { ...baseIssue, status: "resolved" };
+    const { fixItems } = deriveVerificationState(makeInput({ issues: [issue] }));
+    expect(fixItems[0].fixStatus).toBe("resolved");
+  });
+
+  it("multiple issues with different severity and status all appear correctly", () => {
+    const issues: Issue[] = [
+      { ...baseIssue, id: "ISS-A", severity: "critical", status: "open" },
+      { ...baseIssue, id: "ISS-B", severity: "high", status: "in-progress" },
+      { ...baseIssue, id: "ISS-C", severity: "medium", status: "resolved" },
+      { ...baseIssue, id: "ISS-D", severity: "low", status: "open" },
+    ];
+    const { fixItems, totalIssues, openIssues } = deriveVerificationState(
+      makeInput({ issues })
+    );
+    expect(fixItems).toHaveLength(4);
+    expect(totalIssues).toBe(4);
+    expect(openIssues).toBe(3); // in-progress + open + open; resolved is excluded
+
+    const a = fixItems.find((f) => f.id === "ISS-A")!;
+    expect(a.severity).toBe("critical");
+    expect(a.issueStatus).toBe("open");
+    expect(a.fixStatus).toBe("triaging");
+
+    const b = fixItems.find((f) => f.id === "ISS-B")!;
+    expect(b.severity).toBe("high");
+    expect(b.issueStatus).toBe("in-progress");
+    expect(b.fixStatus).toBe("executing");
+
+    const c = fixItems.find((f) => f.id === "ISS-C")!;
+    expect(c.severity).toBe("medium");
+    expect(c.issueStatus).toBe("resolved");
+    expect(c.fixStatus).toBe("resolved");
+
+    const d = fixItems.find((f) => f.id === "ISS-D")!;
+    expect(d.severity).toBe("low");
+    expect(d.issueStatus).toBe("open");
+  });
+
+  it("openIssues count excludes resolved issues", () => {
+    const issues: Issue[] = [
+      { ...baseIssue, id: "ISS-1", status: "open" },
+      { ...baseIssue, id: "ISS-2", status: "in-progress" },
+      { ...baseIssue, id: "ISS-3", status: "resolved" },
+    ];
+    const { openIssues } = deriveVerificationState(makeInput({ issues }));
+    expect(openIssues).toBe(2);
   });
 });

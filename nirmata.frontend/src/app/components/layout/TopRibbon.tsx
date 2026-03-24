@@ -241,16 +241,6 @@ export function TopRibbon() {
              <span className="text-muted-foreground">Workspace:</span>
              <span className="font-medium text-foreground">{workspaceId}</span>
         </div>
-        <div className="h-4 w-px bg-border mx-1 hidden md:block" />
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => {
-            copyToClipboard(location.pathname);
-            toast.success("Path copied to clipboard");
-        }}>
-           <Copy className="h-3.5 w-3.5" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
-           <ExternalLink className="h-3.5 w-3.5" />
-        </Button>
         <div className="h-4 w-px bg-border mx-1" />
         <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => {
             toast.success("Workspace refreshed");

@@ -552,9 +552,13 @@ internal static class AosWorkspaceBootstrapper
         {
             invalidFiles.Add($".aos/locks/workspace.lock.json (invalid JSON)");
         }
-        catch
+        catch (IOException)
         {
-            invalidFiles.Add($".aos/locks/workspace.lock.json (cannot be read)");
+            return;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return;
         }
     }
 

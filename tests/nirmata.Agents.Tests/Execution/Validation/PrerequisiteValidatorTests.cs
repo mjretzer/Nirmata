@@ -51,6 +51,23 @@ public sealed class PrerequisiteValidatorTests
         missing.ConversationalPrompt.Should().NotBeNullOrWhiteSpace();
     }
 
+    [Fact]
+    public async Task CheckWorkspaceBootstrapAsync_WhenBootstrapArtifactsAreMissing_ReturnsExplicitFailureDetails()
+    {
+        using var workspace = new FakeWorkspace();
+        var sut = new PrerequisiteValidator(workspace, new FakeStateStore(workspace.RepositoryRootPath));
+
+        var result = await sut.CheckWorkspaceBootstrapAsync();
+
+        result.IsInitialized.Should().BeFalse();
+        result.HasAosDirectory.Should().BeTrue();
+        result.HasSpecDirectory.Should().BeFalse();
+        result.HasStateDirectory.Should().BeTrue();
+        result.FoundSpecFiles.Should().BeEmpty();
+        result.BootstrapCommand.Should().Be("/init");
+        result.BootstrapPrompt.Should().NotBeNullOrWhiteSpace();
+    }
+
     private sealed class ThrowingInitializationStateStore : IStateStore
     {
         public void EnsureWorkspaceInitialized()

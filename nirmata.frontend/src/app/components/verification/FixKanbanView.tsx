@@ -45,6 +45,8 @@ import {
 import { toast } from "sonner";
 import type { CreateIssueFromUAT } from "./PhaseUATViewer";
 import { useVerificationState } from "../../hooks/useAosData";
+import { useWorkspaceContext } from "../../context/WorkspaceContext";
+import { domainClient } from "../../utils/apiClient";
 
 /* ── Config maps ────────────────────────────────────────────────── */
 
@@ -79,6 +81,7 @@ export function FixKanbanView({ issueSeed, onSeedConsumed }: FixKanbanViewProps)
   const { verification: ctx } = useVerificationState();
   const navigate = useNavigate();
   const { workspaceId } = useParams();
+  const { activeWorkspaceId } = useWorkspaceContext();
   
   // State
   const [issues, setIssues] = useState<FixItem[]>(ctx.fixItems);
@@ -120,11 +123,48 @@ export function FixKanbanView({ issueSeed, onSeedConsumed }: FixKanbanViewProps)
     }
   }, [selectedUatId]);
 
-  const handleCreateIssue = useCallback(() => {
-    const newId = `ISS-${String(issues.length + 1).padStart(4, "0")}`;
+  const handleCreateIssue = useCallback(async () => {
     const seedTaskId = newIssueForm.linkedUATId ? newIssueForm.linkedUATId.replace("UAT", "TSK") : "";
     const seedUat = ctx.uatItems.find((u) => u.id === newIssueForm.linkedUATId);
-    
+
+    if (activeWorkspaceId) {
+      try {
+        const created = await domainClient.createWorkspaceIssue(activeWorkspaceId, {
+          title: newIssueForm.title || "Untitled Issue",
+          severity: newIssueForm.severity,
+          repro: newIssueForm.reproStep || undefined,
+          taskId: seedTaskId || undefined,
+          impactedFiles: seedUat?.fileScope,
+        });
+
+        const newIssue: FixItem = {
+          id: created.id,
+          severity: (created.severity ?? newIssueForm.severity) as any,
+          description: created.title,
+          issueStatus: "open",
+          fixStatus: "open",
+          linkedUATIds: newIssueForm.linkedUATId ? [newIssueForm.linkedUATId] : [],
+          linkedTaskIds: seedTaskId ? [seedTaskId] : [],
+          linkedRunIds: [],
+          linkedRuns: [],
+          impactedFiles: created.impactedFiles ?? [],
+          impactedArea: seedUat?.phaseTitle ?? "Unknown",
+          repro: newIssueForm.reproStep ? [newIssueForm.reproStep] : [],
+          history: [{ timestamp: new Date().toISOString(), event: "created", details: `Issue created from ${newIssueForm.linkedUATId || "manual entry"}` }],
+          tags: newIssueForm.linkedUATId ? ["from-uat"] : [],
+          lastRun: null,
+        };
+
+        setIssues(prev => [newIssue, ...prev]);
+        toast.success(`Issue ${created.id} created`);
+        return;
+      } catch {
+        toast.error("Failed to persist issue — saved locally only");
+      }
+    }
+
+    // Fallback: optimistic local-only insert when no workspace is active
+    const newId = `ISS-${String(issues.length + 1).padStart(4, "0")}`;
     const newIssue: FixItem = {
       id: newId,
       severity: newIssueForm.severity as any,
@@ -138,14 +178,14 @@ export function FixKanbanView({ issueSeed, onSeedConsumed }: FixKanbanViewProps)
       impactedFiles: seedUat?.fileScope ?? [],
       impactedArea: seedUat?.phaseTitle ?? "Unknown",
       repro: newIssueForm.reproStep ? [newIssueForm.reproStep] : [],
-      history: [{ date: new Date().toISOString(), action: `Issue created from ${newIssueForm.linkedUATId || "manual entry"}` }],
+      history: [{ timestamp: new Date().toISOString(), event: "created", details: `Issue created from ${newIssueForm.linkedUATId || "manual entry"}` }],
       tags: newIssueForm.linkedUATId ? ["from-uat"] : [],
       lastRun: null,
     };
-    
+
     setIssues(prev => [newIssue, ...prev]);
     toast.success(`Issue ${newId} created`);
-  }, [issues.length, newIssueForm]);
+  }, [issues.length, newIssueForm, activeWorkspaceId, ctx.uatItems]);
 
   // Fix Loop simulation state
   const FIX_LOOP_STAGES = [

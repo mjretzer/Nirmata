@@ -46,15 +46,16 @@ export function UATTableView() {
   const selected = ctx.uatItems.find((u) => u.id === selectedId) ?? null;
 
   // Selection handlers
-  const toggleRow = (id: string, e: React.MouseEvent | boolean) => {
-    if (typeof e !== 'boolean') e.stopPropagation();
-    
+  const toggleRow = (
+    id: string,
+    e: React.MouseEvent | boolean | "indeterminate",
+  ) => {
+    if (typeof e !== "boolean" && e !== "indeterminate") e.stopPropagation();
+
+    const shouldSelect = e === true ? true : e === false ? false : !selectedIds.has(id);
     const newSelected = new Set(selectedIds);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
+    if (shouldSelect) newSelected.add(id);
+    else newSelected.delete(id);
     setSelectedIds(newSelected);
   };
 

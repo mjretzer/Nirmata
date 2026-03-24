@@ -25,3 +25,17 @@ C:\Users\James Lestler\Desktop\Projects\GMSD\gmsd.sln\tests\TestTargets\obj\Debu
 C:\Users\James Lestler\Desktop\Projects\GMSD\gmsd.sln\tests\TestTargets\obj\Debug\net10.0\refint\TestTargets.dll
 C:\Users\James Lestler\Desktop\Projects\GMSD\gmsd.sln\tests\TestTargets\obj\Debug\net10.0\TestTargets.pdb
 C:\Users\James Lestler\Desktop\Projects\GMSD\gmsd.sln\tests\TestTargets\obj\Debug\net10.0\ref\TestTargets.dll
+C:\Users\James Lestler\Desktop\Projects\Nirmata\tests\TestTargets\bin\Debug\net10.0\Templates\minimal\Program.cs.template
+C:\Users\James Lestler\Desktop\Projects\Nirmata\tests\TestTargets\bin\Debug\net10.0\Templates\minimal\Project.csproj.template
+C:\Users\James Lestler\Desktop\Projects\Nirmata\tests\TestTargets\bin\Debug\net10.0\TestTargets.deps.json
+C:\Users\James Lestler\Desktop\Projects\Nirmata\tests\TestTargets\bin\Debug\net10.0\TestTargets.dll
+C:\Users\James Lestler\Desktop\Projects\Nirmata\tests\TestTargets\bin\Debug\net10.0\TestTargets.pdb
+C:\Users\James Lestler\Desktop\Projects\Nirmata\tests\TestTargets\obj\Debug\net10.0\TestTargets.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\James Lestler\Desktop\Projects\Nirmata\tests\TestTargets\obj\Debug\net10.0\TestTargets.AssemblyInfoInputs.cache
+C:\Users\James Lestler\Desktop\Projects\Nirmata\tests\TestTargets\obj\Debug\net10.0\TestTargets.AssemblyInfo.cs
+C:\Users\James Lestler\Desktop\Projects\Nirmata\tests\TestTargets\obj\Debug\net10.0\TestTargets.csproj.CoreCompileInputs.cache
+C:\Users\James Lestler\Desktop\Projects\Nirmata\tests\TestTargets\obj\Debug\net10.0\TestTargets.sourcelink.json
+C:\Users\James Lestler\Desktop\Projects\Nirmata\tests\TestTargets\obj\Debug\net10.0\TestTargets.dll
+C:\Users\James Lestler\Desktop\Projects\Nirmata\tests\TestTargets\obj\Debug\net10.0\refint\TestTargets.dll
+C:\Users\James Lestler\Desktop\Projects\Nirmata\tests\TestTargets\obj\Debug\net10.0\TestTargets.pdb
+C:\Users\James Lestler\Desktop\Projects\Nirmata\tests\TestTargets\obj\Debug\net10.0\ref\TestTargets.dll

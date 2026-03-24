@@ -82,6 +82,9 @@ namespace nirmata.Data.Migrations
                     b.Property<DateTimeOffset?>("LastOpenedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTimeOffset?>("LastValidatedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");

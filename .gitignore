@@ -1,0 +1,9 @@
+# Claude Code local settings (machine-specific, not for sharing)
+.claude/settings.local.json
+
+# SQLite local database artifacts — never commit runtime database files.
+# The sqllitedb/ directory is tracked via .gitkeep so fresh clones have it,
+# but the actual database file and WAL/SHM journal files are local only.
+*.db
+*.db-wal
+*.db-shm

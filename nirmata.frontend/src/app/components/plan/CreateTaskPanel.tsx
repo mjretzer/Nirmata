@@ -441,12 +441,14 @@ function TagInput({
 function StepBasics({
   form,
   onChange,
+  allPhases,
   errors,
   touched,
   onTouch,
 }: {
   form: CreateTaskFormData;
   onChange: (partial: Partial<CreateTaskFormData>) => void;
+  allPhases: Phase[];
   errors: FieldErrors;
   touched: Set<string>;
   onTouch: (field: string) => void;
@@ -508,7 +510,7 @@ function StepBasics({
             <SelectValue placeholder="Select a phase…" />
           </SelectTrigger>
           <SelectContent>
-            {allPhases.map((ph) => (
+            {allPhases.map((ph: Phase) => (
               <SelectItem key={ph.id} value={ph.id} className="text-xs">
                 <span className="font-mono text-muted-foreground mr-2">{ph.id}</span>
                 {ph.title}
@@ -1063,6 +1065,7 @@ export function CreateTaskPanel({
             <StepBasics
               form={form}
               onChange={updateForm}
+              allPhases={allPhases}
               errors={currentErrors}
               touched={touched}
               onTouch={touch}
