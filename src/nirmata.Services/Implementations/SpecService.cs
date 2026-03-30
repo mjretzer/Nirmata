@@ -187,7 +187,7 @@ public sealed class SpecService : ISpecService
     }
 
     // ── Private JSON deserialization models ──────────────────────────────────
-    // These mirror the AOS artifact schemas (documents/architecture/schemas.md).
+    // These mirror the AOS artifact schemas (docs/architecture/schemas.md).
     // Nullable members handle missing fields gracefully; callers apply fallbacks.
 
     private sealed class MilestoneFileModel

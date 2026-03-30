@@ -1,5 +1,6 @@
-import { useState, useCallback } from "react";
-import { useNavigate } from "react-router";
+import { useState, useCallback, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router";
+
 import {
   FolderOpen,
   Plus,
@@ -13,14 +14,26 @@ import {
   ChevronUp,
   ChevronDown,
   Zap,
+  GitBranch,
+  Loader2,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { Checkbox } from "../components/ui/checkbox";
+
 import { cn } from "../components/ui/utils";
 import { toast } from "sonner";
-import { useWorkspaces, useRegisterWorkspace } from "../hooks/useAosData";
+import { useWorkspaces, useRegisterWorkspace, useBootstrapWorkspace, useGitHubWorkspaceBootstrap } from "../hooks/useAosData";
+
 import type { WorkspaceSummary } from "../hooks/useAosData";
 import { WorkspaceStatusBadge } from "../components/WorkspaceStatusBadge";
 import { relativeTime } from "../utils/format";
@@ -29,10 +42,13 @@ import { relativeTime } from "../utils/format";
 
 export function WorkspaceLauncherPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [recentOpen, setRecentOpen] = useState(true);
+  const [workspacePickerOpen, setWorkspacePickerOpen] = useState(false);
 
   // Inline form mode
   const [openMode, setOpenMode] = useState<"idle" | "init" | "confirm-init">("idle");
+
   const [pendingFolderName, setPendingFolderName] = useState<string | null>(null);
   const [confirmInitPath, setConfirmInitPath] = useState("");
   const [confirmInitPathError, setConfirmInitPathError] = useState("");
@@ -42,10 +58,26 @@ export function WorkspaceLauncherPage() {
   const [initNameError, setInitNameError] = useState("");
   const [initPath, setInitPath] = useState("");
   const [initPathError, setInitPathError] = useState("");
-  const [initRunAosInit, setInitRunAosInit] = useState(true);
 
   const PATH_RE = /^(\/|[A-Za-z]:[/\\])/;
   const NAME_RE = /^[a-z0-9][a-z0-9-]*$/;
+
+  const githubBootstrapFeedback = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const status = params.get("githubBootstrap");
+    if (!status) return null;
+
+    return {
+      status,
+      message:
+        params.get("message") ||
+        (status === "success"
+          ? "GitHub connection complete."
+          : "GitHub workspace bootstrap failed."),
+      account: params.get("account") ?? params.get("owner") ?? "",
+      repository: params.get("repository") ?? params.get("repo") ?? "",
+    };
+  }, [location.search]);
 
   const validatePath = (val: string) => {
     if (!val.trim()) return "Path is required";
@@ -53,13 +85,74 @@ export function WorkspaceLauncherPage() {
     return "";
   };
 
+  const { workspaces, refresh: refreshWorkspaces } = useWorkspaces();
+  const { register: registerWorkspace, isRegistering } = useRegisterWorkspace();
+  const { bootstrap: bootstrapWorkspace, isBootstrapping } = useBootstrapWorkspace();
+  const { start: startGitHubBootstrap, isStarting: isConnectingGitHub } = useGitHubWorkspaceBootstrap();
+
+  const isBusy = isRegistering || isBootstrapping || isConnectingGitHub;
+
+  const sortedWorkspaces = useMemo(
+    () =>
+      [...workspaces].sort(
+        (a, b) => new Date(b.lastOpened).getTime() - new Date(a.lastOpened).getTime()
+      ),
+    [workspaces]
+  );
+
+  const openWorkspace = useCallback(
+    (ws: WorkspaceSummary) => {
+      navigate(`/ws/${ws.id}`);
+      toast.success(`Opened ${ws.alias ?? ws.projectName}`);
+    },
+    [navigate]
+  );
+
   const handleOpenFolder = useCallback(async () => {
     type FullHandle = { name?: string; getDirectoryHandle: (n: string) => Promise<unknown> };
+
     const picker = (window as unknown as { showDirectoryPicker?: () => Promise<FullHandle> })
       .showDirectoryPicker;
 
+    const openOrRegisterPath = async (path: string) => {
+      const resolvedPath = path.trim();
+      if (!resolvedPath) return;
+
+      const folderName = resolvedPath.split(/[\\/]/).filter(Boolean).pop() ?? resolvedPath;
+      const exactMatch = sortedWorkspaces.find(
+        (ws) => ws.repoRoot === resolvedPath || ws.projectName === folderName || ws.alias === folderName
+      );
+      if (exactMatch) {
+        openWorkspace(exactMatch);
+        return;
+      }
+
+      const bootstrapResult = await bootstrapWorkspace(resolvedPath);
+      if (!bootstrapResult) return;
+      if (!bootstrapResult.success) {
+        toast.error("Workspace initialization failed", { description: bootstrapResult.error ?? undefined });
+        return;
+      }
+
+      const created = await registerWorkspace(folderName, resolvedPath);
+      if (!created) return;
+      refreshWorkspaces();
+      navigate(`/ws/${created.id}`);
+      toast.success("Workspace initialized", {
+        description: bootstrapResult.gitRepositoryCreated ? "Git repository created." : "Existing git repository found.",
+      });
+    };
+
     if (!picker) {
-      toast.error("Folder picker is not supported in this browser");
+      const manualPath = window.prompt("Enter the absolute path of the workspace folder");
+      if (!manualPath) return;
+
+      if (!PATH_RE.test(manualPath.trim())) {
+        toast.error("Please enter an absolute path");
+        return;
+      }
+
+      await openOrRegisterPath(manualPath);
       return;
     }
 
@@ -68,44 +161,57 @@ export function WorkspaceLauncherPage() {
       const name = dirHandle?.name?.trim() ?? "";
       if (!name) {
         toast.error("No folder selected");
+
         return;
       }
 
       // Check whether an .aos workspace exists in the selected folder.
       try {
         await dirHandle.getDirectoryHandle(".aos");
-        navigate(`/ws/${name}`);
-        toast.success(`Opened ${name}`);
+        const match = sortedWorkspaces.find(
+          (ws) => ws.projectName === name || ws.alias === name
+        );
+        openWorkspace(match ?? ({ id: name, projectName: name } as WorkspaceSummary));
       } catch (err) {
         const e = err as { name?: string } | undefined;
         if (e?.name === "NotFoundError") {
           setPendingFolderName(name);
           setOpenMode("confirm-init");
+
         } else {
           toast.error("Could not read folder contents");
         }
       }
     } catch (err) {
+
       const e = err as { name?: string } | undefined;
       if (e?.name === "AbortError") return;
       toast.error("Failed to open folder picker");
     }
-  }, [navigate]);
+  }, [openWorkspace, bootstrapWorkspace, registerWorkspace, refreshWorkspaces, sortedWorkspaces]);
 
   const handleInitNew = useCallback(() => {
     setOpenMode("init");
   }, []);
 
-  const handleOpenWorkspace = useCallback(
-    (ws: WorkspaceSummary) => {
-      navigate(`/ws/${ws.projectName}`);
-      toast.success(`Opened ${ws.alias ?? ws.projectName}`);
-    },
-    [navigate]
-  );
+  const handleGitHubInit = useCallback(async () => {
+    const nameErr = !NAME_RE.test(initName) ? "Invalid project name" : "";
+    const pathErr = validatePath(initPath);
+    setInitNameError(nameErr);
+    setInitPathError(pathErr);
+    if (nameErr || pathErr) return;
 
-  const { workspaces, refresh: refreshWorkspaces } = useWorkspaces();
-  const { register: registerWorkspace, isRegistering } = useRegisterWorkspace();
+    const resolvedPath = initPath.trim();
+    const response = await startGitHubBootstrap({
+      path: resolvedPath,
+      name: initName,
+      repositoryName: initName,
+      isPrivate: true,
+    });
+
+    if (!response) return;
+    window.location.assign(response.authorizeUrl);
+  }, [initName, initPath, startGitHubBootstrap]);
 
   return (
     <div className="flex h-full items-start justify-center overflow-y-auto py-12 px-4">
@@ -134,18 +240,106 @@ export function WorkspaceLauncherPage() {
           </div>
 
           <div className="space-y-2.5">
-            <Button
-              className="w-full gap-2 h-11 focus-visible:ring-2 focus-visible:ring-primary"
-              onClick={handleOpenFolder}
-              aria-label="Open an existing workspace folder"
-            >
-              <FolderOpen className="h-4 w-4" aria-hidden="true" />
-              Open Folder
-            </Button>
+            <Dialog open={workspacePickerOpen} onOpenChange={setWorkspacePickerOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  className="w-full gap-2 h-11 focus-visible:ring-2 focus-visible:ring-primary"
+                  aria-label="Open an existing workspace folder"
+                >
+                  <FolderOpen className="h-4 w-4" aria-hidden="true" />
+                  Open Folder
+                </Button>
+              </DialogTrigger>
+
+              <DialogContent className="max-w-lg gap-0 overflow-hidden p-0">
+                <DialogHeader className="px-5 pt-5 pb-4 border-b border-border/40">
+                  <DialogTitle className="flex items-center gap-2 text-base">
+                    <FolderOpen className="h-4 w-4 text-primary shrink-0" />
+                    Open a Workspace
+                  </DialogTitle>
+                  <DialogDescription className="text-xs">
+                    Open a recent workspace, or pick a local folder if you need to initialize a
+                    new one.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="max-h-[22rem] overflow-y-auto px-5 py-4 space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50">
+                      Recent workspaces
+                    </p>
+                    {sortedWorkspaces.length === 0 ? (
+                      <p className="rounded-lg border border-dashed border-border/40 px-3 py-4 text-sm text-muted-foreground/60">
+                        No saved workspaces yet. Use the local folder picker below to initialize a
+                        new workspace.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {sortedWorkspaces.map((ws) => (
+                          <button
+                            key={ws.id}
+                            type="button"
+                            onClick={() => {
+                              setWorkspacePickerOpen(false);
+                              openWorkspace(ws);
+                            }}
+                            className="w-full rounded-lg border border-border/50 bg-card/40 p-3 text-left transition-colors hover:bg-card focus-within:ring-2 focus-within:ring-primary/40"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm truncate">
+                                {ws.alias ?? ws.projectName}
+                              </span>
+                              <WorkspaceStatusBadge status={ws.status} />
+                            </div>
+                            <p className="mt-1 text-[10px] font-mono text-muted-foreground/50 truncate">
+                              {ws.repoRoot}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50">
+                      Local folder
+                    </p>
+                    <p className="text-xs text-muted-foreground/70">
+                      Pick a folder on disk. If it contains <code className="font-mono">.aos</code> and <code className="font-mono">.git</code>, it opens the workspace. If not, initialization creates a git repository and AOS scaffold — git is required for the engine to operate.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full gap-2"
+                      onClick={async () => {
+                        setWorkspacePickerOpen(false);
+                        await handleOpenFolder();
+                      }}
+                    >
+                      <FolderOpen className="h-4 w-4" aria-hidden="true" />
+                      Choose Local Folder
+                    </Button>
+                  </div>
+                </div>
+
+                <DialogFooter className="border-t border-border/40 px-5 py-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setWorkspacePickerOpen(false)}
+                  >
+                    Close
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
             <Button
               variant="outline"
               className="w-full gap-2 h-11 focus-visible:ring-2"
               onClick={handleInitNew}
+
               aria-label="Initialize a new project with .aos setup"
             >
               <Plus className="h-4 w-4" aria-hidden="true" />
@@ -158,8 +352,8 @@ export function WorkspaceLauncherPage() {
                 <div className="space-y-1">
                   <p className="text-sm">Initialize workspace</p>
                   <p className="text-xs text-muted-foreground">
-                    <code className="font-mono">{pendingFolderName}</code> doesn't have an AOS
-                    workspace yet. Enter its absolute path to continue.
+                    <code className="font-mono">{pendingFolderName}</code> doesn't have a workspace yet.
+                    Enter its absolute path — initialization will create a git repository and AOS scaffold. Git is required for the engine to operate.
                   </p>
                 </div>
                 <div className="space-y-1.5">
@@ -180,23 +374,32 @@ export function WorkspaceLauncherPage() {
                 </div>
                 <Button
                   className="w-full h-9 text-sm gap-2"
-                  disabled={isRegistering}
+                  disabled={isBusy}
                   onClick={async () => {
                     const pathErr = validatePath(confirmInitPath);
                     setConfirmInitPathError(pathErr);
                     if (pathErr) return;
+                    const resolvedPath = confirmInitPath.trim();
                     const name = pendingFolderName!;
-                    const created = await registerWorkspace(name, confirmInitPath.trim());
+
+                    const bootstrapResult = await bootstrapWorkspace(resolvedPath);
+                    if (!bootstrapResult) return;
+                    if (!bootstrapResult.success) {
+                      toast.error("Workspace initialization failed", { description: bootstrapResult.error ?? undefined });
+                      return;
+                    }
+
+                    const created = await registerWorkspace(name, resolvedPath);
                     if (!created) return;
                     refreshWorkspaces();
-                    navigate(`/ws/${created.name}/settings/workspace`, {
-                      state: { rootPath: confirmInitPath.trim() },
+                    navigate(`/ws/${created.id}`);
+                    toast.success("Workspace initialized", {
+                      description: bootstrapResult.gitRepositoryCreated ? "Git repository created." : "Existing git repository found.",
                     });
-                    toast.info("Save the root path and run aos init to finish setup");
                   }}
                 >
                   <Zap className="h-4 w-4" aria-hidden="true" />
-                  Initialize Workspace
+                  {isBootstrapping ? "Initializing…" : "Initialize Workspace"}
                 </Button>
                 <Button
                   variant="ghost"
@@ -216,6 +419,48 @@ export function WorkspaceLauncherPage() {
             {/* ── Init New Project inline form ── */}
             {openMode === "init" && (
               <div className="border border-dashed border-border/40 rounded-lg p-4 space-y-3 mt-2">
+                {githubBootstrapFeedback && (
+                  <div
+                    className={cn(
+                      "rounded-lg border px-3 py-2 text-xs",
+                      githubBootstrapFeedback.status === "success"
+                        ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-100"
+                        : "border-red-500/20 bg-red-500/5 text-red-200"
+                    )}
+                    role={githubBootstrapFeedback.status === "success" ? "status" : "alert"}
+                  >
+                    <div className="flex items-center gap-2 font-medium">
+                      {githubBootstrapFeedback.status === "success" ? (
+                        <CheckCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                      ) : (
+                        <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                      )}
+                      <span>
+                        {githubBootstrapFeedback.status === "success"
+                          ? "GitHub connection complete"
+                          : "GitHub connection failed"}
+                      </span>
+                    </div>
+                    <p className="mt-1">{githubBootstrapFeedback.message}</p>
+                    {(githubBootstrapFeedback.account || githubBootstrapFeedback.repository) && (
+                      <p className="mt-1 text-[11px] text-current/80">
+                        {githubBootstrapFeedback.account && (
+                          <span>
+                            Account: <span className="font-medium">{githubBootstrapFeedback.account}</span>
+                          </span>
+                        )}
+                        {githubBootstrapFeedback.account && githubBootstrapFeedback.repository && (
+                          <span className="mx-1">·</span>
+                        )}
+                        {githubBootstrapFeedback.repository && (
+                          <span>
+                            Repo: <span className="font-medium">{githubBootstrapFeedback.repository}</span>
+                          </span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                )}
                 <div className="space-y-1.5">
                   <Label htmlFor="init-name" className="text-xs">Project name</Label>
                   <Input
@@ -248,46 +493,13 @@ export function WorkspaceLauncherPage() {
                     <p className="text-[10px] text-red-400">{initPathError}</p>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="init-run-aos"
-                    checked={initRunAosInit}
-                    onCheckedChange={(v) => setInitRunAosInit(!!v)}
-                  />
-                  <Label htmlFor="init-run-aos" className="text-xs cursor-pointer">
-                    Initialize .aos/ workspace
-                  </Label>
-                </div>
                 <Button
-                  className="w-full h-9 text-sm"
-                  disabled={isRegistering}
-                  onClick={async () => {
-                    const nameErr = !NAME_RE.test(initName) ? "Invalid project name" : "";
-                    const pathErr = validatePath(initPath);
-                    setInitNameError(nameErr);
-                    setInitPathError(pathErr);
-                    if (nameErr || pathErr) return;
-                    const created = await registerWorkspace(initName, initPath.trim());
-                    if (!created) return;
-                    refreshWorkspaces();
-                    navigate(`/ws/${created.name}/settings/workspace`, {
-                      state: { rootPath: initPath.trim() },
-                    });
-                    toast.info("Save the root path and run aos init to finish setup");
-                  }}
+                  className="w-full h-9 text-sm gap-2"
+                  disabled={isBusy}
+                  onClick={handleGitHubInit}
                 >
-                  Create Workspace
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full h-8 text-xs"
-                  onClick={() => {
-                    setOpenMode("idle");
-                    setInitName(""); setInitNameError("");
-                    setInitPath(""); setInitPathError("");
-                  }}
-                >
-                  Cancel
+                  {isConnectingGitHub ? <Loader2 className="h-4 w-4 animate-spin" /> : <GitBranch className="h-4 w-4" />}
+                  {isConnectingGitHub ? "Connecting…" : "Continue with Git"}
                 </Button>
               </div>
             )}
@@ -329,7 +541,7 @@ export function WorkspaceLauncherPage() {
                   No recent workspaces.{" "}
                   <button
                     className="underline hover:no-underline focus-visible:outline-none"
-                    onClick={handleOpenFolder}
+                    onClick={() => setWorkspacePickerOpen(true)}
                   >
                     Open a folder
                   </button>{" "}
@@ -411,7 +623,7 @@ export function WorkspaceLauncherPage() {
                           size="sm"
                           variant="ghost"
                           className="h-7 gap-1 text-xs opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
-                          onClick={() => handleOpenWorkspace(ws)}
+                          onClick={() => openWorkspace(ws)}
                           aria-label={`Open workspace ${ws.alias ?? ws.projectName}`}
                         >
                           Open

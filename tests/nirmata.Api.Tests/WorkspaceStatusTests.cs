@@ -8,7 +8,9 @@ namespace nirmata.Api.Tests;
 
 /// <summary>
 /// Verifies that <see cref="WorkspaceSummary.Status"/> is derived from live filesystem
-/// inspection and correctly reflects the presence or absence of the <c>.aos/</c> directory.
+/// inspection and correctly reflects the presence or absence of <c>.git/</c> and <c>.aos/</c>.
+/// Also verifies that registration and update are rejected for existing paths that are not
+/// git-backed.
 /// </summary>
 public class WorkspaceStatusTests : IClassFixture<nirmataApiFactory>, IDisposable
 {
@@ -37,6 +39,14 @@ public class WorkspaceStatusTests : IClassFixture<nirmataApiFactory>, IDisposabl
         return path;
     }
 
+    /// <summary>Creates a temp dir with a <c>.git/</c> subdirectory so validation passes.</summary>
+    private string CreateGitBackedTempDir()
+    {
+        var path = CreateTempDir();
+        Directory.CreateDirectory(Path.Combine(path, ".git"));
+        return path;
+    }
+
     private async Task<WorkspaceSummary> RegisterWorkspaceAsync(string name, string path)
     {
         var response = await _client.PostAsJsonAsync("/v1/workspaces", new WorkspaceCreateRequest
@@ -61,9 +71,9 @@ public class WorkspaceStatusTests : IClassFixture<nirmataApiFactory>, IDisposabl
     }
 
     [Fact]
-    public async Task RegisterWorkspace_PathExistsWithoutAos_StatusIsNotInitialized()
+    public async Task RegisterWorkspace_PathExistsWithGitNoAos_StatusIsNotInitialized()
     {
-        var path = CreateTempDir();
+        var path = CreateGitBackedTempDir(); // has .git/, no .aos/
 
         var workspace = await RegisterWorkspaceAsync("Not Initialized", path);
 
@@ -71,9 +81,9 @@ public class WorkspaceStatusTests : IClassFixture<nirmataApiFactory>, IDisposabl
     }
 
     [Fact]
-    public async Task RegisterWorkspace_PathExistsWithAos_StatusIsInitialized()
+    public async Task RegisterWorkspace_PathExistsWithGitAndAos_StatusIsInitialized()
     {
-        var path = CreateTempDir();
+        var path = CreateGitBackedTempDir();
         Directory.CreateDirectory(Path.Combine(path, ".aos"));
 
         var workspace = await RegisterWorkspaceAsync("Initialized", path);
@@ -81,12 +91,45 @@ public class WorkspaceStatusTests : IClassFixture<nirmataApiFactory>, IDisposabl
         Assert.Equal(WorkspaceStatus.Initialized, workspace.Status);
     }
 
+    // ── Git-backed validation on registration and update ────────────────────
+
+    [Fact]
+    public async Task RegisterWorkspace_PathExistsWithoutGit_ReturnsBadRequest()
+    {
+        var path = CreateTempDir(); // exists on disk, no .git/
+
+        var response = await _client.PostAsJsonAsync("/v1/workspaces", new WorkspaceCreateRequest
+        {
+            Name = "No Git",
+            Path = path
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateWorkspace_PathExistsWithoutGit_ReturnsBadRequest()
+    {
+        // Register with a non-existent path (Missing) — passes git check because path doesn't exist.
+        var missingPath = Path.Combine(Path.GetTempPath(), $"nirmata-nonexistent-{Guid.NewGuid():N}");
+        var workspace = await RegisterWorkspaceAsync("Update Target", missingPath);
+
+        // Try to update to an existing path that has no .git/
+        var noGitPath = CreateTempDir();
+        var response = await _client.PutAsJsonAsync($"/v1/workspaces/{workspace.Id}", new WorkspaceUpdateRequest
+        {
+            Path = noGitPath
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     // ── Status reflects live filesystem on each read ─────────────────────────
 
     [Fact]
     public async Task GetWorkspaceById_AosAddedAfterRegistration_StatusBecomesInitialized()
     {
-        var path = CreateTempDir();
+        var path = CreateGitBackedTempDir(); // has .git/, no .aos/
         var workspace = await RegisterWorkspaceAsync("Status Refresh Add", path);
         Assert.Equal(WorkspaceStatus.NotInitialized, workspace.Status);
 
@@ -101,7 +144,7 @@ public class WorkspaceStatusTests : IClassFixture<nirmataApiFactory>, IDisposabl
     [Fact]
     public async Task GetWorkspaceById_AosRemovedAfterRegistration_StatusBecomesNotInitialized()
     {
-        var path = CreateTempDir();
+        var path = CreateGitBackedTempDir();
         var aosPath = Path.Combine(path, ".aos");
         Directory.CreateDirectory(aosPath);
 
@@ -115,25 +158,63 @@ public class WorkspaceStatusTests : IClassFixture<nirmataApiFactory>, IDisposabl
         Assert.Equal(WorkspaceStatus.NotInitialized, updated!.Status);
     }
 
+    [Fact]
+    public async Task GetWorkspaceById_GitRemovedAfterRegistration_StatusBecomesNotInitialized()
+    {
+        var path = CreateGitBackedTempDir();
+        var gitPath = Path.Combine(path, ".git");
+        Directory.CreateDirectory(Path.Combine(path, ".aos"));
+
+        var workspace = await RegisterWorkspaceAsync("Status Refresh Git Remove", path);
+        Assert.Equal(WorkspaceStatus.Initialized, workspace.Status);
+
+        Directory.Delete(gitPath, recursive: true);
+
+        var response = await _client.GetAsync($"/v1/workspaces/{workspace.Id}");
+        var updated = await response.Content.ReadFromJsonAsync<WorkspaceSummary>();
+        Assert.Equal(WorkspaceStatus.NotInitialized, updated!.Status);
+    }
+
+    [Fact]
+    public async Task RegisterWorkspace_PathExistsWithAosButNoGit_StatusIsNotInitialized_WhenPathHasNoGit()
+    {
+        // This verifies the status derivation logic: a registered workspace whose path
+        // has .aos/ but no .git/ reports not-initialized on read.
+        // (Registration itself would reject such a path, so we simulate via a missing-path
+        // registration followed by creating .aos/ without .git/.)
+        var path = Path.Combine(Path.GetTempPath(), $"nirmata-nonexistent-{Guid.NewGuid():N}");
+        var workspace = await RegisterWorkspaceAsync("Aos Only Status", path);
+        Assert.Equal(WorkspaceStatus.Missing, workspace.Status);
+
+        // Now create the directory with .aos/ but no .git/
+        Directory.CreateDirectory(path);
+        _tempDirs.Add(path);
+        Directory.CreateDirectory(Path.Combine(path, ".aos"));
+
+        var response = await _client.GetAsync($"/v1/workspaces/{workspace.Id}");
+        var updated = await response.Content.ReadFromJsonAsync<WorkspaceSummary>();
+        Assert.Equal(WorkspaceStatus.NotInitialized, updated!.Status);
+    }
+
     // ── Status appears in list endpoint ─────────────────────────────────────
 
     [Fact]
-    public async Task GetWorkspaces_StatusReflectsAosPresenceForEachEntry()
+    public async Task GetWorkspaces_StatusReflectsGitAndAosPresenceForEachEntry()
     {
-        var pathWithAos = CreateTempDir();
-        Directory.CreateDirectory(Path.Combine(pathWithAos, ".aos"));
-        var pathWithoutAos = CreateTempDir();
+        var pathFull = CreateGitBackedTempDir();
+        Directory.CreateDirectory(Path.Combine(pathFull, ".aos")); // .git/ + .aos/ → Initialized
+        var pathGitOnly = CreateGitBackedTempDir(); // .git/ only → NotInitialized
 
-        var withAos = await RegisterWorkspaceAsync("List Initialized", pathWithAos);
-        var withoutAos = await RegisterWorkspaceAsync("List NotInitialized", pathWithoutAos);
+        var full = await RegisterWorkspaceAsync("List Initialized", pathFull);
+        var gitOnly = await RegisterWorkspaceAsync("List NotInitialized", pathGitOnly);
 
         var listResponse = await _client.GetAsync("/v1/workspaces");
         var workspaces = await listResponse.Content.ReadFromJsonAsync<List<WorkspaceSummary>>();
 
-        var listedWithAos = workspaces!.Single(w => w.Id == withAos.Id);
-        var listedWithoutAos = workspaces!.Single(w => w.Id == withoutAos.Id);
+        var listedFull = workspaces!.Single(w => w.Id == full.Id);
+        var listedGitOnly = workspaces!.Single(w => w.Id == gitOnly.Id);
 
-        Assert.Equal(WorkspaceStatus.Initialized, listedWithAos.Status);
-        Assert.Equal(WorkspaceStatus.NotInitialized, listedWithoutAos.Status);
+        Assert.Equal(WorkspaceStatus.Initialized, listedFull.Status);
+        Assert.Equal(WorkspaceStatus.NotInitialized, listedGitOnly.Status);
     }
 }

@@ -1597,7 +1597,10 @@
         },
         "runtime": {
           "bin/placeholder/nirmata.Services.dll": {}
-        }
+        },
+        "frameworkReferences": [
+          "Microsoft.AspNetCore.App"
+        ]
       }
     }
   },

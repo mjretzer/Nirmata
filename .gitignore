@@ -1,5 +1,6 @@
-# Claude Code local settings (machine-specific, not for sharing)
-.claude/
+# Claude Code — only exclude machine-specific files; rules and skills are team-shared
+.claude/mcp.json
+.claude/settings.local.json
 
 # SQLite local database artifacts — never commit runtime database files.
 # The sqllitedb/ directory is tracked via .gitkeep so fresh clones have it,

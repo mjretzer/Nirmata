@@ -38,7 +38,7 @@ The daemon API host MUST support configuration of its listen URL via environment
 
 #### Scenario: Daemon API uses default listen URL
 - **WHEN** the daemon API is started in development without an explicit listen URL override
-- **THEN** it listens on `http://localhost:9000`
+- **THEN** it listens on `https://localhost:9000`
 
 ### Requirement: Daemon server listen URL and frontend daemon base URL responsibilities are distinct
 The system MUST treat the daemon server listen URL as host configuration and the frontend daemon base URL as client configuration.

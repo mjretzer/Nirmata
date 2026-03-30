@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   FolderOpen,
@@ -30,7 +30,6 @@ import {
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Label } from "../components/ui/label";
-import { Switch } from "../components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -46,11 +45,15 @@ import { cn } from "../components/ui/utils";
 import { toast } from "sonner";
 import { WorkspaceConfigPanel } from "../components/workspace-config-panel";
 import {
+  isGuidWorkspaceId,
   useWorkspaces,
+  useWorkspace,
   useCodebaseIntel,
   useOrchestratorState,
+  useRegisterWorkspace,
+  useBootstrapWorkspace,
 } from "../hooks/useAosData";
-import type { WorkspaceSummary } from "../hooks/useAosData";
+import type { Workspace, WorkspaceSummary } from "../hooks/useAosData";
 import { WorkspaceStatusBadge } from "../components/WorkspaceStatusBadge";
 import { relativeTime } from "../utils/format";
 import { useWorkspaceContext } from "../context/WorkspaceContext";
@@ -76,6 +79,39 @@ interface GatingMeta {
   navPath: (wsName: string) => string;
   secondaryPath?: (wsName: string) => string;
   secondaryLabel?: string;
+}
+
+function synthesizeWorkspaceSummary(workspaceId: string, workspace: Workspace): WorkspaceSummary {
+  const now = new Date().toISOString();
+
+  return {
+    id: workspaceId,
+    repoRoot: workspace.repoRoot,
+    projectName: workspace.projectName,
+    hasAosDir: workspace.hasAosDir,
+    hasProjectSpec: workspace.hasProjectSpec,
+    hasRoadmap: workspace.hasRoadmap,
+    hasTaskPlans: workspace.hasTaskPlans,
+    hasHandoff: workspace.hasHandoff,
+    cursor: workspace.cursor,
+    lastRun: workspace.lastRun,
+    validation: workspace.validation,
+    lastValidationAt: workspace.lastValidationAt,
+    hasStarterRoadmap: workspace.hasStarterRoadmap,
+    openIssuesCount: workspace.openIssuesCount,
+    openTodosCount: workspace.openTodosCount,
+    alias: workspace.projectName,
+    pinned: false,
+    isGitRepo: workspace.hasAosDir,
+    gitRemote: undefined,
+    gitBranch: undefined,
+    aheadCount: 0,
+    behindCount: 0,
+    gitLastSync: now,
+    status: workspace.hasAosDir ? "healthy" : "needs-init",
+    lastScanned: now,
+    lastOpened: now,
+  };
 }
 
 const gatingMap: Record<GatingStep, GatingMeta> = {
@@ -210,24 +246,82 @@ function WorkspaceSkeleton() {
 // ── SwitchFolderDialog ────────────────────────────────────────────────
 function SwitchFolderDialog({ workspaces }: { workspaces: WorkspaceSummary[] }) {
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+
+  const sortedWorkspaces = useMemo(
+    () =>
+      [...workspaces].sort(
+        (a, b) => new Date(b.lastOpened).getTime() - new Date(a.lastOpened).getTime()
+      ),
+    [workspaces]
+  );
 
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="text-xs gap-1.5 text-muted-foreground hover:text-foreground focus-visible:ring-2"
-      aria-label="Switch to a different workspace folder"
-      onClick={() => {
-        const ws = workspaces[0];
-        if (ws) {
-          navigate(`/ws/${ws.projectName}`);
-          toast.success(`Opened ${ws.alias ?? ws.projectName}`);
-        }
-      }}
-    >
-      <FolderOpen className="h-3.5 w-3.5" aria-hidden="true" />
-      Switch Folder
-    </Button>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs gap-1.5 text-muted-foreground hover:text-foreground focus-visible:ring-2"
+          aria-label="Switch to a different workspace folder"
+        >
+          <FolderOpen className="h-3.5 w-3.5" aria-hidden="true" />
+          Switch Folder
+        </Button>
+      </DialogTrigger>
+
+      <DialogContent className="max-w-md gap-0 overflow-hidden p-0">
+        <DialogHeader className="px-5 pt-5 pb-4 border-b border-border/40">
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <FolderOpen className="h-4 w-4 text-primary shrink-0" />
+            Switch Workspace
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            Pick a saved workspace to make it active.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="max-h-[22rem] overflow-y-auto px-5 py-4 space-y-3">
+          {sortedWorkspaces.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-border/40 px-3 py-4 text-sm text-muted-foreground/60">
+              No saved workspaces yet.
+            </p>
+          ) : (
+            sortedWorkspaces.map((ws) => (
+              <button
+                key={ws.id}
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  navigate(`/ws/${ws.id}`);
+                  toast.success(`Opened ${ws.alias ?? ws.projectName}`);
+                }}
+                className="w-full rounded-lg border border-border/50 bg-card/40 p-3 text-left transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm truncate">{ws.alias ?? ws.projectName}</span>
+                  <WorkspaceStatusBadge status={ws.status} />
+                </div>
+                <p className="mt-1 text-[10px] font-mono text-muted-foreground/50 truncate">
+                  {ws.repoRoot}
+                </p>
+              </button>
+            ))
+          )}
+        </div>
+
+        <DialogFooter className="border-t border-border/40 px-5 py-3">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setOpen(false)}
+          >
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -237,8 +331,11 @@ function InitNewDialog() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [path, setPath] = useState("");
-  const [createAos, setCreateAos] = useState(true);
-  const [initGit, setInitGit] = useState(true);
+
+  const { register: registerWorkspace, isRegistering } = useRegisterWorkspace();
+  const { bootstrap: bootstrapWorkspace, isBootstrapping } = useBootstrapWorkspace();
+
+  const isBusy = isRegistering || isBootstrapping;
 
   const nameError =
     name.trim() === ""
@@ -250,26 +347,40 @@ function InitNewDialog() {
     path.trim() !== "" && !/^(\/|[A-Za-z]:[\\\/])/.test(path.trim())
       ? "Must be an absolute path (e.g. /home/user/my-app)"
       : "";
-  const canSubmit = name.trim() !== "" && !nameError && !pathError;
+  const canSubmit = name.trim() !== "" && !nameError && !pathError && !isBusy;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    const _resolvedPath = path.trim() || `/Users/dev/projects/${name.trim()}`;
+
     const slug = name.trim();
-    navigate(`/ws/${slug}`);
-    toast.success(
-      `${createAos ? ".aos/ created · " : ""}${initGit ? "git init · " : ""}Workspace ready → ${slug}`
-    );
+    const resolvedPath = path.trim() || `/Users/dev/projects/${slug}`;
+
+    const bootstrapResult = await bootstrapWorkspace(resolvedPath);
+    if (!bootstrapResult) return;
+    if (!bootstrapResult.success) {
+      toast.error("Workspace initialization failed", {
+        description: bootstrapResult.error ?? undefined,
+      });
+      return;
+    }
+
+    const created = await registerWorkspace(slug, resolvedPath);
+    if (!created) return;
+
+    toast.success("Workspace initialized", {
+      description: bootstrapResult.gitRepositoryCreated
+        ? "Git repository created."
+        : "Existing git repository found.",
+    });
     setOpen(false);
     setName("");
     setPath("");
-    setCreateAos(true);
-    setInitGit(true);
+    navigate(`/ws/${created.id}`);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(v) => { if (!isBusy) setOpen(v); }}>
       <DialogTrigger asChild>
         <Button
           variant="ghost"
@@ -290,7 +401,7 @@ function InitNewDialog() {
               Initialize New Workspace
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Creates a new project folder and bootstraps the AOS directory structure.
+              Bootstraps a git repository and AOS scaffold at the given path, then registers the workspace.
             </DialogDescription>
           </DialogHeader>
 
@@ -313,6 +424,7 @@ function InitNewDialog() {
                 aria-describedby={nameError ? "init-name-error" : undefined}
                 autoComplete="off"
                 spellCheck={false}
+                disabled={isBusy}
               />
               {nameError ? (
                 <p id="init-name-error" role="alert" className="text-[10px] text-red-400 flex items-center gap-1">
@@ -347,6 +459,7 @@ function InitNewDialog() {
                   aria-describedby={pathError ? "init-path-error" : undefined}
                   autoComplete="off"
                   spellCheck={false}
+                  disabled={isBusy}
                 />
               </div>
               {pathError && (
@@ -356,47 +469,11 @@ function InitNewDialog() {
                 </p>
               )}
             </div>
-
-            {/* Options */}
-            <div className="rounded-lg border border-border/40 bg-muted/10 divide-y divide-border/30">
-              <div className="flex items-center justify-between px-4 py-3">
-                <div>
-                  <Label htmlFor="init-aos" className="text-xs cursor-pointer">
-                    Create .aos/ structure
-                  </Label>
-                  <p className="text-[10px] text-muted-foreground/40 mt-0.5">
-                    Bootstraps spec, roadmap, and config scaffolding
-                  </p>
-                </div>
-                <Switch
-                  id="init-aos"
-                  checked={createAos}
-                  onCheckedChange={setCreateAos}
-                  aria-label="Create .aos directory structure"
-                />
-              </div>
-              <div className="flex items-center justify-between px-4 py-3">
-                <div>
-                  <Label htmlFor="init-git" className="text-xs cursor-pointer">
-                    Initialize git repo
-                  </Label>
-                  <p className="text-[10px] text-muted-foreground/40 mt-0.5">
-                    Runs git init and creates an initial commit
-                  </p>
-                </div>
-                <Switch
-                  id="init-git"
-                  checked={initGit}
-                  onCheckedChange={setInitGit}
-                  aria-label="Initialize git repository"
-                />
-              </div>
-            </div>
           </div>
 
           <DialogFooter className="px-5 py-3 border-t border-border/40 gap-2">
             <DialogClose asChild>
-              <Button variant="ghost" size="sm" type="button" className="text-xs">
+              <Button variant="ghost" size="sm" type="button" className="text-xs" disabled={isBusy}>
                 Cancel
               </Button>
             </DialogClose>
@@ -407,8 +484,17 @@ function InitNewDialog() {
               className="text-xs gap-1.5"
               aria-label="Initialize workspace"
             >
-              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-              Initialize
+              {isBusy ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                  {isBootstrapping ? "Bootstrapping…" : "Registering…"}
+                </>
+              ) : (
+                <>
+                  <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                  Initialize
+                </>
+              )}
             </Button>
           </DialogFooter>
         </form>
@@ -422,6 +508,7 @@ function InitNewDialog() {
 export function WorkspaceDashboard() {
   const navigate = useNavigate();
   const { workspaceId } = useParams<{ workspaceId: string }>();
+  const isGuidRoute = workspaceId ? isGuidWorkspaceId(workspaceId) : false;
 
   const [loadError, setLoadError] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
@@ -429,21 +516,36 @@ export function WorkspaceDashboard() {
 
   const { setActiveWorkspaceId } = useWorkspaceContext();
   const { workspaces: allWorkspaces, isLoading: wsListLoading, errorDiagnostic, refresh: refreshWorkspaces } = useWorkspaces();
+  const {
+    workspace: workspaceDetail,
+    isLoading: workspaceDetailLoading,
+    notFound: workspaceDetailNotFound,
+  } = useWorkspace(isGuidRoute ? workspaceId : undefined);
+  const { bootstrap: bootstrapWorkspace, isBootstrapping: isBootstrappingGit } = useBootstrapWorkspace();
   const { artifacts: codebaseArtifacts } = useCodebaseIntel();
 
   const { runnableGate, blockedGate, isLoading: gateLoading } = useOrchestratorState();
   const activeGate = runnableGate.runnable ? runnableGate : blockedGate;
   const gatingStep: GatingStep = recommendedActionToGatingStep(activeGate.recommendedAction);
 
-  const isLoading = wsListLoading;
+  const workspace = useMemo<WorkspaceSummary | null>(() => {
+    if (!workspaceId) return null;
 
-  // Resolve workspace from list using URL slug or UUID
-  const workspace = workspaceId
-    ? allWorkspaces.find((ws) => ws.projectName === workspaceId || ws.id === workspaceId) ?? null
-    : null;
+    const listMatch = allWorkspaces.find((ws) => ws.projectName === workspaceId || ws.id === workspaceId) ?? null;
+    if (listMatch) return listMatch;
+
+    if (isGuidRoute && !workspaceDetailNotFound && workspaceDetail.projectName) {
+      return synthesizeWorkspaceSummary(workspaceId, workspaceDetail as Workspace);
+    }
+
+    return null;
+  }, [allWorkspaces, isGuidRoute, workspaceDetail, workspaceDetailNotFound, workspaceId]);
+
+  const isLoading = wsListLoading || (isGuidRoute && workspaceDetailLoading && !workspace);
 
   // Sync activeWorkspaceId so gate and codebase hooks target the right workspace
   const resolvedId = workspace?.id;
+
   useEffect(() => {
     if (resolvedId) {
       setActiveWorkspaceId(resolvedId);
@@ -922,31 +1024,29 @@ export function WorkspaceDashboard() {
           ) : (
             <div className="space-y-2">
               <p className="text-[11px] text-muted-foreground/40 leading-relaxed">
-                This folder is not a git repository. Initialise one to enable commit
-                tracking, branching, and remote sync.
+                This folder is not a git repository. Run bootstrap to initialize
+                git and the AOS workspace scaffold.
               </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 gap-1.5 h-8 text-xs border-dashed focus-visible:ring-2"
-                  onClick={() => toast.info("Run: git init in your project root")}
-                  aria-label="Initialize git repository"
-                >
-                  <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                  git init
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 gap-1.5 h-8 text-xs border-dashed focus-visible:ring-2"
-                  onClick={() => toast.info("Paste a remote URL to clone")}
-                  aria-label="Clone from remote"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                  Clone Remote
-                </Button>
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-1.5 h-8 text-xs border-dashed focus-visible:ring-2"
+                disabled={isBootstrappingGit}
+                onClick={async () => {
+                  const result = await bootstrapWorkspace(ws.repoRoot);
+                  if (!result) return;
+                  if (!result.success) {
+                    toast.error("Bootstrap failed", { description: result.error ?? undefined });
+                    return;
+                  }
+                  refreshWorkspaces();
+                  toast.success(result.gitRepositoryCreated ? "Git repository created." : "Existing git repository found.");
+                }}
+                aria-label="Bootstrap workspace"
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                {isBootstrappingGit ? "Initializing…" : "Bootstrap Workspace"}
+              </Button>
             </div>
           )}
         </div>

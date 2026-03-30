@@ -58,7 +58,7 @@ The daemon API base URL MUST be configurable via environment/configuration and M
 
 #### Scenario: Daemon API is reachable at default base URL
 - **WHEN** the daemon API is started in development without an explicit base URL override
-- **THEN** it listens on `http://localhost:9000`
+- **THEN** it listens on `https://localhost:9000`
 
 ### Requirement: Daemon API supports CORS for frontend development
 The daemon API MUST support CORS for the frontend development origin.

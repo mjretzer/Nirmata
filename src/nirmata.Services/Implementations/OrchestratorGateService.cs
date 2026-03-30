@@ -338,7 +338,7 @@ public sealed class OrchestratorGateService : IOrchestratorGateService
     }
 
     // ── Private JSON deserialization models ───────────────────────────────────
-    // Mirror the AOS artifact schemas (documents/architecture/schemas.md).
+    // Mirror the AOS artifact schemas (docs/architecture/schemas.md).
     // Nullable members handle missing or renamed fields gracefully.
 
     private sealed class WorkspaceStateModel

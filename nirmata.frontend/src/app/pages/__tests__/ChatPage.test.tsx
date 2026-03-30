@@ -2,12 +2,13 @@
  * Tests for ChatPage component — validates role rendering, suggestion selection,
  * quick actions, timeline/artifact display, and overall UI behavior.
  */
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { ChatPage } from "../ChatPage";
 import { WorkspaceProvider } from "../../context/WorkspaceContext";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
+import type { Workspace } from "../../data/mockData";
 
 // Mock the chat hook
 vi.mock("../../hooks/useAosData", () => ({
@@ -53,6 +54,19 @@ describe("ChatPage", () => {
 
   beforeEach(() => {
     Element.prototype.scrollIntoView = vi.fn();
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation(() => ({
+        matches: false,
+        media: "",
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
   });
 
   const defaultChatState = {
@@ -65,11 +79,31 @@ describe("ChatPage", () => {
     refreshSnapshot: vi.fn(),
   };
 
-  const defaultWorkspace = {
+  const defaultWorkspace: { workspace: Workspace; isLoading: boolean } = {
     workspace: {
       repoRoot: "/test/path",
       projectName: "Test Project",
+      hasAosDir: true,
+      hasProjectSpec: true,
+      hasRoadmap: true,
+      hasTaskPlans: true,
+      hasHandoff: true,
       cursor: { phase: "PH-0001", task: "TSK-001", milestone: "MS-0001" },
+      lastRun: {
+        id: "RUN-0001",
+        status: "success",
+        timestamp: "2024-01-01T00:00:00Z",
+      },
+      validation: {
+        schemas: "valid",
+        spec: "valid",
+        state: "valid",
+        evidence: "valid",
+        codebase: "valid",
+      },
+      lastValidationAt: "2024-01-01T00:00:00Z",
+      openIssuesCount: 0,
+      openTodosCount: 0,
     },
     isLoading: false,
   };
@@ -326,7 +360,7 @@ describe("ChatPage", () => {
             timestamp: new Date(),
             timeline: [
               { id: "step-1", label: "Setup", status: "completed" },
-              { id: "step-2", label: "Implementation", status: "active" },
+              { id: "step-2", label: "Implementation", status: "running" },
               { id: "step-3", label: "Testing", status: "pending" },
             ],
           },
@@ -682,7 +716,29 @@ describe("ChatPage", () => {
     });
   });
 
-  describe.skip("Toolbar actions", () => {
+  describe("Toolbar actions", () => {
+    const historyThreadMessages = [
+      {
+        id: "history-msg-1",
+        role: "user" as const,
+        content: "First turn",
+        timestamp: new Date("2024-01-01T00:00:00Z"),
+        gate: "planner" as const,
+        runId: "RUN-001",
+        nextCommand: "aos status",
+      },
+      {
+        id: "history-msg-2",
+        role: "assistant" as const,
+        content: "Second turn",
+        timestamp: new Date("2024-01-01T00:01:00Z"),
+        agent: "orchestrator" as const,
+        gate: "executor" as const,
+        runId: "RUN-002",
+        nextCommand: "execute-plan",
+      },
+    ];
+
     it("refreshes chat snapshot", () => {
       const mockRefreshSnapshot = vi.fn();
       mockUseChatMessages.mockReturnValue({
@@ -703,18 +759,88 @@ describe("ChatPage", () => {
       expect(mockToast.success).toHaveBeenCalledWith("Chat reloaded");
     });
 
-    it("shows history info", () => {
+    it("opens history drawer for the active workspace thread and renders turns in order", async () => {
+      mockUseChatMessages.mockReturnValue({
+        ...defaultChatState,
+        messages: historyThreadMessages,
+      });
+
       render(
         <TestWrapper>
           <ChatPage />
         </TestWrapper>
       );
 
-      const historyButton = screen.getByText("History");
+      fireEvent.click(screen.getByRole("button", { name: "History" }));
+
+      const title = await screen.findByText("Thread History");
+      const drawer = title.closest('[data-slot="drawer-content"]');
+
+      expect(drawer).not.toBeNull();
+      expect(within(drawer as HTMLElement).getByText("Workspace chat thread — read-only")).toBeInTheDocument();
+
+      const roleLabels = within(drawer as HTMLElement).getAllByText(/^(user|assistant)$/i);
+      expect(roleLabels).toHaveLength(2);
+      expect(roleLabels[0]).toHaveTextContent("user");
+      expect(roleLabels[1]).toHaveTextContent("assistant");
+
+      expect(within(drawer as HTMLElement).getByText("planner")).toBeInTheDocument();
+      expect(within(drawer as HTMLElement).getByText("executor")).toBeInTheDocument();
+      expect(within(drawer as HTMLElement).getByText("RUN-001")).toBeInTheDocument();
+      expect(within(drawer as HTMLElement).getByText("RUN-002")).toBeInTheDocument();
+      expect(within(drawer as HTMLElement).getByText("→ aos status")).toBeInTheDocument();
+      expect(within(drawer as HTMLElement).getByText("→ execute-plan")).toBeInTheDocument();
+      expect(within(drawer as HTMLElement).getByText("Orchestrator")).toBeInTheDocument();
+    });
+
+    it("closes history without changing scroll position or draft contents", async () => {
+      mockUseChatMessages.mockReturnValue({
+        ...defaultChatState,
+        messages: historyThreadMessages,
+      });
+
+      render(
+        <TestWrapper>
+          <ChatPage />
+        </TestWrapper>
+      );
+
+      const input = screen.getByRole("textbox");
+      fireEvent.change(input, { target: { value: "draft message" } });
+
+      const viewport = document.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+      viewport.scrollTop = 240;
+
+      fireEvent.click(screen.getByRole("button", { name: "History" }));
+      await screen.findByText("Thread History");
+
+      fireEvent.click(screen.getByRole("button", { name: "Back to chat" }));
+
+      expect(input).toHaveValue("draft message");
+      expect(viewport.scrollTop).toBe(240);
+    });
+
+    it("returns to the active workspace thread without changing the main composer", () => {
+      mockUseChatMessages.mockReturnValue({
+        ...defaultChatState,
+        messages: historyThreadMessages,
+      });
+
+      render(
+        <TestWrapper>
+          <ChatPage />
+        </TestWrapper>
+      );
+
+      const input = screen.getByRole("textbox");
+      const historyButton = screen.getByRole("button", { name: "History" });
       fireEvent.click(historyButton);
 
-      expect(mockToast.info).toHaveBeenCalledWith("Session history — coming with daemon integration");
+      expect(screen.getByText("Thread History")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Back to chat" })).toBeInTheDocument();
+      expect(input).toHaveValue("");
     });
+
   });
 
   describe.skip("Markdown rendering", () => {

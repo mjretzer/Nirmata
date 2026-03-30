@@ -10,6 +10,7 @@ import {
   FileText,
   CheckCircle2,
   XCircle,
+  X,
   Loader2,
   Copy,
   RotateCcw,
@@ -25,6 +26,15 @@ import { toast } from "sonner";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { ScrollArea } from "../components/ui/scroll-area";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerTrigger,
+} from "../components/ui/drawer";
 import { cn } from "../components/ui/utils";
 import { CommandChip } from "../components/CommandChip";
 import { copyToClipboard } from "../utils/clipboard";
@@ -489,6 +499,84 @@ function QuickActionBar({
   );
 }
 
+// ── History Turn Row ──────────────────────────────────────────
+
+function HistoryTurnRow({ message }: { message: ChatMessage }) {
+  const isUser = message.role === "user";
+  const isResult = message.role === "result";
+  const isSystem = message.role === "system";
+
+  const borderColor = isUser
+    ? "border-l-primary/50"
+    : isResult
+    ? "border-l-emerald-500/50"
+    : isSystem
+    ? "border-l-border/40"
+    : "border-l-border/60";
+
+  const roleColor = isUser
+    ? "text-primary"
+    : isResult
+    ? "text-emerald-400"
+    : isSystem
+    ? "text-muted-foreground"
+    : "text-foreground";
+
+  return (
+    <div className={cn("border-l-2 pl-2.5 py-1.5 space-y-1", borderColor)}>
+      {/* timestamp + role + agent */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <span className={cn("text-[10px] font-mono font-medium capitalize", roleColor)}>
+          {message.role}
+        </span>
+        {message.agent && (
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-[8px] h-3.5 px-1 gap-0.5 uppercase font-mono border-current/20",
+              AGENT_CONFIG[message.agent].color,
+              AGENT_CONFIG[message.agent].bgColor
+            )}
+          >
+            <Cpu className="h-2 w-2" />
+            {AGENT_CONFIG[message.agent].label}
+          </Badge>
+        )}
+        <span className="text-[9px] font-mono text-muted-foreground/50 ml-auto">
+          {relativeTime(message.timestamp.toISOString())}
+        </span>
+      </div>
+      {/* gate + runId */}
+      {(message.gate && message.gate !== "idle" || message.runId) && (
+        <div className="flex items-center gap-1 flex-wrap">
+          {message.gate && message.gate !== "idle" && (
+            <Badge
+              variant="outline"
+              className="text-[8px] h-3.5 px-1 font-mono uppercase text-muted-foreground border-border/40"
+            >
+              {message.gate}
+            </Badge>
+          )}
+          {message.runId && (
+            <Badge
+              variant="outline"
+              className="text-[8px] h-3.5 px-1 font-mono text-amber-400 bg-amber-500/5 border-amber-500/20"
+            >
+              {message.runId}
+            </Badge>
+          )}
+        </div>
+      )}
+      {/* next command */}
+      {message.nextCommand && (
+        <div className="font-mono text-[9px] text-primary/70 bg-primary/5 border border-primary/15 rounded px-1.5 py-0.5 truncate">
+          → {message.nextCommand}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main ChatPage ─────────────────────────────────────────────
 
 export function ChatPage() {
@@ -498,6 +586,7 @@ export function ChatPage() {
     messages,
     commandSuggestions,
     quickActions,
+    isLoading: isChatLoading,
     isSubmitting,
     submitTurn,
     refreshSnapshot,
@@ -524,6 +613,7 @@ export function ChatPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const savedScrollPos = useRef<number>(0);
 
   // Scroll to bottom on new messages
   const scrollToBottom = useCallback(() => {
@@ -671,15 +761,70 @@ export function ChatPage() {
         <div className="flex-1" />
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-[10px] font-mono gap-1.5"
-            onClick={() => toast.info("Session history — coming with daemon integration")}
+          <Drawer
+            direction="right"
+            onOpenChange={(open) => {
+              const viewport = scrollRef.current?.closest('[data-slot="scroll-area-viewport"]') as HTMLElement | null;
+              if (open) {
+                savedScrollPos.current = viewport?.scrollTop ?? 0;
+              } else {
+                if (viewport) viewport.scrollTop = savedScrollPos.current;
+                setTimeout(() => inputRef.current?.focus(), 0);
+              }
+            }}
           >
-            <Clock className="h-3 w-3" />
-            History
-          </Button>
+            <DrawerTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-[10px] font-mono gap-1.5"
+              >
+                <Clock className="h-3 w-3" />
+                History
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent className="w-[380px] sm:max-w-[380px] flex flex-col">
+              <DrawerHeader className="border-b border-border/50 pb-3 flex-row flex items-start justify-between">
+                <div>
+                  <DrawerTitle className="text-sm font-mono">Thread History</DrawerTitle>
+                  <DrawerDescription className="text-[11px] font-mono text-muted-foreground/70">
+                    Workspace chat thread — read-only
+                  </DrawerDescription>
+                </div>
+                <DrawerClose asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 -mt-1 -mr-1">
+                    <X className="h-3.5 w-3.5" />
+                    <span className="sr-only">Close history</span>
+                  </Button>
+                </DrawerClose>
+              </DrawerHeader>
+              <ScrollArea className="flex-1">
+                {isChatLoading ? (
+                  <div className="flex items-center justify-center h-24">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-24 gap-1.5 text-muted-foreground">
+                    <MessageSquare className="h-4 w-4" />
+                    <span className="text-[11px] font-mono">No messages yet</span>
+                  </div>
+                ) : (
+                  <div className="p-3 space-y-2">
+                    {messages.map((msg) => (
+                      <HistoryTurnRow key={msg.id} message={msg} />
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+              <div className="shrink-0 border-t border-border/50 p-3 flex justify-end">
+                <DrawerClose asChild>
+                  <Button variant="outline" size="sm" className="h-7 text-[10px] font-mono">
+                    Back to chat
+                  </Button>
+                </DrawerClose>
+              </div>
+            </DrawerContent>
+          </Drawer>
           <Button
             variant="outline"
             size="sm"

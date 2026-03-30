@@ -1,14 +1,14 @@
 var builder = WebApplication.CreateBuilder(args);
 
 // Configurable daemon API base URL; override via env var DaemonApi__BaseUrl
-var daemonBaseUrl = builder.Configuration["DaemonApi:BaseUrl"] ?? "http://localhost:9000";
+var daemonBaseUrl = builder.Configuration["DaemonApi:BaseUrl"] ?? "https://localhost:9000";
 builder.WebHost.UseUrls(daemonBaseUrl);
 
 // CORS: allowed origins configurable via Cors:AllowedOrigins (env var: Cors__AllowedOrigins__0, etc.)
 var configuredOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 var allowedOrigins = builder.Environment.IsDevelopment()
     ? configuredOrigins
-        .Concat(new[] { "http://localhost:5173", "http://127.0.0.1:5173" })
+        .Concat(new[] { "https://localhost:8443" })
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToArray()
     : configuredOrigins;
@@ -43,6 +43,7 @@ app.UseSwaggerUI(options =>
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "nirmata Agent Manager API v1");
 });
 
+app.UseHttpsRedirection();
 app.UseCors();
 app.MapControllers();
 

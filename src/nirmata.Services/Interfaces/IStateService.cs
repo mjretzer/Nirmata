@@ -17,4 +17,15 @@ public interface IStateService
 
     /// <summary>Lists context-pack summaries from <c>.aos/context/packs/**</c>. Returns an empty list if the directory does not exist.</summary>
     Task<IReadOnlyList<ContextPackSummaryDto>> GetContextPacksAsync(string workspaceRoot, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Appends a single event line to <c>.aos/state/events.ndjson</c>.
+    /// Silently no-ops when the state directory does not yet exist.
+    /// </summary>
+    Task AppendEventAsync(
+        string workspaceRoot,
+        string type,
+        object? payload = null,
+        IReadOnlyList<string>? references = null,
+        CancellationToken cancellationToken = default);
 }

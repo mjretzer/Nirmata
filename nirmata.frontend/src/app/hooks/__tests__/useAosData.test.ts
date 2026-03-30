@@ -9,6 +9,7 @@
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
 import {
   useWorkspace,
   useWorkspaces,
@@ -33,6 +34,13 @@ import {
   useEngineConnection,
 } from "../useAosData";
 import { daemonClient } from "../../utils/apiClient";
+import { WorkspaceProvider } from "../../context/WorkspaceContext";
+
+const GUID_WORKSPACE_ID = "550e8400-e29b-41d4-a716-446655440000";
+
+function guidWorkspaceWrapper({ children }: { children: ReactNode }) {
+  return createElement(WorkspaceProvider, { initialWorkspaceId: GUID_WORKSPACE_ID, children });
+}
 
 describe("useWorkspace", () => {
   afterEach(() => vi.restoreAllMocks());
@@ -63,6 +71,27 @@ describe("useWorkspace", () => {
     const { result } = renderHook(() => useWorkspace("nonexistent-ws-999"));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.workspace).toBeDefined();
+  });
+
+  it("uses the active workspace id from context when a route token is not a GUID", async () => {
+    const { domainClient } = await import("../../utils/apiClient");
+    const spy = vi.spyOn(domainClient, "getWorkspace").mockResolvedValue({
+      id: GUID_WORKSPACE_ID,
+      name: "Workspace Alpha",
+      path: "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata",
+      status: "initialized",
+      lastModified: "2026-01-01T00:00:00Z",
+    });
+
+    const { result } = renderHook(() => useWorkspace("workspace-alpha"), {
+      wrapper: guidWorkspaceWrapper,
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(spy).toHaveBeenCalledWith(GUID_WORKSPACE_ID);
+    expect(result.current.workspace.repoRoot).toBe("C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata");
+    expect(result.current.workspace.projectName).toBe("Workspace Alpha");
   });
 
   it("returns notFound=true when API returns 404", async () => {

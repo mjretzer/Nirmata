@@ -116,6 +116,9 @@ import {
   type ApiLanguageBreakdown,
   type ApiStackEntry,
   type WorkspaceCreateRequest,
+  type WorkspaceBootstrapResult,
+  type GitHubWorkspaceBootstrapStartRequest,
+  type GitHubWorkspaceBootstrapStartResponse,
   type WorkspaceContinuityState,
   type WorkspaceHandoff,
   type WorkspaceEvent,
@@ -128,7 +131,7 @@ import {
   type CodebaseArtifactDto,
   type ChatApiMessage,
 } from "../utils/apiClient";
-export type { AosApiError };
+export type { AosApiError, WorkspaceBootstrapResult };
 import { toast } from "sonner";
 import {
   deriveVerificationState,
@@ -413,38 +416,42 @@ export function useWorkspace(workspaceId?: string): {
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [bootstrapDiagnostic, setBootstrapDiagnostic] = useState<string | null>(null);
-  const { setWorkspaceBootstrapError } = useWorkspaceContext();
+  const { activeWorkspaceId, setWorkspaceBootstrapError } = useWorkspaceContext();
+  const resolvedWorkspaceId = isGuidWorkspaceId(workspaceId) ? workspaceId : activeWorkspaceId;
 
   useEffect(() => {
-    if (!isGuidWorkspaceId(workspaceId)) {
+    if (!isGuidWorkspaceId(resolvedWorkspaceId)) {
       setWorkspace(emptyWorkspace);
       setNotFound(false);
       setBootstrapDiagnostic(null);
       setIsLoading(false);
       return;
     }
+
+    setWorkspace(emptyWorkspace);
     setIsLoading(true);
     setNotFound(false);
     setBootstrapDiagnostic(null);
     domainClient
-      .getWorkspace(workspaceId)
+      .getWorkspace(resolvedWorkspaceId)
       .then((data) => {
         setWorkspaceBootstrapError(null);
         setBootstrapDiagnostic(null);
-        setWorkspace((prev) => ({
-          ...prev,
+        setWorkspace({
+          ...emptyWorkspace,
           repoRoot: data.path,
           projectName: data.name,
           hasAosDir: data.status === "initialized",
-        }));
+        });
       })
       .catch((err) => {
         const isNotFound = err instanceof ApiError && err.status === 404;
         setNotFound(isNotFound);
         setWorkspaceBootstrapError(isNotFound ? "not-found" : "error");
+        setWorkspace(emptyWorkspace);
         setBootstrapDiagnostic(
           formatStartupDiagnostic(err, {
-            endpoint: `GET /v1/workspaces/${encodeURIComponent(workspaceId)}`,
+            endpoint: `GET /v1/workspaces/${encodeURIComponent(resolvedWorkspaceId)}`,
             suggestedFix: isNotFound
               ? "Verify the workspace identifier or path, then reopen or register the workspace."
               : "Check the domain API URL and confirm the workspace exists and is reachable.",
@@ -452,7 +459,7 @@ export function useWorkspace(workspaceId?: string): {
         );
       })
       .finally(() => setIsLoading(false));
-  }, [workspaceId, setWorkspaceBootstrapError]);
+  }, [resolvedWorkspaceId, setWorkspaceBootstrapError]);
 
   return { workspace, isLoading, notFound, bootstrapDiagnostic };
 }
@@ -535,6 +542,61 @@ export function useRegisterWorkspace(): {
   }, []);
 
   return { register, isRegistering };
+}
+
+export function useBootstrapWorkspace(): {
+  bootstrap: (path: string) => Promise<WorkspaceBootstrapResult | null>;
+  isBootstrapping: boolean;
+} {
+  const [isBootstrapping, setIsBootstrapping] = useState(false);
+
+  const bootstrap = useCallback(async (path: string): Promise<WorkspaceBootstrapResult | null> => {
+    setIsBootstrapping(true);
+    try {
+      return await domainClient.bootstrapWorkspace(path);
+    } catch (err) {
+      toast.error("Bootstrap failed", {
+        description: formatStartupDiagnostic(err, {
+          endpoint: "POST /v1/workspaces/bootstrap",
+          suggestedFix: "Ensure the path exists, the directory is accessible, and git is installed.",
+        }),
+      });
+      return null;
+    } finally {
+      setIsBootstrapping(false);
+    }
+  }, []);
+
+  return { bootstrap, isBootstrapping };
+}
+
+export function useGitHubWorkspaceBootstrap(): {
+  start: (req: GitHubWorkspaceBootstrapStartRequest) => Promise<GitHubWorkspaceBootstrapStartResponse | null>;
+  isStarting: boolean;
+} {
+  const [isStarting, setIsStarting] = useState(false);
+
+  const start = useCallback(
+    async (req: GitHubWorkspaceBootstrapStartRequest): Promise<GitHubWorkspaceBootstrapStartResponse | null> => {
+      setIsStarting(true);
+      try {
+        return await domainClient.startGitHubWorkspaceBootstrap(req);
+      } catch (err) {
+        toast.error("GitHub connection failed", {
+          description: formatStartupDiagnostic(err, {
+            endpoint: "POST /v1/github/bootstrap/start",
+            suggestedFix: "Check the GitHub OAuth client configuration and confirm the frontend origin is allowed.",
+          }),
+        });
+        return null;
+      } finally {
+        setIsStarting(false);
+      }
+    },
+    []
+  );
+
+  return { start, isStarting };
 }
 
 // ── Plan / Spec ───────────────────────────────────────────────
@@ -1238,6 +1300,18 @@ export function useOrchestratorState(): {
 
 // ── Chat ──────────────────────────────────────────────────────
 
+/** Derive a GateState from the backend recommendedAction string. */
+function gateFromRecommendedAction(action: string | null | undefined): GateState | undefined {
+  if (!action) return undefined;
+  if (action === "new-project") return "interviewer";
+  if (action.startsWith("create-roadmap")) return "roadmapper";
+  if (action.startsWith("plan-phase")) return "planner";
+  if (action.startsWith("execute-plan")) return "executor";
+  if (action.startsWith("verify-work")) return "verifier";
+  if (action.startsWith("plan-fix")) return "fix-loop";
+  return undefined;
+}
+
 /** Map a single ChatApiMessage from the backend to the local ChatMessage shape. */
 function mapApiMessage(m: ChatApiMessage, idx: number): ChatMessage {
   return {
@@ -1246,6 +1320,8 @@ function mapApiMessage(m: ChatApiMessage, idx: number): ChatMessage {
     content: m.content,
     timestamp: new Date(m.timestamp),
     agent: m.agentId as AgentId | undefined,
+    gate: gateFromRecommendedAction(m.gate?.recommendedAction),
+    command: m.role === "user" && m.content.startsWith("aos ") ? m.content : undefined,
     runId: m.runId,
     logs: m.logs.length > 0 ? m.logs : undefined,
     artifacts:
@@ -1351,7 +1427,9 @@ export function useChatMessages(workspaceId: string | undefined): {
         setMessages((prev) =>
           prev.filter((m) => m.id !== thinkingId).concat(responseMsg)
         );
-        // Refresh suggestions best-effort after each turn
+        // Refresh suggestions and reconcile messages best-effort after each turn.
+        // Messages are replaced with the server canonical list only when the
+        // snapshot includes the response we just received (clean reconciliation).
         domainClient
           .getChatSnapshot(workspaceId)
           .then((snapshot) => {
@@ -1372,6 +1450,18 @@ export function useChatMessages(workspaceId: string | undefined): {
                   variant: "default" as const,
                 }))
               );
+            }
+            // Replace optimistic messages with the server canonical list only
+            // if the snapshot already contains the persisted response (matched
+            // by role + timestamp). If the snapshot is stale the optimistic
+            // messages are left in place.
+            if (
+              snapshot.messages.length > 0 &&
+              snapshot.messages.some(
+                (m) => m.role === apiMsg.role && m.timestamp === apiMsg.timestamp
+              )
+            ) {
+              setMessages(snapshot.messages.map(mapApiMessage));
             }
           })
           .catch(() => {});
@@ -1470,7 +1560,7 @@ export function useEngineConnection(): {
       toast.error("Connection failed", {
         description: formatStartupDiagnostic(err, {
           endpoint: `GET ${baseUrl.replace(/\/$/, "")}/api/v1/health`,
-          suggestedFix: "Check that the daemon is running, the base URL matches your dev config, and CORS allows http://localhost:5173.",
+          suggestedFix: "Check that the daemon is running, the base URL matches your dev config, and CORS allows https://localhost:8443.",
         }),
       });
       const result = { ok: false, version: "", latencyMs: 0 };
@@ -1490,7 +1580,7 @@ export function useEngineConnection(): {
       toast.error("Failed to save host profile", {
         description: formatStartupDiagnostic(err, {
           endpoint: "PUT /api/v1/service/host-profile",
-          suggestedFix: "Check that the daemon is running, the base URL matches your dev config, and CORS allows http://localhost:5173.",
+          suggestedFix: "Check that the daemon is running, the base URL matches your dev config, and CORS allows https://localhost:8443.",
         }),
       });
       return { ok: false };
@@ -1533,7 +1623,7 @@ export function useWorkspaceInit(workspaceId: string | undefined): {
       toast.error("Workspace init failed", {
         description: formatStartupDiagnostic(err, {
           endpoint: "POST /api/v1/commands",
-          suggestedFix: "Check that the daemon is running, the base URL matches your dev config, and CORS allows http://localhost:5173.",
+          suggestedFix: "Check that the daemon is running, the base URL matches your dev config, and CORS allows https://localhost:8443.",
         }),
       });
       const result = { ok: false, aosDir: "" };
@@ -1565,7 +1655,7 @@ export function useWorkspaceInit(workspaceId: string | undefined): {
       toast.error("Validation failed", {
         description: formatStartupDiagnostic(err, {
           endpoint: "POST /api/v1/commands",
-          suggestedFix: "Check that the daemon is running, the base URL matches your dev config, and CORS allows http://localhost:5173.",
+          suggestedFix: "Check that the daemon is running, the base URL matches your dev config, and CORS allows https://localhost:8443.",
         }),
       });
       const result: ValidationResult = { schemas: "invalid", spec: "invalid", state: "invalid", evidence: "invalid", codebase: "invalid" };

@@ -27,7 +27,7 @@ public sealed class nirmataApiFactory : WebApplicationFactory<Program>
             var serviceProvider = services.BuildServiceProvider();
             using var scope = serviceProvider.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<nirmataDbContext>();
-            dbContext.Database.EnsureCreated();
+            dbContext.Database.Migrate();
         });
     }
 

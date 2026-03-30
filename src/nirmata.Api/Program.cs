@@ -1,6 +1,7 @@
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -68,6 +69,8 @@ builder.Services.AddValidatorsFromAssemblyContaining<nirmata.Data.Dto.Validators
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddDataProtection();
+builder.Services.AddHttpClient();
 
 // Configure Entity Framework with SQLite
 builder.Services.AddDbContext<nirmataDbContext>(options =>
@@ -82,12 +85,12 @@ builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 
 // Register services using composition root
-builder.Services.AddnirmataServices();
+builder.Services.AddnirmataServices(builder.Configuration);
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendDev", policy =>
-        policy.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173")
+        policy.WithOrigins("https://localhost:8443")
               .AllowAnyHeader()
               .AllowAnyMethod());
 });

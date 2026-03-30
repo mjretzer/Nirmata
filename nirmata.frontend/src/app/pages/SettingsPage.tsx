@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useParams, useNavigate, useLocation, useOutletContext, Outlet, Link, Navigate } from "react-router";
 import type { NavigateFunction } from "react-router";
 import {
@@ -39,6 +39,15 @@ import {
   Loader2,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
 import { Switch } from "../components/ui/switch";
 import { Label } from "../components/ui/label";
@@ -60,7 +69,9 @@ import {
 } from "../components/ui/tooltip";
 import { cn } from "../components/ui/utils";
 import { toast } from "sonner";
-import { useWorkspace, useWorkspaceInit, useAosCommand, useEngineConnection } from "../hooks/useAosData";
+import { useWorkspace, useWorkspaces, useWorkspaceInit, useBootstrapWorkspace, useAosCommand, useEngineConnection, useGitHubWorkspaceBootstrap, isGuidWorkspaceId } from "../hooks/useAosData";
+import { useWorkspaceContext } from "../context/WorkspaceContext";
+import { domainClient } from "../utils/apiClient";
 import {
   type ConfigEntry,
   type ConfigCategory,
@@ -1718,8 +1729,12 @@ type RepoState = "not-initialized" | "initialized" | "attached";
 function WorkspaceTab({ workspaceId }: { workspaceId: string | undefined }) {
   const { workspace, bootstrapDiagnostic } = useWorkspace(workspaceId);
   const { init, isIniting, initResult } = useWorkspaceInit(workspaceId);
+  const { bootstrap: bootstrapWorkspace, isBootstrapping } = useBootstrapWorkspace();
+  const { workspaces } = useWorkspaces();
+  const { activeWorkspaceId } = useWorkspaceContext();
   const navigate = useNavigate();
   const location = useLocation();
+  const workspaceRecordId = isGuidWorkspaceId(workspaceId) ? workspaceId : activeWorkspaceId;
 
   const { hasAosDir } = workspace;
 
@@ -1733,6 +1748,15 @@ function WorkspaceTab({ workspaceId }: { workspaceId: string | undefined }) {
   const [draftRootPath, setDraftRootPath] = useState(initialRootPath);
   const [rootPathDirty, setRootPathDirty] = useState(!!passedRootPath);
   const [pathSaved, setPathSaved] = useState(!passedRootPath);
+  const [browseOpen, setBrowseOpen] = useState(false);
+
+  const sortedWorkspaces = useMemo(
+    () =>
+      [...workspaces].sort(
+        (a, b) => new Date(b.lastOpened).getTime() - new Date(a.lastOpened).getTime()
+      ),
+    [workspaces]
+  );
 
   const rootPathValidationError =
     draftRootPath.trim() === ""
@@ -1741,20 +1765,78 @@ function WorkspaceTab({ workspaceId }: { workspaceId: string | undefined }) {
       ? "Must be an absolute path (e.g. /home/user/my-app or C:\\Users\\dev\\my-app)"
       : "";
 
+  useEffect(() => {
+    if (rootPathDirty) return;
+
+    setSavedRootPath(initialRootPath);
+    setDraftRootPath(initialRootPath);
+    setPathSaved(initialRootPath !== "");
+  }, [initialRootPath, rootPathDirty]);
+
+  const pendingRootPathRef = useRef({
+    workspaceId: workspaceRecordId,
+    draftRootPath,
+    rootPathDirty,
+    rootPathValidationError,
+  });
+
+  useEffect(() => {
+    pendingRootPathRef.current = {
+      workspaceId: workspaceRecordId,
+      draftRootPath,
+      rootPathDirty,
+      rootPathValidationError,
+    };
+  }, [workspaceRecordId, draftRootPath, rootPathDirty, rootPathValidationError]);
+
+  useEffect(() => {
+    return () => {
+      const current = pendingRootPathRef.current;
+      if (!current.workspaceId || !current.rootPathDirty || current.rootPathValidationError) return;
+
+      void domainClient.updateWorkspace(current.workspaceId, {
+        path: current.draftRootPath.trim(),
+      });
+    };
+  }, []);
+
   const handleRootPathChange = (val: string) => {
     setDraftRootPath(val);
     setRootPathDirty(val !== savedRootPath);
     setPathSaved(false);
   };
 
-  const handleSaveRootPath = () => {
+  const handleSaveRootPath = async () => {
     if (rootPathValidationError) return;
     const trimmed = draftRootPath.trim();
-    setSavedRootPath(trimmed);
-    setRootPathDirty(false);
-    setPathSaved(true);
-    toast.success(`Workspace root → ${trimmed}`);
-    init(trimmed);
+
+    const bootstrapResult = await bootstrapWorkspace(trimmed);
+    if (!bootstrapResult) return;
+    if (!bootstrapResult.success) {
+      toast.error("Workspace initialization failed", {
+        description: bootstrapResult.error ?? undefined,
+      });
+      return;
+    }
+
+    try {
+      const updated = workspaceRecordId
+        ? await domainClient.updateWorkspace(workspaceRecordId, { path: trimmed })
+        : null;
+      const nextRootPath = updated?.path ?? trimmed;
+
+      setSavedRootPath(nextRootPath);
+      setDraftRootPath(nextRootPath);
+      setRootPathDirty(false);
+      setPathSaved(true);
+      toast.success(`Workspace root → ${nextRootPath}`, {
+        description: bootstrapResult.gitRepositoryCreated
+          ? "Git repository created."
+          : "Existing git repository found.",
+      });
+    } catch {
+      toast.error("Failed to save workspace root");
+    }
   };
 
   const handleDiscardRootPath = () => {
@@ -1764,7 +1846,7 @@ function WorkspaceTab({ workspaceId }: { workspaceId: string | undefined }) {
   };
 
   const handleBrowseRootPath = () => {
-    toast.info("Paste the full absolute path directly into the field");
+    setBrowseOpen(true);
   };
 
   return (
@@ -1776,9 +1858,9 @@ function WorkspaceTab({ workspaceId }: { workspaceId: string | undefined }) {
           Workspace
         </h1>
         <p className="text-sm text-muted-foreground mt-1 max-w-lg">
-          Foundational workspace settings. The root path is the single anchor point every
-          engine operation runs relative to — set it before running{" "}
-          <code className="font-mono text-primary/70">aos init</code>.
+          Foundational workspace settings. The root path must point to a git-backed
+          directory — saving a new path runs bootstrap, which creates a git repository and
+          AOS scaffold if either is missing. Git is required for the engine to operate.
         </p>
       </div>
 
@@ -1829,19 +1911,73 @@ function WorkspaceTab({ workspaceId }: { workspaceId: string | undefined }) {
                 aria-invalid={!!(rootPathValidationError && rootPathDirty)}
                 aria-describedby={rootPathValidationError && rootPathDirty ? "root-path-error" : undefined}
                 spellCheck={false}
-                autoComplete="off"
               />
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs shrink-0"
-              onClick={handleBrowseRootPath}
-            >
-              <FolderOpen className="h-3.5 w-3.5" aria-hidden="true" />
-              Browse…
-            </Button>
+            <Dialog open={browseOpen} onOpenChange={setBrowseOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs shrink-0"
+                  onClick={handleBrowseRootPath}
+                >
+                  <FolderOpen className="h-3.5 w-3.5" aria-hidden="true" />
+                  Browse…
+                </Button>
+              </DialogTrigger>
+
+              <DialogContent className="max-w-md gap-0 overflow-hidden p-0">
+                <DialogHeader className="px-5 pt-5 pb-4 border-b border-border/40">
+                  <DialogTitle className="flex items-center gap-2 text-base">
+                    <FolderOpen className="h-4 w-4 text-primary shrink-0" />
+                    Choose a Workspace Root
+                  </DialogTitle>
+                  <DialogDescription className="text-xs">
+                    Pick a saved workspace root path to populate the field.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="max-h-[22rem] overflow-y-auto px-5 py-4 space-y-3">
+                  {sortedWorkspaces.length === 0 ? (
+                    <p className="rounded-lg border border-dashed border-border/40 px-3 py-4 text-sm text-muted-foreground/60">
+                      No saved workspaces yet.
+                    </p>
+                  ) : (
+                    sortedWorkspaces.map((ws) => (
+                      <button
+                        key={ws.id}
+                        type="button"
+                        onClick={() => {
+                          setDraftRootPath(ws.repoRoot);
+                          const isSamePath = ws.repoRoot === savedRootPath;
+                          setRootPathDirty(!isSamePath);
+                          setPathSaved(isSamePath);
+                          setBrowseOpen(false);
+                        }}
+                        className="w-full rounded-lg border border-border/50 bg-card/40 p-3 text-left transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm truncate">{ws.alias ?? ws.projectName}</span>
+                          <span className="text-[10px] text-muted-foreground/50 font-mono">
+                            {ws.status}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-[10px] font-mono text-muted-foreground/50 truncate">
+                          {ws.repoRoot}
+                        </p>
+                      </button>
+                    ))
+                  )}
+                </div>
+
+                <DialogFooter className="border-t border-border/40 px-5 py-3">
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setBrowseOpen(false)}>
+                    Close
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
 
           {/* Validation error */}
@@ -1897,10 +2033,13 @@ function WorkspaceTab({ workspaceId }: { workspaceId: string | undefined }) {
                     rootPathValidationError ? "opacity-50 cursor-not-allowed" : ""
                   )}
                   onClick={handleSaveRootPath}
-                  disabled={!!rootPathValidationError}
+                  disabled={!!rootPathValidationError || isBootstrapping}
                 >
-                  <Save className="h-3 w-3" aria-hidden="true" />
-                  Save Root
+                  {isBootstrapping ? (
+                    <><Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />Initializing…</>
+                  ) : (
+                    <><Save className="h-3 w-3" aria-hidden="true" />Save Root</>
+                  )}
                 </Button>
               </div>
             )}
@@ -1912,11 +2051,12 @@ function WorkspaceTab({ workspaceId }: { workspaceId: string | undefined }) {
           <Info className="h-3.5 w-3.5 text-primary/50 mt-0.5 shrink-0" aria-hidden="true" />
           <div className="space-y-1 min-w-0">
             <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
-              This is the single source of truth for the engine.{" "}
-              <code className="font-mono text-primary/60">aos init</code> writes{" "}
-              <code className="font-mono text-primary/60">.aos/</code> here, the Windows
-              Service mounts this path, and every task commit executes relative to this
-              root. Set it once — changing it mid-project requires re-indexing the codebase.
+              This is the single source of truth for the engine. Both{" "}
+              <code className="font-mono text-primary/60">.git/</code> and{" "}
+              <code className="font-mono text-primary/60">.aos/</code> must exist here
+              for the engine to operate — saving a new path bootstraps both if missing.
+              Every task commit executes relative to this root. Set it once — changing
+              it mid-project requires re-indexing the codebase.
             </p>
             {savedRootPath && (
               <p className="text-[10px] font-mono text-muted-foreground/35 truncate">
@@ -1932,7 +2072,7 @@ function WorkspaceTab({ workspaceId }: { workspaceId: string | undefined }) {
       ══════════════════════════════════════════════════════ */}
       <Section
         title="Workspace Initialization"
-        description="Run aos init to create the .aos/ workspace folder at the root path above. Required before any engine operation can proceed."
+        description="Run aos init to create the .aos/ workspace folder. A git repository is also required — bootstrap creates one automatically when you save a root path. Without both .git/ and .aos/, the engine cannot operate."
         icon={Zap}
       >
         {initResult !== null ? (
@@ -1995,7 +2135,7 @@ function WorkspaceTab({ workspaceId }: { workspaceId: string | undefined }) {
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm text-amber-400">
               <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
-              <span>Workspace not initialized — .aos/ directory is missing</span>
+              <span>Workspace not initialized — .aos/ directory is missing (a git repository is also required)</span>
             </div>
             <div className="space-y-1.5">
               <p className="text-[11px] text-muted-foreground/60">
@@ -2046,10 +2186,13 @@ function GitTab({ workspaceId }: { workspaceId: string | undefined }) {
   const behindCount = 2;
 
   // § 1 — Repository Setup  (Git is always required — no enable/disable toggle)
-  const [repoState, setRepoState] = useState<RepoState>("attached");
-  const [defaultBranch, setDefaultBranch] = useState("main");
-  const [initialCommit, setInitialCommit] = useState(true);
-  const [withGitignore, setWithGitignore] = useState(true);
+  const { workspace } = useWorkspace(workspaceId);
+  const { bootstrap: bootstrapWorkspace, isBootstrapping: isBootstrappingGit } = useBootstrapWorkspace();
+  const { refresh: refreshWorkspaces } = useWorkspaces();
+
+  // § 3 — GitHub Connection
+  const { start: startGitHubBootstrap, isStarting: isConnectingGitHub } = useGitHubWorkspaceBootstrap();
+  const repoState: RepoState = workspace.hasAosDir ? "attached" : "not-initialized";
 
   // § 2 — Remote Configuration
   const [hasRemote, setHasRemote] = useState(true);
@@ -2064,13 +2207,16 @@ function GitTab({ workspaceId }: { workspaceId: string | undefined }) {
   const [authMethod, setAuthMethod] = useState<AuthMethod>("token");
   const [tokenRevealed, setTokenRevealed] = useState(false);
 
-  const handleCreateRepo = () => {
-    setRepoState("initialized");
-    toast.success(`Git repository created at ${wsName}`);
-  };
-  const handleAttachRepo = () => {
-    setRepoState("attached");
-    toast.success("Existing repository attached");
+  const handleBootstrapRepo = async () => {
+    if (!workspace.repoRoot) return;
+    const result = await bootstrapWorkspace(workspace.repoRoot);
+    if (!result) return;
+    if (!result.success) {
+      toast.error("Bootstrap failed", { description: result.error ?? undefined });
+      return;
+    }
+    refreshWorkspaces();
+    toast.success(result.gitRepositoryCreated ? "Git repository created." : "Existing git repository found.");
   };
   const handleFetch = () => {
     setFetchStatus("fetching");
@@ -2182,24 +2328,9 @@ function GitTab({ workspaceId }: { workspaceId: string | undefined }) {
               >
                 {repoState === "not-initialized"
                   ? "No repository — engine blocked"
-                  : repoState === "initialized"
-                  ? "Initialized"
                   : "Attached · existing repo"}
               </span>
             </div>
-            {repoState !== "not-initialized" && (
-              <button
-                type="button"
-                onClick={() => {
-                  setRepoState("not-initialized");
-                  toast.info("Repository detached (demo)");
-                }}
-                className="text-[10px] text-muted-foreground/25 hover:text-muted-foreground/50 transition-colors"
-                aria-label="Detach repository (demo only)"
-              >
-                detach ↩
-              </button>
-            )}
           </div>
 
           {/* ── Not-initialized state ── */}
@@ -2215,74 +2346,21 @@ function GitTab({ workspaceId }: { workspaceId: string | undefined }) {
                 </p>
               </div>
 
-              {/* Setup options */}
-              <div className="rounded-md border border-border/30 bg-muted/10 p-3 space-y-3">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/40">
-                  Setup options
-                </p>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="git-init-branch" className="text-xs">
-                      Default branch
-                    </Label>
-                    <p className="text-[10px] text-muted-foreground/40 mt-0.5">
-                      Name for the initial branch
-                    </p>
-                  </div>
-                  <Input
-                    id="git-init-branch"
-                    value={defaultBranch}
-                    onChange={(e) => setDefaultBranch(e.target.value)}
-                    className="h-7 w-20 text-xs font-mono text-center"
-                    aria-label="Default branch name"
-                  />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="git-initial-commit" className="text-xs">
-                      Create initial commit
-                    </Label>
-                    <p className="text-[10px] text-muted-foreground/40 mt-0.5">
-                      Stage and commit all existing files on setup
-                    </p>
-                  </div>
-                  <Switch
-                    id="git-initial-commit"
-                    aria-label="Create initial commit"
-                    checked={initialCommit}
-                    onCheckedChange={setInitialCommit}
-                  />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="git-gitignore" className="text-xs">
-                      Initialize with .gitignore
-                    </Label>
-                    <p className="text-[10px] text-muted-foreground/40 mt-0.5">
-                      Standard ignore rules for Node / Python / AOS artifacts
-                    </p>
-                  </div>
-                  <Switch
-                    id="git-gitignore"
-                    aria-label="Initialize with .gitignore"
-                    checked={withGitignore}
-                    onCheckedChange={setWithGitignore}
-                  />
-                </div>
-              </div>
-
               {/* Action buttons */}
               <div className="flex gap-2">
-                <Button className="flex-1 gap-1.5 h-8 text-xs" onClick={handleCreateRepo}>
+                <Button
+                  className="flex-1 gap-1.5 h-8 text-xs"
+                  disabled={isBootstrappingGit}
+                  onClick={handleBootstrapRepo}
+                >
                   <GitBranch className="h-3.5 w-3.5" aria-hidden="true" />
-                  Create Git Repo
+                  {isBootstrappingGit ? "Initializing…" : "Create Git Repo"}
                 </Button>
                 <Button
                   variant="outline"
                   className="flex-1 gap-1.5 h-8 text-xs"
-                  onClick={handleAttachRepo}
+                  disabled={isBootstrappingGit}
+                  onClick={handleBootstrapRepo}
                 >
                   <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
                   Attach Existing Repo
@@ -2313,22 +2391,6 @@ function GitTab({ workspaceId }: { workspaceId: string | undefined }) {
           )}
         </div>
 
-        {/* Default branch for new repos */}
-        {repoState !== "not-initialized" && (
-          <SettingRow
-            label="Default branch name"
-            description="Branch name used when AOS creates a new repository for this workspace."
-            htmlFor="git-default-branch"
-          >
-            <Input
-              id="git-default-branch"
-              value={defaultBranch}
-              onChange={(e) => setDefaultBranch(e.target.value)}
-              className="h-8 w-24 text-xs font-mono text-center"
-              aria-label="Default branch name"
-            />
-          </SettingRow>
-        )}
       </Section>
 
       {/* ══════════════════════════════════════════════════════
@@ -2583,6 +2645,7 @@ function GitTab({ workspaceId }: { workspaceId: string | undefined }) {
             </p>
           </div>
 
+
           {/* Status pill */}
           <div
             className={cn(
@@ -2673,6 +2736,75 @@ function GitTab({ workspaceId }: { workspaceId: string | undefined }) {
                 <Input id="git-pass" type="password" defaultValue="••••••••" className="h-8 text-xs font-mono" />
               </div>
             </div>
+          )}
+        </div>
+      </Section>
+
+      {/* ══════════════════════════════════════════════════════
+          § 3  GitHub Connection
+      ══════════════════════════════════════════════════════ */}
+      <Section
+        title="3. GitHub Connection"
+        icon={GitBranch}
+        description="Connect this workspace to GitHub via OAuth. The backend creates or reuses a repository and configures origin automatically — no manual git remote commands needed."
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-muted-foreground max-w-md">
+            Your browser will open the GitHub OAuth page. After you authorize, the backend
+            provisions the repository (creating it if it does not exist) and sets{" "}
+            <code className="font-mono text-[11px] bg-muted px-1 rounded">origin</code>{" "}
+            for this workspace automatically.
+          </p>
+
+          {/* Current origin state — informational */}
+          {hasRemote && (
+            <div className="flex items-center gap-2 rounded-md border border-green-500/20 bg-green-500/5 px-3 py-2">
+              <CheckCircle className="h-3.5 w-3.5 text-green-400 shrink-0" aria-hidden="true" />
+              <span className="text-[11px] text-green-400/80">
+                Origin is set —{" "}
+                <code className="font-mono text-[10px]">{remoteUrl}</code>. Re-connecting
+                will replace it.
+              </span>
+            </div>
+          )}
+
+          <Button
+            size="sm"
+            variant={hasRemote ? "outline" : "default"}
+            className="gap-1.5"
+            disabled={isConnectingGitHub || !workspace.repoRoot}
+            onClick={async () => {
+              if (!workspace.repoRoot) {
+                toast.error("Set and save a workspace root path first");
+                return;
+              }
+              const resp = await startGitHubBootstrap({
+                path: workspace.repoRoot,
+                name: workspace.projectName || wsName,
+              });
+              if (resp?.authorizeUrl) {
+                window.location.href = resp.authorizeUrl;
+              }
+            }}
+            aria-label={hasRemote ? "Reconnect GitHub" : "Connect to GitHub"}
+          >
+            {isConnectingGitHub ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                Connecting…
+              </>
+            ) : (
+              <>
+                <GitBranch className="h-3.5 w-3.5" aria-hidden="true" />
+                {hasRemote ? "Reconnect GitHub" : "Connect to GitHub"}
+              </>
+            )}
+          </Button>
+
+          {!workspace.repoRoot && (
+            <p className="text-[11px] text-muted-foreground/50">
+              A workspace root path is required before connecting to GitHub.
+            </p>
           )}
         </div>
       </Section>
@@ -2883,10 +3015,7 @@ const SETTINGS_INDEX: SearchEntry[] = [
   { id: "prov.default",    label: "Default Provider",      description: "Which provider AOS falls back to when no model is specified.",   tab: "providers", tabLabel: "Providers",   icon: Cpu },
   { id: "prov.model",      label: "Active Model",           description: "Model identifier written to tools.llm_model and passed to the active provider on every run.", tab: "providers", tabLabel: "Providers",   icon: Cpu,       keywords: ["model","claude","gpt","llm","sonnet","haiku","opus","tools.llm_model"] },
   { id: "ws.root_path",    label: "Workspace Root Path",   description: "Absolute filesystem path to the repository root. Every engine operation runs relative to this directory.", tab: "workspace", tabLabel: "Workspace",   icon: FolderOpen, keywords: ["root path","repo root","filesystem","absolute path","aos init","reindex"] },
-  { id: "git.enabled",     label: "Git Enabled",           description: "Toggle git operations for this workspace.",                      tab: "git",       tabLabel: "Git",         icon: GitBranch },
-  { id: "git.repo_state",  label: "Repository State",      description: "Create a new repo or attach an existing one at the workspace root.", tab: "git", tabLabel: "Git",         icon: FolderOpen, keywords: ["init","initialize","attach","create repo"] },
-  { id: "git.branch",      label: "Default Branch",        description: "Branch name used when AOS creates a new repository.",           tab: "git",       tabLabel: "Git",         icon: GitBranch, keywords: ["main","master","branch name"] },
-  { id: "git.gitignore",   label: "Initialize .gitignore", description: "Standard ignore rules for Node / Python / AOS artifacts.",      tab: "git",       tabLabel: "Git",         icon: FileJson },
+  { id: "git.repo_state",  label: "Repository State",      description: "Bootstrap or attach the git repository at the workspace root.", tab: "git", tabLabel: "Git",         icon: FolderOpen, keywords: ["init","initialize","attach","create repo","bootstrap"] },
   { id: "git.remote_url",  label: "Origin Remote URL",     description: "The upstream URL AOS fetches and pushes to.",                   tab: "git",       tabLabel: "Git",         icon: Globe,     keywords: ["origin","remote","github","gitlab"] },
   { id: "git.commit_policy", label: "Commit Policy",        description: "Fixed invariant: one task = one commit. per_phase and manual are not supported.", tab: "git", tabLabel: "Git", icon: GitCommit, keywords: ["commit","per_task","atomic","invariant"] },
   { id: "git.autopush",      label: "Auto-push Policy",     description: "Controls when AOS pushes committed branches to origin.",        tab: "git",       tabLabel: "Git",         icon: Globe,     keywords: ["push","sync","auto push"] },
@@ -2898,7 +3027,7 @@ const OVERVIEW_CATEGORY_CARDS = [
   { id: "config",    label: "AOS Config",   description: "Core execution, context, and verification key/value settings.",      icon: FileJson,  count: 10, accent: "border-primary/20 hover:border-primary/40 hover:bg-primary/5", iconColor: "text-primary" },
   { id: "engine",    label: "Engine Host",  description: "Local engine process address, restart policy, and log level.",       icon: Server,    count: 4,  accent: "border-border/40 hover:border-border hover:bg-muted/20",       iconColor: "text-muted-foreground" },
   { id: "providers", label: "Providers",    description: "API keys and default model selection for each LLM provider.",        icon: Cpu,       count: 4,  accent: "border-border/40 hover:border-border hover:bg-muted/20",       iconColor: "text-muted-foreground" },
-  { id: "git",       label: "Git",          description: "Repository setup, upstream remote, credentials, and push policy.",   icon: GitBranch, count: 8,  accent: "border-border/40 hover:border-border hover:bg-muted/20",       iconColor: "text-muted-foreground" },
+  { id: "git",       label: "Git",          description: "Repository setup, upstream remote, credentials, and push policy.",   icon: GitBranch, count: 6,  accent: "border-border/40 hover:border-border hover:bg-muted/20",       iconColor: "text-muted-foreground" },
 ] as const;
 
 const OVERVIEW_TAB_ACCENT: Record<string, string> = {

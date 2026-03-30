@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\nirmata.Data\nirmata.Data.csproj" />
     <ProjectReference Include="..\nirmata.Common\nirmata.Common.csproj" />
   </ItemGroup>

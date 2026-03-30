@@ -1,4 +1,4 @@
-@nirmata.Api_HostAddress = http://localhost:5221
+@nirmata.Api_HostAddress = https://localhost:7138
 
 ### Get Health (Simple)
 GET {{nirmata.Api_HostAddress}}/health

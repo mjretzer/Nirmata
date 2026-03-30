@@ -6,7 +6,7 @@
  * DomainClient   — Workspace data endpoints (nirmata.Api, separate service/port).
  *
  * Routing rule (enforced at this layer):
- *   Daemon/host/service lifecycle features → DaemonClient (VITE_DAEMON_URL, default http://localhost:9000)
+ *   Daemon/host/service lifecycle features → DaemonClient (VITE_DAEMON_URL, default https://localhost:9000)
  *   Domain data features (workspaces/spec/tasks/runs/issues) → DomainClient (VITE_DOMAIN_URL, TBD)
  *
  * No third-party HTTP library is needed; native fetch covers all requirements.
@@ -18,7 +18,7 @@ import { DAEMON_BASE_URL, DOMAIN_BASE_URL } from "../api/routing";
  * Hook → Endpoint routing manifest
  *
  * ══════════════════════════════════════════════════════════════════════
- * DAEMON API  —  nirmata.Windows.Service.Api  (VITE_DAEMON_URL = http://localhost:9000)
+ * DAEMON API  —  nirmata.Windows.Service.Api  (VITE_DAEMON_URL = https://localhost:9000)
  * ══════════════════════════════════════════════════════════════════════
  *
  * Routed via DaemonClient:
@@ -43,6 +43,8 @@ import { DAEMON_BASE_URL, DOMAIN_BASE_URL } from "../api/routing";
  * Routed via DomainClient:
  *   useWorkspaces()             GET  /v1/workspaces                                        → WorkspaceSummary[]
  *   useWorkspace(id)            GET  /v1/workspaces/:id                                    → WorkspaceSummary
+ *   useBootstrapWorkspace()     POST /v1/workspaces/bootstrap                              → WorkspaceBootstrapResult
+ *   useGitHubWorkspaceBootstrap() POST /v1/github/bootstrap/start                          → GitHubWorkspaceBootstrapStartResponse
  *   useMilestones(wsId)         GET  /v1/workspaces/:id/spec/milestones                   → MilestoneSummary[]
  *   usePhases(wsId)             GET  /v1/workspaces/:id/spec/phases                       → PhaseSummary[]
  *   useTasks(wsId, filters?)    GET  /v1/workspaces/:id/spec/tasks                        → TaskSummary[]
@@ -117,6 +119,30 @@ export interface WorkspaceSummary {
 export interface WorkspaceCreateRequest {
   name: string;
   path: string;
+}
+
+export interface WorkspaceUpdateRequest {
+  path: string;
+}
+
+export interface WorkspaceBootstrapResult {
+  success: boolean;
+  gitRepositoryCreated: boolean;
+  aosScaffoldCreated: boolean;
+  originConfigured?: boolean;
+  error?: string | null;
+  failureKind?: string;
+}
+
+export interface GitHubWorkspaceBootstrapStartRequest {
+  path: string;
+  name: string;
+  repositoryName?: string;
+  isPrivate?: boolean;
+}
+
+export interface GitHubWorkspaceBootstrapStartResponse {
+  authorizeUrl: string;
 }
 
 export interface TaskSummary {
@@ -595,7 +621,14 @@ export interface ApiFailureDiagnostic {
 
 function inferSuggestedFix(endpoint: string, status: number): string {
   if (endpoint.includes("/api/v1/health") || endpoint.includes("/api/v1/commands") || endpoint.includes("/api/v1/service/host-profile")) {
-    return "Check that the daemon is running, the base URL matches your dev config, and CORS allows http://localhost:5173.";
+    return "Check that the daemon is running, the base URL matches your dev config, and CORS allows https://localhost:8443.";
+  }
+
+  if (endpoint.includes("/v1/github/bootstrap")) {
+    if (status === 400) {
+      return "Check the GitHub OAuth client configuration (GitHub:ClientId, GitHub:ClientSecret) and confirm the callback URL is registered in your GitHub OAuth app.";
+    }
+    return "GitHub authorization failed. Check the OAuth app configuration and retry the connection.";
   }
 
   if (endpoint.includes("/v1/workspaces/")) {
@@ -714,9 +747,13 @@ export class BaseApiClient {
           } catch {
             body = await res.text().catch(() => undefined);
           }
+          const problemDetail =
+            typeof body === "object" && body !== null
+              ? ((body as Record<string, unknown>)["detail"] as string | undefined)
+              : undefined;
           throw new ApiError(
             res.status,
-            `HTTP ${res.status}: ${res.statusText}`,
+            problemDetail ?? `HTTP ${res.status}: ${res.statusText}`,
             body,
             url,
             inferSuggestedFix(url, res.status),
@@ -879,6 +916,27 @@ export class DomainClient extends BaseApiClient {
   createWorkspace(req: WorkspaceCreateRequest): Promise<WorkspaceSummary> {
     return this.request<WorkspaceSummary>("/v1/workspaces", {
       method: "POST",
+      body: JSON.stringify(req),
+    });
+  }
+
+  bootstrapWorkspace(path: string): Promise<WorkspaceBootstrapResult> {
+    return this.request<WorkspaceBootstrapResult>("/v1/workspaces/bootstrap", {
+      method: "POST",
+      body: JSON.stringify({ path }),
+    });
+  }
+
+  startGitHubWorkspaceBootstrap(req: GitHubWorkspaceBootstrapStartRequest): Promise<GitHubWorkspaceBootstrapStartResponse> {
+    return this.request<GitHubWorkspaceBootstrapStartResponse>("/v1/github/bootstrap/start", {
+      method: "POST",
+      body: JSON.stringify(req),
+    });
+  }
+
+  updateWorkspace(workspaceId: string, req: WorkspaceUpdateRequest): Promise<WorkspaceSummary> {
+    return this.request<WorkspaceSummary>(`/v1/workspaces/${encodeURIComponent(workspaceId)}`, {
+      method: "PUT",
       body: JSON.stringify(req),
     });
   }

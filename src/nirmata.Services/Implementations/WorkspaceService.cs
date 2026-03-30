@@ -43,6 +43,23 @@ public sealed class WorkspaceService : IWorkspaceService
             throw;
         }
 
+        try
+        {
+            ValidateGitBacked(normalizedPath);
+        }
+        catch (ValidationFailedException ex)
+        {
+            _logger.LogWarning("Workspace registration rejected — path is not git-backed '{Path}': {Reason}", normalizedPath, ex.Message);
+            throw;
+        }
+
+        var existing = await _workspaceRepository.GetByPathAsync(normalizedPath, cancellationToken);
+        if (existing is not null)
+        {
+            _logger.LogInformation("Workspace registration reused existing entry for path '{Path}'", normalizedPath);
+            return ToSummary(existing);
+        }
+
         var workspace = new Workspace
         {
             Id = Guid.NewGuid(),
@@ -71,6 +88,16 @@ public sealed class WorkspaceService : IWorkspaceService
         catch (ValidationFailedException ex)
         {
             _logger.LogWarning("Workspace path update rejected for {WorkspaceId} — invalid path '{Path}': {Reason}", id, newPath, ex.Message);
+            throw;
+        }
+
+        try
+        {
+            ValidateGitBacked(normalizedPath);
+        }
+        catch (ValidationFailedException ex)
+        {
+            _logger.LogWarning("Workspace path update rejected for {WorkspaceId} — path is not git-backed '{Path}': {Reason}", id, normalizedPath, ex.Message);
             throw;
         }
 
@@ -150,8 +177,9 @@ public sealed class WorkspaceService : IWorkspaceService
             if (!Directory.Exists(path))
                 return WorkspaceStatus.Missing;
 
+            var gitPath = Path.Combine(path, ".git");
             var aosPath = Path.Combine(path, ".aos");
-            return Directory.Exists(aosPath)
+            return Directory.Exists(gitPath) && Directory.Exists(aosPath)
                 ? WorkspaceStatus.Initialized
                 : WorkspaceStatus.NotInitialized;
         }
@@ -163,5 +191,23 @@ public sealed class WorkspaceService : IWorkspaceService
         {
             return WorkspaceStatus.Inaccessible;
         }
+    }
+
+    /// <summary>
+    /// Throws <see cref="ValidationFailedException"/> if <paramref name="normalizedPath"/>
+    /// exists on disk but does not contain a <c>.git/</c> directory.
+    /// Paths that do not exist yet are allowed — they will appear as <see cref="WorkspaceStatus.Missing"/>
+    /// until the folder is bootstrapped.
+    /// </summary>
+    private static void ValidateGitBacked(string normalizedPath)
+    {
+        if (!Directory.Exists(normalizedPath))
+            return;
+
+        var gitPath = Path.Combine(normalizedPath, ".git");
+        if (!Directory.Exists(gitPath))
+            throw new ValidationFailedException(
+                $"The path '{normalizedPath}' is not a git repository. " +
+                "Run bootstrap to initialize git and AOS workspace scaffolding before registering a workspace.");
     }
 }

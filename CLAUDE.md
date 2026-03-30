@@ -1,26 +1,26 @@
 # Nirmata Project Context
 
-@documents/architecture/solution.md
-@documents/architecture/data-flow.md
-@documents/architecture/schemas.md
+@docs/architecture/solution.md
+@docs/architecture/data-flow.md
+@docs/architecture/schemas.md
 
-@documents/workflows/gating.md
-@documents/workflows/quick-start.md
-@documents/workflows/routing.md
+@docs/workflows/gating.md
+@docs/workflows/quick-start.md
+@docs/workflows/routing.md
 
-@documents/agents/orchestrator.md
-@documents/agents/planning.md
-@documents/agents/execution.md
-@documents/agents/verification.md
-@documents/agents/scope.md
-@documents/agents/milestones.md
-@documents/agents/brownfield.md
-@documents/agents/continuity.md
-@documents/agents/backlog.md
-@documents/agents/help.md
+@docs/agents/orchestrator.md
+@docs/agents/planning.md
+@docs/agents/execution.md
+@docs/agents/verification.md
+@docs/agents/scope.md
+@docs/agents/milestones.md
+@docs/agents/brownfield.md
+@docs/agents/continuity.md
+@docs/agents/backlog.md
+@docs/agents/help.md
 
-@documents/cli/commands.md
-@documents/cli/workspace-layout.md
+@docs/cli/commands.md
+@docs/cli/workspace-layout.md
 
 ## OpenSpec Commands
 To use OpenSpec in this terminal, prefix commands with `!`:

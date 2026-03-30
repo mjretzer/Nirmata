@@ -39,7 +39,7 @@ internal sealed class InProcDaemonApiService : IHostedService, IAsyncDisposable
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        var listenUrl = _configuration["InProcDaemonApi:BaseUrl"] ?? "http://localhost:9000";
+        var listenUrl = _configuration["InProcDaemonApi:BaseUrl"] ?? "https://localhost:9000";
         _logger.LogInformation("Starting in-proc daemon API on {Url}", listenUrl);
 
         var builder = WebApplication.CreateBuilder();

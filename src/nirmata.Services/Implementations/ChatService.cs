@@ -1,5 +1,8 @@
+using System.Text.Json;
 using nirmata.Data.Dto.Models.Chat;
 using nirmata.Data.Dto.Models.OrchestratorGate;
+using nirmata.Data.Entities.Chat;
+using nirmata.Data.Repositories;
 using nirmata.Services.Interfaces;
 
 namespace nirmata.Services.Implementations;
@@ -12,6 +15,15 @@ public sealed class ChatService : IChatService
 {
     private readonly IWorkspaceService _workspaceService;
     private readonly IOrchestratorGateService _orchestratorGateService;
+    private readonly IChatMessageRepository _chatMessageRepository;
+    private readonly IStateService _stateService;
+
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = false,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+    };
 
     // Recognised workflow command tokens (case-insensitive). Input that starts with one
     // of these — with or without a leading "aos " prefix — is treated as command mode.
@@ -42,10 +54,14 @@ public sealed class ChatService : IChatService
 
     public ChatService(
         IWorkspaceService workspaceService,
-        IOrchestratorGateService orchestratorGateService)
+        IOrchestratorGateService orchestratorGateService,
+        IChatMessageRepository chatMessageRepository,
+        IStateService stateService)
     {
         _workspaceService = workspaceService;
         _orchestratorGateService = orchestratorGateService;
+        _chatMessageRepository = chatMessageRepository;
+        _stateService = stateService;
     }
 
     // ── IChatService ──────────────────────────────────────────────────────────
@@ -58,14 +74,33 @@ public sealed class ChatService : IChatService
             return null;
 
         var gate = await _orchestratorGateService.GetGateAsync(root, cancellationToken);
+        var rows = await _chatMessageRepository.GetByWorkspaceIdAsync(workspaceId, cancellationToken);
 
         return new ChatSnapshotDto
         {
-            Messages = [],
+            Messages = rows.Select(MapToDto).ToList(),
             CommandSuggestions = BuildSuggestions(gate),
             QuickActions = BuildQuickActions(gate),
         };
     }
+
+    private static OrchestratorMessageDto MapToDto(ChatMessage message) => new()
+    {
+        Role      = message.Role,
+        Content   = message.Content,
+        Gate      = message.GateJson is not null
+                        ? JsonSerializer.Deserialize<OrchestratorGateDto>(message.GateJson, _jsonOptions)
+                        : null,
+        Artifacts = JsonSerializer.Deserialize<IReadOnlyList<string>>(message.ArtifactsJson, _jsonOptions) ?? [],
+        Timeline  = message.TimelineJson is not null
+                        ? JsonSerializer.Deserialize<OrchestratorTimelineDto>(message.TimelineJson, _jsonOptions)
+                        : null,
+        NextCommand = message.NextCommand,
+        RunId       = message.RunId,
+        Logs        = JsonSerializer.Deserialize<IReadOnlyList<string>>(message.LogsJson, _jsonOptions) ?? [],
+        Timestamp   = message.Timestamp,
+        AgentId     = message.AgentId,
+    };
 
     public async Task<OrchestratorMessageDto?> ProcessTurnAsync(
         Guid workspaceId, string input, CancellationToken cancellationToken = default)
@@ -74,6 +109,31 @@ public sealed class ChatService : IChatService
         if (root is null)
             return null;
 
+        // Generate a shared turn ID that correlates the user row, assistant row, and both events.
+        var turnId = Guid.NewGuid().ToString();
+        var submittedAt = DateTimeOffset.UtcNow;
+
+        // ── Persist user turn ─────────────────────────────────────────────────
+        var userMessageId = Guid.NewGuid();
+        var userMessage = new ChatMessage
+        {
+            Id = userMessageId,
+            WorkspaceId = workspaceId,
+            Role = "user",
+            Content = input.Trim(),
+            RunId = turnId,
+            Timestamp = submittedAt,
+        };
+        _chatMessageRepository.Add(userMessage);
+        await _chatMessageRepository.SaveChangesAsync(cancellationToken);
+
+        await _stateService.AppendEventAsync(
+            root,
+            "chat.turn.submitted",
+            new { turnId, workspaceId, messageId = userMessageId },
+            cancellationToken: cancellationToken);
+
+        // ── Process the turn ──────────────────────────────────────────────────
         var normalized = NormalizeInput(input);
         var isCommand = IsCommandInput(normalized);
 
@@ -84,6 +144,32 @@ public sealed class ChatService : IChatService
             ? BuildCommandContent(normalized, gate)
             : BuildConversationalContent(input.Trim(), gate);
 
+        var respondedAt = DateTimeOffset.UtcNow;
+
+        // ── Persist assistant turn ────────────────────────────────────────────
+        var assistantMessageId = Guid.NewGuid();
+        var assistantMessage = new ChatMessage
+        {
+            Id = assistantMessageId,
+            WorkspaceId = workspaceId,
+            Role = "assistant",
+            Content = content,
+            GateJson = JsonSerializer.Serialize(gate, _jsonOptions),
+            TimelineJson = timeline is null ? null : JsonSerializer.Serialize(timeline, _jsonOptions),
+            NextCommand = gate.RecommendedAction,
+            RunId = turnId,
+            AgentId = "orchestrator",
+            Timestamp = respondedAt,
+        };
+        _chatMessageRepository.Add(assistantMessage);
+        await _chatMessageRepository.SaveChangesAsync(cancellationToken);
+
+        await _stateService.AppendEventAsync(
+            root,
+            "chat.turn.responded",
+            new { turnId, workspaceId, messageId = assistantMessageId },
+            cancellationToken: cancellationToken);
+
         return new OrchestratorMessageDto
         {
             Role = "assistant",
@@ -91,7 +177,7 @@ public sealed class ChatService : IChatService
             Gate = gate,
             Timeline = timeline,
             NextCommand = gate.RecommendedAction,
-            Timestamp = DateTimeOffset.UtcNow,
+            Timestamp = respondedAt,
             AgentId = "orchestrator",
         };
     }

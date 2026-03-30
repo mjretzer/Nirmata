@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { renderHook, waitFor, act, render, screen } from "@testing-library/react";
+import { renderHook, waitFor, act, render, screen, fireEvent } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router";
 import { WorkspaceLauncherPage } from "../../pages/WorkspaceLauncherPage";
@@ -160,6 +160,34 @@ describe("WorkspaceContext — health poll", () => {
 describe("WorkspaceContext — startup console noise", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("opens the launcher workspace picker when Open Folder is clicked", async () => {
+    const workspacesSpy = vi.spyOn(domainClient, "getWorkspaces").mockResolvedValue([
+      {
+        id: "550e8400-e29b-41d4-a716-446655440010",
+        name: "alpha",
+        path: "C:\\Users\\James Lestler\\Desktop\\Projects\\alpha",
+        status: "healthy",
+        lastModified: new Date().toISOString(),
+      } as never,
+    ]);
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({ ok: true, version: "1.0.0", uptimeMs: 42 }),
+        { status: 200 },
+      ),
+    );
+
+    render(<WorkspaceLauncherPage />, { wrapper: startupWrapper });
+
+    await waitFor(() => expect(workspacesSpy).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole("button", { name: /open an existing workspace folder/i }));
+
+    expect(await screen.findByRole("heading", { name: /open a workspace/i })).toBeInTheDocument();
+    expect(screen.getByText("alpha")).toBeInTheDocument();
   });
 
   it("keeps the browser console quiet during root startup", async () => {

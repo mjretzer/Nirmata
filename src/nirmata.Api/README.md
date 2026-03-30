@@ -47,11 +47,20 @@ cd src/nirmata.Api
 dotnet run
 ```
 
-The API starts on:
-- **HTTP**: `http://localhost:5221`
-- **HTTPS**: `https://localhost:7138`
+The API starts on **HTTPS**: `https://localhost:7138`
 
-Swagger UI is available at `http://localhost:5221/swagger`.
+Swagger UI is available at `https://localhost:7138/swagger`.
+
+### HTTPS browser origin
+
+The GitHub connect flow expects the browser to use the secure origin `https://localhost:8443` during local development.
+When GitHub redirects back after authorization, it should return to the API callback endpoint:
+
+```
+https://localhost:7138/v1/github/bootstrap/callback
+```
+
+Register that callback URL in your GitHub OAuth app when testing the connect flow locally.
 
 ## Endpoints
 
@@ -70,7 +79,7 @@ See the HTTP test file at `nirmata.Api.http` for example requests.
 The React frontend (`nirmata.frontend/`) targets this API via the `VITE_DOMAIN_URL` environment variable. Add it to `nirmata.frontend/.env.local`:
 
 ```
-VITE_DOMAIN_URL=http://localhost:5221
+VITE_DOMAIN_URL=https://localhost:7138
 ```
 
 See `documents/architecture/data-flow.md` for the full frontend routing rules.

@@ -17,6 +17,13 @@ public sealed class StateService : IStateService
         PropertyNameCaseInsensitive = true,
     };
 
+    private static readonly JsonSerializerOptions WriteOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = false,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+    };
+
     public async Task<ContinuityStateDto?> GetStateAsync(
         string workspaceRoot, CancellationToken cancellationToken = default)
     {
@@ -265,6 +272,39 @@ public sealed class StateService : IStateService
         return results;
     }
 
+    public async Task AppendEventAsync(
+        string workspaceRoot,
+        string type,
+        object? payload = null,
+        IReadOnlyList<string>? references = null,
+        CancellationToken cancellationToken = default)
+    {
+        var eventsFile = Path.Combine(workspaceRoot, ".aos", "state", "events.ndjson");
+        var stateDir = Path.GetDirectoryName(eventsFile)!;
+
+        if (!Directory.Exists(stateDir))
+            return;
+
+        var entry = new EventWriteModel
+        {
+            Type = type,
+            Timestamp = DateTimeOffset.UtcNow,
+            Payload = payload is null ? null : JsonSerializer.SerializeToElement(payload, WriteOptions),
+            References = (references is { Count: > 0 }) ? references : null,
+        };
+
+        var line = JsonSerializer.Serialize(entry, WriteOptions) + "\n";
+
+        try
+        {
+            await File.AppendAllTextAsync(eventsFile, line, cancellationToken);
+        }
+        catch (IOException)
+        {
+            // Resilient — event write failure does not abort the caller's operation.
+        }
+    }
+
     private static async IAsyncEnumerable<string> ReadLinesAsync(
         string path,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
@@ -276,7 +316,7 @@ public sealed class StateService : IStateService
     }
 
     // ── Private JSON deserialization models ───────────────────────────────────
-    // Mirror the AOS state.json schema (documents/architecture/schemas.md).
+    // Mirror the AOS state.json schema (docs/architecture/schemas.md).
 
     private sealed class StateFileModel
     {
@@ -341,6 +381,14 @@ public sealed class StateService : IStateService
     {
         public string? Type { get; init; }
         public DateTimeOffset? Timestamp { get; init; }
+        public System.Text.Json.JsonElement? Payload { get; init; }
+        public IReadOnlyList<string>? References { get; init; }
+    }
+
+    private sealed class EventWriteModel
+    {
+        public string? Type { get; init; }
+        public DateTimeOffset Timestamp { get; init; }
         public System.Text.Json.JsonElement? Payload { get; init; }
         public IReadOnlyList<string>? References { get; init; }
     }

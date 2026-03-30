@@ -24,6 +24,8 @@ vi.mock("sonner", () => ({
 
 import { domainClient } from "../../utils/apiClient";
 
+const WORKSPACE_ID = "550e8400-e29b-41d4-a716-446655440000";
+
 describe("useChatMessages", () => {
   afterEach(() => {
     vi.clearAllMocks();
@@ -73,7 +75,7 @@ describe("useChatMessages", () => {
 
       vi.mocked(domainClient.getChatSnapshot).mockResolvedValue(mockSnapshot);
 
-      const { result } = renderHook(() => useChatMessages("test-workspace-id"));
+      const { result } = renderHook(() => useChatMessages(WORKSPACE_ID));
 
       expect(result.current.isLoading).toBe(true);
       
@@ -81,7 +83,7 @@ describe("useChatMessages", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(domainClient.getChatSnapshot).toHaveBeenCalledWith("test-workspace-id");
+      expect(domainClient.getChatSnapshot).toHaveBeenCalledWith(WORKSPACE_ID);
       expect(result.current.messages).toHaveLength(1);
       expect(result.current.messages[0]).toMatchObject({
         role: "assistant",
@@ -103,10 +105,119 @@ describe("useChatMessages", () => {
       });
     });
 
+    it("sets command field on persisted user messages with aos content", async () => {
+      const mockSnapshot = {
+        messages: [
+          {
+            role: "user",
+            content: "aos status",
+            timestamp: "2024-01-01T00:00:00Z",
+            agentId: null,
+            gate: null,
+            artifacts: [],
+            timeline: null,
+            nextCommand: null,
+            runId: null,
+            logs: [],
+          },
+          {
+            role: "user",
+            content: "hello world",
+            timestamp: "2024-01-01T00:01:00Z",
+            agentId: null,
+            gate: null,
+            artifacts: [],
+            timeline: null,
+            nextCommand: null,
+            runId: null,
+            logs: [],
+          },
+        ],
+        commandSuggestions: [],
+        quickActions: [],
+      };
+
+      vi.mocked(domainClient.getChatSnapshot).mockResolvedValue(mockSnapshot);
+
+      const { result } = renderHook(() => useChatMessages(WORKSPACE_ID));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const aosMessage = result.current.messages.find(m => m.content === "aos status");
+      expect(aosMessage?.command).toBe("aos status");
+
+      const chatMessage = result.current.messages.find(m => m.content === "hello world");
+      expect(chatMessage?.command).toBeUndefined();
+    });
+
+    it("maps gate from recommendedAction for persisted assistant messages", async () => {
+      const mockSnapshot = {
+        messages: [
+          {
+            role: "assistant",
+            content: "Ready to plan next phase",
+            timestamp: "2024-01-01T00:00:00Z",
+            agentId: "orchestrator",
+            gate: { runnable: true, taskId: null, taskTitle: null, checks: [], recommendedAction: "plan-phase PH-0002" },
+            artifacts: [],
+            timeline: null,
+            nextCommand: "plan-phase PH-0002",
+            runId: null,
+            logs: [],
+          },
+          {
+            role: "assistant",
+            content: "Running tasks",
+            timestamp: "2024-01-01T00:01:00Z",
+            agentId: "orchestrator",
+            gate: { runnable: true, taskId: "TSK-000001", taskTitle: "Init", checks: [], recommendedAction: "execute-plan" },
+            artifacts: [],
+            timeline: null,
+            nextCommand: "execute-plan",
+            runId: null,
+            logs: [],
+          },
+          {
+            role: "assistant",
+            content: "No next action",
+            timestamp: "2024-01-01T00:02:00Z",
+            agentId: "orchestrator",
+            gate: null,
+            artifacts: [],
+            timeline: null,
+            nextCommand: null,
+            runId: null,
+            logs: [],
+          },
+        ],
+        commandSuggestions: [],
+        quickActions: [],
+      };
+
+      vi.mocked(domainClient.getChatSnapshot).mockResolvedValue(mockSnapshot);
+
+      const { result } = renderHook(() => useChatMessages(WORKSPACE_ID));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const plannerMsg = result.current.messages.find(m => m.content === "Ready to plan next phase");
+      expect(plannerMsg?.gate).toBe("planner");
+
+      const executorMsg = result.current.messages.find(m => m.content === "Running tasks");
+      expect(executorMsg?.gate).toBe("executor");
+
+      const noGateMsg = result.current.messages.find(m => m.content === "No next action");
+      expect(noGateMsg?.gate).toBeUndefined();
+    });
+
     it("handles API errors gracefully", async () => {
       vi.mocked(domainClient.getChatSnapshot).mockRejectedValue(new Error("API Error"));
 
-      const { result } = renderHook(() => useChatMessages("test-workspace-id"));
+      const { result } = renderHook(() => useChatMessages(WORKSPACE_ID));
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -156,7 +267,7 @@ describe("useChatMessages", () => {
       vi.mocked(domainClient.getChatSnapshot).mockResolvedValue(mockSnapshot);
       vi.mocked(domainClient.postChatTurn).mockResolvedValue(mockResponse);
 
-      const { result } = renderHook(() => useChatMessages("test-workspace-id"));
+      const { result } = renderHook(() => useChatMessages(WORKSPACE_ID));
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -167,7 +278,7 @@ describe("useChatMessages", () => {
         await result.current.submitTurn("aos status");
       });
 
-      expect(domainClient.postChatTurn).toHaveBeenCalledWith("test-workspace-id", "aos status");
+      expect(domainClient.postChatTurn).toHaveBeenCalledWith(WORKSPACE_ID, "aos status");
       
       // Should have user message + assistant response
       expect(result.current.messages).toHaveLength(2);
@@ -216,7 +327,7 @@ describe("useChatMessages", () => {
         () => new Promise(resolve => setTimeout(() => resolve(mockResponse), 100))
       );
 
-      const { result } = renderHook(() => useChatMessages("test-workspace-id"));
+      const { result } = renderHook(() => useChatMessages(WORKSPACE_ID));
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -259,7 +370,7 @@ describe("useChatMessages", () => {
       vi.mocked(domainClient.getChatSnapshot).mockResolvedValue(mockSnapshot);
       vi.mocked(domainClient.postChatTurn).mockRejectedValue(new Error("Submission failed"));
 
-      const { result } = renderHook(() => useChatMessages("test-workspace-id"));
+      const { result } = renderHook(() => useChatMessages(WORKSPACE_ID));
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -287,7 +398,7 @@ describe("useChatMessages", () => {
         () => new Promise(resolve => setTimeout(() => resolve({}), 100))
       );
 
-      const { result } = renderHook(() => useChatMessages("test-workspace-id"));
+      const { result } = renderHook(() => useChatMessages(WORKSPACE_ID));
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -307,7 +418,7 @@ describe("useChatMessages", () => {
 
       // Should only call API once
       expect(domainClient.postChatTurn).toHaveBeenCalledTimes(1);
-      expect(domainClient.postChatTurn).toHaveBeenCalledWith("test-workspace-id", "first message");
+      expect(domainClient.postChatTurn).toHaveBeenCalledWith(WORKSPACE_ID, "first message");
     });
   });
 
@@ -353,7 +464,7 @@ describe("useChatMessages", () => {
       vi.mocked(domainClient.getChatSnapshot).mockResolvedValue(mockSnapshot);
       vi.mocked(domainClient.postChatTurn).mockResolvedValue(mockResponse);
 
-      const { result } = renderHook(() => useChatMessages("test-workspace-id"));
+      const { result } = renderHook(() => useChatMessages(WORKSPACE_ID));
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -411,7 +522,7 @@ describe("useChatMessages", () => {
       vi.mocked(domainClient.getChatSnapshot).mockResolvedValue(mockSnapshot);
       vi.mocked(domainClient.postChatTurn).mockResolvedValue(mockResponse);
 
-      const { result } = renderHook(() => useChatMessages("test-workspace-id"));
+      const { result } = renderHook(() => useChatMessages(WORKSPACE_ID));
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -465,7 +576,7 @@ describe("useChatMessages", () => {
       vi.mocked(domainClient.getChatSnapshot).mockResolvedValue(mockSnapshot);
       vi.mocked(domainClient.postChatTurn).mockResolvedValue(mockResponse);
 
-      const { result } = renderHook(() => useChatMessages("test-workspace-id"));
+      const { result } = renderHook(() => useChatMessages(WORKSPACE_ID));
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -523,7 +634,7 @@ describe("useChatMessages", () => {
         .mockResolvedValueOnce(updatedSnapshot);
       vi.mocked(domainClient.postChatTurn).mockResolvedValue(mockResponse);
 
-      const { result } = renderHook(() => useChatMessages("test-workspace-id"));
+      const { result } = renderHook(() => useChatMessages(WORKSPACE_ID));
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -569,7 +680,7 @@ describe("useChatMessages", () => {
         .mockRejectedValueOnce(new Error("Refresh failed"));
       vi.mocked(domainClient.postChatTurn).mockResolvedValue(mockResponse);
 
-      const { result } = renderHook(() => useChatMessages("test-workspace-id"));
+      const { result } = renderHook(() => useChatMessages(WORKSPACE_ID));
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -604,7 +715,7 @@ describe("useChatMessages", () => {
         .mockResolvedValueOnce(mockSnapshot1)
         .mockResolvedValueOnce(mockSnapshot2);
 
-      const { result } = renderHook(() => useChatMessages("test-workspace-id"));
+      const { result } = renderHook(() => useChatMessages(WORKSPACE_ID));
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -621,6 +732,125 @@ describe("useChatMessages", () => {
       });
 
       expect(domainClient.getChatSnapshot).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("Optimistic submission reconciliation", () => {
+    it("replaces optimistic messages with server canonical list when snapshot contains the persisted response", async () => {
+      const emptySnapshot = {
+        messages: [],
+        commandSuggestions: [],
+        quickActions: [],
+      };
+
+      const mockResponse = {
+        role: "assistant",
+        content: "Command received: `aos status`",
+        timestamp: "2024-01-01T00:01:00Z",
+        agentId: "orchestrator",
+        gate: null,
+        artifacts: [],
+        timeline: null,
+        nextCommand: null,
+        runId: null,
+        logs: [],
+      };
+
+      // Snapshot after the turn includes both the user and assistant turns persisted
+      const persistedSnapshot = {
+        messages: [
+          {
+            role: "user",
+            content: "aos status",
+            timestamp: "2024-01-01T00:00:30Z",
+            agentId: null,
+            gate: null,
+            artifacts: [],
+            timeline: null,
+            nextCommand: null,
+            runId: null,
+            logs: [],
+          },
+          { ...mockResponse },
+        ],
+        commandSuggestions: [],
+        quickActions: [],
+      };
+
+      vi.mocked(domainClient.getChatSnapshot)
+        .mockResolvedValueOnce(emptySnapshot)
+        .mockResolvedValueOnce(persistedSnapshot);
+      vi.mocked(domainClient.postChatTurn).mockResolvedValue(mockResponse);
+
+      const { result } = renderHook(() => useChatMessages(WORKSPACE_ID));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await act(async () => {
+        await result.current.submitTurn("aos status");
+      });
+
+      // After reconciliation the message list comes from the server snapshot
+      await waitFor(() => {
+        expect(result.current.messages).toHaveLength(2);
+      });
+
+      // The user message should have a server-canonical ID (timestamp-based), not a local one
+      const userMsg = result.current.messages.find((m) => m.role === "user");
+      expect(userMsg?.id).toBe("msg-2024-01-01T00:00:30Z-0");
+      expect(userMsg?.id).not.toMatch(/^msg-user-/);
+    });
+
+    it("keeps optimistic messages when snapshot does not include the submitted response", async () => {
+      const emptySnapshot = {
+        messages: [],
+        commandSuggestions: [],
+        quickActions: [],
+      };
+
+      const mockResponse = {
+        role: "assistant",
+        content: "Command received",
+        timestamp: "2024-01-01T00:01:00Z",
+        agentId: "orchestrator",
+        gate: null,
+        artifacts: [],
+        timeline: null,
+        nextCommand: null,
+        runId: null,
+        logs: [],
+      };
+
+      // Snapshot is stale — does not contain the turn we just submitted
+      const staleSnapshot = {
+        messages: [],
+        commandSuggestions: [],
+        quickActions: [],
+      };
+
+      vi.mocked(domainClient.getChatSnapshot)
+        .mockResolvedValueOnce(emptySnapshot)
+        .mockResolvedValueOnce(staleSnapshot);
+      vi.mocked(domainClient.postChatTurn).mockResolvedValue(mockResponse);
+
+      const { result } = renderHook(() => useChatMessages(WORKSPACE_ID));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await act(async () => {
+        await result.current.submitTurn("test message");
+      });
+
+      // Optimistic messages are kept: user message + API response
+      expect(result.current.messages).toHaveLength(2);
+
+      // User message should keep the locally generated ID
+      const userMsg = result.current.messages.find((m) => m.role === "user");
+      expect(userMsg?.id).toMatch(/^msg-user-/);
     });
   });
 });

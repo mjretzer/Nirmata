@@ -1,7 +1,7 @@
 {
-  "Gmsd.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Api",
-  "Gmsd.Common, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Common",
-  "Gmsd.Data, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Data",
-  "Gmsd.Data.Dto, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Data.Dto",
-  "Gmsd.Services, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\James Lestler\\Desktop\\Projects\\GMSD\\Gmsd.Services"
+  "nirmata.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Api",
+  "nirmata.Common, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Common",
+  "nirmata.Data, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Data",
+  "nirmata.Data.Dto, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Data.Dto",
+  "nirmata.Services, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\James Lestler\\Desktop\\Projects\\Nirmata\\src\\nirmata.Services"
 }

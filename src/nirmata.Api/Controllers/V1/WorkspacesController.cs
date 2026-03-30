@@ -11,15 +11,18 @@ namespace nirmata.Api.Controllers.V1;
 public class WorkspacesController : nirmataController
 {
     private readonly IWorkspaceService _workspaceService;
+    private readonly IWorkspaceBootstrapService _workspaceBootstrapService;
     private readonly ISpecService _specService;
     private readonly IFileSystemService _fileSystemService;
 
     public WorkspacesController(
         IWorkspaceService workspaceService,
+        IWorkspaceBootstrapService workspaceBootstrapService,
         ISpecService specService,
         IFileSystemService fileSystemService)
     {
         _workspaceService = workspaceService;
+        _workspaceBootstrapService = workspaceBootstrapService;
         _specService = specService;
         _fileSystemService = fileSystemService;
     }
@@ -47,6 +50,25 @@ public class WorkspacesController : nirmataController
     {
         var workspace = await _workspaceService.RegisterAsync(request.Name, request.Path, cancellationToken);
         return CreatedAtAction(nameof(GetWorkspaceById), new { workspaceId = workspace.Id }, workspace);
+    }
+
+    /// <summary>
+    /// Bootstraps a workspace root: creates or validates a git repository
+    /// then seeds any missing AOS scaffold directories.
+    /// Safe to call on an already-initialized workspace (idempotent).
+    /// </summary>
+    [HttpPost("bootstrap")]
+    [ProducesResponseType(typeof(WorkspaceBootstrapResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> BootstrapWorkspace(
+        [FromBody] WorkspaceBootstrapRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _workspaceBootstrapService.BootstrapAsync(request.Path, cancellationToken);
+        if (!result.Success)
+            return BadRequestResult(result.Error ?? "Bootstrap failed.");
+
+        return Ok(result);
     }
 
     /// <summary>

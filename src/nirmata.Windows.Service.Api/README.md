@@ -12,7 +12,9 @@ cd src/nirmata.Windows.Service.Api
 dotnet run
 ```
 
-The API starts on `http://localhost:9000` by default. Swagger UI is available at `http://localhost:9000/swagger`.
+The API starts on `https://localhost:9000` by default. Swagger UI is available at `https://localhost:9000/swagger`.
+
+When you run the frontend over HTTPS for GitHub OAuth, allow the secure browser origin `https://localhost:8443` in the daemon CORS settings.
 
 ---
 
@@ -22,12 +24,12 @@ The API starts on `http://localhost:9000` by default. Swagger UI is available at
 
 | Key | Env var | Default | Purpose |
 |---|---|---|---|
-| `DaemonApi:BaseUrl` | `DaemonApi__BaseUrl` | `http://localhost:9000` | Listening URL for this process |
+| `DaemonApi:BaseUrl` | `DaemonApi__BaseUrl` | `https://localhost:9000` | Listening URL for this process |
 
 Override via environment variable:
 
 ```bash
-DaemonApi__BaseUrl=http://localhost:9001 dotnet run
+DaemonApi__BaseUrl=https://localhost:9001 dotnet run
 ```
 
 Or in `appsettings.Development.json`:
@@ -35,7 +37,7 @@ Or in `appsettings.Development.json`:
 ```json
 {
   "DaemonApi": {
-    "BaseUrl": "http://localhost:9001"
+    "BaseUrl": "https://localhost:9001"
   }
 }
 ```
@@ -44,26 +46,26 @@ Or in `appsettings.Development.json`:
 
 | Key | Env var | Default (dev) | Purpose |
 |---|---|---|---|
-| `Cors:AllowedOrigins` | `Cors__AllowedOrigins__0`, `__1`, … | `http://127.0.0.1:5173` | Origins allowed to call the daemon API |
+| `Cors:AllowedOrigins` | `Cors__AllowedOrigins__0`, `__1`, … | `https://localhost:8443` | Origins allowed to call the daemon API |
 
-The Vite dev server (`http://127.0.0.1:5173`) is pre-configured in `appsettings.Development.json`.
+The secure frontend origin (`https://localhost:8443`) is pre-configured in `appsettings.Development.json`.
 Production deployments must set `Cors:AllowedOrigins` explicitly (the base `appsettings.json` ships with an empty list).
 
 Override via environment variable (array syntax):
 
 ```bash
-Cors__AllowedOrigins__0=http://127.0.0.1:5173 dotnet run
+Cors__AllowedOrigins__0=https://localhost:8443 dotnet run
 ```
 
 ---
 
 ## Frontend wiring
 
-The frontend reads the daemon base URL from `VITE_DAEMON_URL` (defaults to `http://localhost:9000`).
+The frontend reads the daemon base URL from `VITE_DAEMON_URL` (defaults to `https://localhost:9000`).
 Set it in `nirmata.frontend/.env.local` if you run the daemon on a non-default port:
 
 ```
-VITE_DAEMON_URL=http://localhost:9001
+VITE_DAEMON_URL=https://localhost:9001
 ```
 
 ---
@@ -77,7 +79,7 @@ The recommended production shape runs two separate processes:
 | Process | Project | Role |
 |---|---|---|
 | Engine host | `nirmata.Windows.Service` | Long-lived worker/engine; runs as a Windows Service |
-| Daemon API | `nirmata.Windows.Service.Api` | HTTP API; exposes service lifecycle, host profile, and engine commands |
+| Daemon API | `nirmata.Windows.Service.Api` | HTTPS API; exposes service lifecycle, host profile, and engine commands |
 
 **Why separate processes:**
 - Failure isolation — an API crash does not kill the engine, and vice versa.
