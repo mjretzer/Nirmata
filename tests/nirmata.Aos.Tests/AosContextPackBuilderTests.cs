@@ -141,6 +141,223 @@ public sealed class AosContextPackBuilderTests
     }
 
     [Fact]
+    public void ContextPackBuild_EnforcesItemBudget_WithStableStopBehavior()
+    {
+        var tempRoot = CreateTempDirectory();
+        try
+        {
+            AosWorkspaceBootstrapper.EnsureInitialized(tempRoot);
+            var aosRootPath = Path.Combine(tempRoot, ".aos");
+
+            SeedTaskArtifacts(aosRootPath, "TSK-000001");
+
+            // MaxItems: 1 — only the driving artifact should be included; optional artifacts are excluded.
+            var pack = AosContextPackBuilder.Build(
+                aosRootPath,
+                packId: "PCK-0001",
+                mode: AosContextPackBuilder.ModeTask,
+                drivingId: "TSK-000001",
+                budget: new ContextPackBudget(MaxBytes: 0, MaxItems: 1)
+            );
+
+            Assert.Single(pack.Entries);
+            Assert.Equal(".aos/spec/tasks/TSK-000001/plan.json", pack.Entries[0].ContractPath);
+            Assert.Equal(1, pack.Summary.TotalItems);
+        }
+        finally
+        {
+            TryDeleteDirectory(tempRoot);
+        }
+    }
+
+    [Fact]
+    public void ContextPackBuild_IncludesDrivingArtifact_WhenMaxItemsIsZero()
+    {
+        // MaxItems = 0 MUST be treated as "no limit", not "admit nothing".
+        // The driving artifact must always be included.
+        var tempRoot = CreateTempDirectory();
+        try
+        {
+            AosWorkspaceBootstrapper.EnsureInitialized(tempRoot);
+            var aosRootPath = Path.Combine(tempRoot, ".aos");
+
+            SeedTaskArtifacts(aosRootPath, "TSK-000001");
+
+            var pack = AosContextPackBuilder.Build(
+                aosRootPath,
+                packId: "PCK-0001",
+                mode: AosContextPackBuilder.ModeTask,
+                drivingId: "TSK-000001",
+                budget: new ContextPackBudget(MaxBytes: 0, MaxItems: 0)
+            );
+
+            // All seeded artifacts should have been included (0 = unlimited).
+            Assert.NotEmpty(pack.Entries);
+            Assert.Equal(".aos/spec/tasks/TSK-000001/plan.json", pack.Entries[0].ContractPath);
+        }
+        finally
+        {
+            TryDeleteDirectory(tempRoot);
+        }
+    }
+
+    [Fact]
+    public void ContextPackBuild_DrivingArtifactIsAlwaysFirstEntry()
+    {
+        var tempRoot = CreateTempDirectory();
+        try
+        {
+            AosWorkspaceBootstrapper.EnsureInitialized(tempRoot);
+            var aosRootPath = Path.Combine(tempRoot, ".aos");
+
+            SeedTaskArtifacts(aosRootPath, "TSK-000001");
+
+            var pack = AosContextPackBuilder.Build(
+                aosRootPath,
+                packId: "PCK-0001",
+                mode: AosContextPackBuilder.ModeTask,
+                drivingId: "TSK-000001",
+                budget: new ContextPackBudget(MaxBytes: 0, MaxItems: 0)
+            );
+
+            Assert.Equal(".aos/spec/tasks/TSK-000001/plan.json", pack.Entries[0].ContractPath);
+        }
+        finally
+        {
+            TryDeleteDirectory(tempRoot);
+        }
+    }
+
+    [Fact]
+    public void ContextPackBuild_TaskMode_StaysBoundToTaskPlanContract()
+    {
+        var tempRoot = CreateTempDirectory();
+        try
+        {
+            AosWorkspaceBootstrapper.EnsureInitialized(tempRoot);
+            var aosRootPath = Path.Combine(tempRoot, ".aos");
+
+            SeedTaskArtifacts(aosRootPath, "TSK-000001");
+            SeedPhaseArtifacts(aosRootPath, "PH-0001");
+            SeedPhasePlanArtifact(aosRootPath, "PH-0001");
+
+            var pack = AosContextPackBuilder.Build(
+                aosRootPath,
+                packId: "PCK-0001",
+                mode: AosContextPackBuilder.ModeTask,
+                drivingId: "TSK-000001",
+                budget: new ContextPackBudget(MaxBytes: 0, MaxItems: 0)
+            );
+
+            Assert.Equal(".aos/spec/tasks/TSK-000001/plan.json", pack.Entries[0].ContractPath);
+            Assert.Collection(
+                pack.Entries.Select(entry => entry.ContractPath),
+                path => Assert.Equal(".aos/spec/tasks/TSK-000001/plan.json", path),
+                path => Assert.Equal(".aos/spec/tasks/TSK-000001/links.json", path),
+                path => Assert.Equal(".aos/spec/tasks/TSK-000001/task.json", path)
+            );
+            Assert.DoesNotContain(pack.Entries, entry => entry.ContractPath == ".aos/spec/phases/PH-0001/plan.json");
+            Assert.DoesNotContain(pack.Entries, entry => entry.ContractPath == ".aos/spec/phases/PH-0001/phase.json");
+        }
+        finally
+        {
+            TryDeleteDirectory(tempRoot);
+        }
+    }
+
+    [Fact]
+    public void ContextPackBuild_PhaseMode_IncludesDrivingArtifact_WhenMaxItemsIsZero()
+    {
+        var tempRoot = CreateTempDirectory();
+        try
+        {
+            AosWorkspaceBootstrapper.EnsureInitialized(tempRoot);
+            var aosRootPath = Path.Combine(tempRoot, ".aos");
+
+            SeedPhaseArtifacts(aosRootPath, "PH-0001");
+
+            var pack = AosContextPackBuilder.Build(
+                aosRootPath,
+                packId: "PCK-0001",
+                mode: AosContextPackBuilder.ModePhase,
+                drivingId: "PH-0001",
+                budget: new ContextPackBudget(MaxBytes: 0, MaxItems: 0)
+            );
+
+            Assert.Single(pack.Entries);
+            Assert.Equal(".aos/spec/phases/PH-0001/phase.json", pack.Entries[0].ContractPath);
+            Assert.Equal(1, pack.Summary.TotalItems);
+        }
+        finally
+        {
+            TryDeleteDirectory(tempRoot);
+        }
+    }
+
+    [Fact]
+    public void ContextPackBuild_PhaseMode_StaysBoundToPhaseSpecContract()
+    {
+        var tempRoot = CreateTempDirectory();
+        try
+        {
+            AosWorkspaceBootstrapper.EnsureInitialized(tempRoot);
+            var aosRootPath = Path.Combine(tempRoot, ".aos");
+
+            SeedPhaseArtifacts(aosRootPath, "PH-0001");
+            SeedPhasePlanArtifact(aosRootPath, "PH-0001");
+            SeedTaskArtifacts(aosRootPath, "TSK-000001");
+
+            var pack = AosContextPackBuilder.Build(
+                aosRootPath,
+                packId: "PCK-0001",
+                mode: AosContextPackBuilder.ModePhase,
+                drivingId: "PH-0001",
+                budget: new ContextPackBudget(MaxBytes: 0, MaxItems: 0)
+            );
+
+            Assert.Single(pack.Entries);
+            Assert.Equal(".aos/spec/phases/PH-0001/phase.json", pack.Entries[0].ContractPath);
+            Assert.DoesNotContain(pack.Entries, entry => entry.ContractPath == ".aos/spec/phases/PH-0001/plan.json");
+            Assert.DoesNotContain(pack.Entries, entry => entry.ContractPath == ".aos/spec/tasks/TSK-000001/plan.json");
+        }
+        finally
+        {
+            TryDeleteDirectory(tempRoot);
+        }
+    }
+
+    [Fact]
+    public void ContextPackWriter_BuildAndWriteNewPack_DoesNotDuplicateAosSegment()
+    {
+        var tempRoot = CreateTempDirectory();
+        try
+        {
+            AosWorkspaceBootstrapper.EnsureInitialized(tempRoot);
+            var aosRootPath = Path.Combine(tempRoot, ".aos");
+
+            SeedTaskArtifacts(aosRootPath, "TSK-000001");
+
+            var result = AosContextPackWriter.BuildAndWriteNewPack(
+                aosRootPath,
+                mode: AosContextPackBuilder.ModeTask,
+                drivingId: "TSK-000001",
+                budget: new ContextPackBudget(MaxBytes: 0, MaxItems: 0)
+            );
+
+            var expectedFilePath = Path.Combine(aosRootPath, "context", "packs", "PCK-0001.json");
+            Assert.Equal("PCK-0001", result.PackId);
+            Assert.Equal(".aos/context/packs/PCK-0001.json", result.ContractPath);
+            Assert.Equal(expectedFilePath, result.FilePath);
+            Assert.True(File.Exists(result.FilePath));
+            Assert.DoesNotContain(Path.Combine(".aos", ".aos"), result.FilePath, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            TryDeleteDirectory(tempRoot);
+        }
+    }
+
+    [Fact]
     public void ValidateWorkspace_ReportsSchemaIssues_ForInvalidContextPack()
     {
         var tempRoot = CreateTempDirectory();
@@ -188,6 +405,25 @@ public sealed class AosContextPackBuilderTests
         DeterministicJsonFileWriter.WriteCanonicalJsonTextOverwrite(taskJsonPath, $"{{\"schemaVersion\":1,\"id\":\"{taskId}\"}}");
         DeterministicJsonFileWriter.WriteCanonicalJsonTextOverwrite(planJsonPath, "{\"schemaVersion\":1,\"steps\":[]}");
         DeterministicJsonFileWriter.WriteCanonicalJsonTextOverwrite(linksJsonPath, "{\"schemaVersion\":1,\"links\":[]}");
+    }
+
+    private static void SeedPhaseArtifacts(string aosRootPath, string phaseId)
+    {
+        var phaseRoot = Path.Combine(aosRootPath, "spec", "phases", phaseId);
+        Directory.CreateDirectory(phaseRoot);
+
+        var phaseJsonPath = AosPathRouter.ToAosRootPath(aosRootPath, $".aos/spec/phases/{phaseId}/phase.json");
+
+        DeterministicJsonFileWriter.WriteCanonicalJsonTextOverwrite(phaseJsonPath, $"{{\"schemaVersion\":1,\"id\":\"{phaseId}\"}}");
+    }
+
+    private static void SeedPhasePlanArtifact(string aosRootPath, string phaseId)
+    {
+        var phaseRoot = Path.Combine(aosRootPath, "spec", "phases", phaseId);
+        Directory.CreateDirectory(phaseRoot);
+
+        var planJsonPath = AosPathRouter.ToAosRootPath(aosRootPath, $".aos/spec/phases/{phaseId}/plan.json");
+        DeterministicJsonFileWriter.WriteCanonicalJsonTextOverwrite(planJsonPath, "{\"schemaVersion\":1,\"tasks\":[]}");
     }
 
     private static void AssertNoUtf8Bom(byte[] bytes, string label)
@@ -272,7 +508,8 @@ public sealed class AosContextPackBuilderTests
         var dir = new DirectoryInfo(startPath);
         while (dir is not null)
         {
-            if (File.Exists(Path.Combine(dir.FullName, "nirmata.slnx")))
+            if (File.Exists(Path.Combine(dir.FullName, "nirmata.slnx"))
+                || File.Exists(Path.Combine(dir.FullName, "src", "nirmata.slnx")))
             {
                 return dir.FullName;
             }

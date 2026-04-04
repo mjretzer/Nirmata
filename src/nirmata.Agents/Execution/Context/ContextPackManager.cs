@@ -10,28 +10,20 @@ namespace nirmata.Agents.Execution.Context;
 public sealed class ContextPackManager : IContextPackManager
 {
     private readonly IWorkspace _workspace;
-    private readonly IDeterministicJsonSerializer _jsonSerializer;
 
-    public ContextPackManager(IWorkspace workspace, IDeterministicJsonSerializer jsonSerializer)
+    public ContextPackManager(IWorkspace workspace)
     {
         _workspace = workspace;
-        _jsonSerializer = jsonSerializer;
     }
 
     /// <inheritdoc />
     public Task<string> CreatePackAsync(string mode, string drivingId, ContextPackBudget budget, CancellationToken ct = default)
     {
-        var packId = $"PACK-{System.Guid.NewGuid():N}";
-        var packDocument = AosContextPackBuilder.Build(_workspace.AosRootPath, packId, mode, drivingId, budget);
-
-        var packPath = System.IO.Path.Combine(_workspace.AosRootPath, ".aos", "context", "packs", $"{packId}.json");
-        var packDir = System.IO.Path.GetDirectoryName(packPath);
-        if (packDir != null)
-        {
-            System.IO.Directory.CreateDirectory(packDir);
-        }
-
-        _jsonSerializer.WriteAtomic(packPath, packDocument, DeterministicJsonOptions.Standard, writeIndented: true);
+        var (packId, _, _, _) = AosContextPackWriter.BuildAndWriteNewPack(
+            _workspace.AosRootPath,
+            mode,
+            drivingId,
+            budget);
 
         return Task.FromResult(packId);
     }

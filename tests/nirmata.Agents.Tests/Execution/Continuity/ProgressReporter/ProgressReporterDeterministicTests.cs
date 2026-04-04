@@ -21,6 +21,8 @@ public class ProgressReporterDeterministicTests
     public ProgressReporterDeterministicTests()
     {
         _stateStoreMock = new Mock<IStateStore>();
+        _stateStoreMock.Setup(x => x.TailEvents(It.IsAny<StateEventTailRequest>()))
+            .Returns(new StateEventTailResponse());
         _sut = new Agents.Execution.Continuity.ProgressReporter.ProgressReporter(_stateStoreMock.Object);
     }
 

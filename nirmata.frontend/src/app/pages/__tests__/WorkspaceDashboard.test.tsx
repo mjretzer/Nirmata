@@ -59,6 +59,8 @@ function renderRoute(path: string) {
 }
 
 describe("WorkspaceDashboard", () => {
+  const workspaceGuid = "c56a4180-65aa-42ec-a945-5fd21dec0538";
+
   beforeEach(() => {
     mockUseWorkspaces.mockReturnValue({
       workspaces: [],
@@ -127,10 +129,41 @@ describe("WorkspaceDashboard", () => {
   });
 
   it("renders the newly created workspace from the direct workspace lookup when the list is stale", () => {
-    renderRoute("/ws/11111111-1111-1111-1111-111111111111");
+    renderRoute(`/ws/${workspaceGuid}`);
 
     expect(screen.getByRole("heading", { name: /fresh-workspace/i })).toBeInTheDocument();
     expect(screen.getByText(/C:\\Repos\\fresh-workspace/i)).toBeInTheDocument();
     expect(screen.queryByText(/Workspace not found/i)).not.toBeInTheDocument();
+  });
+
+  it("shows create task plan as next step for empty projects", () => {
+    mockUseOrchestratorState.mockReturnValue({
+      runnableGate: {
+        taskId: "",
+        taskName: "",
+        phaseId: "",
+        phaseTitle: "",
+        runnable: false,
+        checks: [],
+        recommendedAction: "",
+      },
+      blockedGate: {
+        taskId: "",
+        taskName: "",
+        phaseId: "",
+        phaseTitle: "",
+        runnable: false,
+        checks: [],
+        recommendedAction: "",
+      },
+      gateKindMeta: {},
+      timelineTemplate: [],
+      isLoading: false,
+    } as any);
+
+    renderRoute(`/ws/${workspaceGuid}`);
+
+    expect(screen.getByRole("heading", { name: /create task plan/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /create plan/i })).toBeInTheDocument();
   });
 });

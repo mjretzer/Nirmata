@@ -32,231 +32,210 @@ public sealed class GatingEngine : IGatingEngine
     /// <inheritdoc />
     public Task<GatingResult> EvaluateAsync(GatingContext context, CancellationToken ct = default)
     {
-        // Gating decisions based on documented state machine priority.
-        // See: openspec/specs/agents-orchestrator-workflow/spec.md
+        // Strict gate order (spec-first sequencing).
+        // See: docs/workflows/gating.md, openspec/changes/agent-foundation-alignment/specs/agent-foundation/spec.md
+        //
+        // 1. new-project interview
+        // 2. brownfield codebase preflight (non-new workspaces only)
+        // 3. roadmap
+        // 4. phase/task planning
+        // 5. execution completed → verification
+        // 6. verification failed → fix loop
+        // 7. execution failed → fix recovery
+        // 8. verification passed → next-phase progression / milestone completion
+        // 9. ready to execute
+        // 10. default → responder
 
-        // 1. Missing project spec -> Interviewer
+        // ── Gate 1: Missing project spec → Interviewer ──
         if (!context.HasProject)
         {
-            var phase = "Interviewer";
-            var reasoning = $"Routing to {phase} because project specification is missing. This is the initial setup phase.";
-            var requiresConfirmation = _destructivenessAnalyzer.RequiresConfirmation(phase, context);
-            var riskLevel = _destructivenessAnalyzer.AnalyzeRisk(phase, context);
-            var sideEffects = _destructivenessAnalyzer.GetSideEffects(phase);
-
-            return Task.FromResult(new GatingResult
-            {
-                TargetPhase = phase,
-                Reason = "Project specification not found",
-                Reasoning = reasoning,
-                RequiresConfirmation = requiresConfirmation,
-                ProposedAction = new ProposedAction
-                {
-                    Phase = phase,
-                    Description = "Initialize a new project specification through user interview",
-                    RiskLevel = riskLevel,
-                    SideEffects = sideEffects,
-                    AffectedResources = new[] { ".aos/project-spec.json" }
-                },
-                ContextData = new Dictionary<string, object> { { "hasProject", false } }
-            });
+            return Task.FromResult(BuildResult("Interviewer", context,
+                reason: "Project specification not found",
+                description: "Initialize a new project specification through user interview",
+                affectedResources: new[] { ".aos/spec/project.json" },
+                contextData: new() { { "hasProject", false } }));
         }
 
-        // 2. Missing roadmap -> Roadmapper
+        // ── Gate 2: Brownfield codebase preflight (non-new workspaces) → CodebaseMapper ──
+        // Only fires when the next required step is roadmap generation or phase planning.
+        // If roadmap and task plans already exist, stale/absent codebase intelligence
+        // does not block execution or verification.
+        // See: spec requirement "AND the next required step is roadmap generation or phase planning"
+        if ((!context.HasCodebaseIntelligence || context.IsCodebaseStale)
+            && (!context.HasRoadmap || !context.HasTaskPlan))
+        {
+            var staleness = context.IsCodebaseStale ? "stale" : "absent";
+            return Task.FromResult(BuildResult("CodebaseMapper", context,
+                reason: $"Codebase intelligence is {staleness}, brownfield preflight required",
+                description: "Scan the repository and build codebase intelligence pack before planning",
+                affectedResources: new[] { ".aos/codebase/" },
+                contextData: new()
+                {
+                    { "hasCodebaseIntelligence", context.HasCodebaseIntelligence },
+                    { "isCodebaseStale", context.IsCodebaseStale }
+                }));
+        }
+
+        // ── Gate 3: Missing roadmap → Roadmapper ──
         if (!context.HasRoadmap)
         {
-            var phase = "Roadmapper";
-            var reasoning = $"Routing to {phase} because project roadmap is not defined. Next step after project specification.";
-            var requiresConfirmation = _destructivenessAnalyzer.RequiresConfirmation(phase, context);
-            var riskLevel = _destructivenessAnalyzer.AnalyzeRisk(phase, context);
-            var sideEffects = _destructivenessAnalyzer.GetSideEffects(phase);
-
-            return Task.FromResult(new GatingResult
-            {
-                TargetPhase = phase,
-                Reason = "Roadmap not defined for project",
-                Reasoning = reasoning,
-                RequiresConfirmation = requiresConfirmation,
-                ProposedAction = new ProposedAction
-                {
-                    Phase = phase,
-                    Description = "Create a project roadmap with phases and milestones",
-                    RiskLevel = riskLevel,
-                    SideEffects = sideEffects,
-                    AffectedResources = new[] { ".aos/roadmap.json" }
-                },
-                ContextData = new Dictionary<string, object> { { "hasRoadmap", false } }
-            });
+            return Task.FromResult(BuildResult("Roadmapper", context,
+                reason: "Roadmap not defined for project",
+                description: "Create a project roadmap with phases and milestones",
+                affectedResources: new[] { ".aos/spec/roadmap.json" },
+                contextData: new() { { "hasRoadmap", false } }));
         }
 
-        // 3. Missing phase plan for current cursor -> Planner
-        if (!context.HasPlan)
+        // ── Gate 4: Missing task plan for current cursor → Planner ──
+        // Task plans (.aos/spec/tasks/{taskId}/plan.json) are the only atomic execution contract.
+        // Phase-level planning artifacts do not satisfy the execution gate.
+        if (!context.HasTaskPlan)
         {
-            var phase = "Planner";
-            var reasoning = $"Routing to {phase} because no plan exists for current cursor position '{context.CurrentCursor ?? "null"}'. Need to plan the work at this position.";
-            var requiresConfirmation = _destructivenessAnalyzer.RequiresConfirmation(phase, context);
-            var riskLevel = _destructivenessAnalyzer.AnalyzeRisk(phase, context);
-            var sideEffects = _destructivenessAnalyzer.GetSideEffects(phase);
-
-            return Task.FromResult(new GatingResult
-            {
-                TargetPhase = phase,
-                Reason = "No plan exists for current cursor position",
-                Reasoning = reasoning,
-                RequiresConfirmation = requiresConfirmation,
-                ProposedAction = new ProposedAction
-                {
-                    Phase = phase,
-                    Description = $"Create an execution plan for the work at cursor position: {context.CurrentCursor ?? "unknown"}",
-                    RiskLevel = riskLevel,
-                    SideEffects = sideEffects,
-                    AffectedResources = new[] { ".aos/plans/" }
-                },
-                ContextData = new Dictionary<string, object> { { "hasPlan", false }, { "cursor", context.CurrentCursor ?? "null" } }
-            });
+            return Task.FromResult(BuildResult("Planner", context,
+                reason: "No task plan exists for current cursor position",
+                description: $"Create task execution plans for the work at cursor position: {context.CurrentCursor ?? "unknown"}",
+                affectedResources: new[] { ".aos/spec/tasks/" },
+                contextData: new() { { "hasTaskPlan", false }, { "cursor", context.CurrentCursor ?? "null" } }));
         }
 
-        // 4. Verification failed -> FixPlanner
+        // ── Gate 5: Execution completed, verification pending → Verifier ──
+        if (context.LastExecutionStatus == "completed" && context.LastVerificationStatus == null)
+        {
+            return Task.FromResult(BuildResult("Verifier", context,
+                reason: "Execution complete, awaiting verification",
+                description: "Run verification checks on the completed execution",
+                affectedResources: Array.Empty<string>(),
+                contextData: new() { { "executionStatus", "completed" } }));
+        }
+
+        // ── Gate 6: Verification failed → FixPlanner ──
         if (context.LastVerificationStatus == "failed")
         {
-            var phase = "FixPlanner";
-            var reasoning = $"Routing to {phase} because verification failed. Need to create a fix plan to address the issues.";
-            var requiresConfirmation = _destructivenessAnalyzer.RequiresConfirmation(phase, context);
-            var riskLevel = _destructivenessAnalyzer.AnalyzeRisk(phase, context);
-            var sideEffects = _destructivenessAnalyzer.GetSideEffects(phase);
-
-            return Task.FromResult(new GatingResult
-            {
-                TargetPhase = phase,
-                Reason = "Verification failed, fix planning required",
-                Reasoning = reasoning,
-                RequiresConfirmation = requiresConfirmation,
-                ProposedAction = new ProposedAction
-                {
-                    Phase = phase,
-                    Description = "Create a fix plan to address verification failures",
-                    RiskLevel = riskLevel,
-                    SideEffects = sideEffects,
-                    AffectedResources = new[] { ".aos/plans/", ".aos/issues/" }
-                },
-                ContextData = new Dictionary<string, object>
+            return Task.FromResult(BuildResult("FixPlanner", context,
+                reason: "Verification failed, fix planning required",
+                description: "Create a fix plan to address verification failures",
+                affectedResources: new[] { ".aos/spec/tasks/", ".aos/spec/issues/" },
+                contextData: new()
                 {
                     { "verificationStatus", "failed" },
                     { "parentTaskId", context.ParentTaskId ?? "unknown" },
                     { "issueIds", context.IssueIds }
-                }
-            });
+                }));
         }
 
-        // 5. Execution failed -> FixPlanner (for recovery)
+        // ── Gate 7: Execution failed → FixPlanner (recovery) ──
         if (context.LastExecutionStatus == "failed")
         {
-            var phase = "FixPlanner";
-            var reasoning = $"Routing to {phase} because task execution failed. Need to create a recovery plan.";
-            var requiresConfirmation = _destructivenessAnalyzer.RequiresConfirmation(phase, context);
-            var riskLevel = _destructivenessAnalyzer.AnalyzeRisk(phase, context);
-            var sideEffects = _destructivenessAnalyzer.GetSideEffects(phase);
-
-            return Task.FromResult(new GatingResult
-            {
-                TargetPhase = phase,
-                Reason = "Task execution failed, recovery required",
-                Reasoning = reasoning,
-                RequiresConfirmation = requiresConfirmation,
-                ProposedAction = new ProposedAction
-                {
-                    Phase = phase,
-                    Description = "Create a recovery plan for the failed task execution",
-                    RiskLevel = riskLevel,
-                    SideEffects = sideEffects,
-                    AffectedResources = new[] { ".aos/plans/" }
-                },
-                ContextData = new Dictionary<string, object>
+            return Task.FromResult(BuildResult("FixPlanner", context,
+                reason: "Task execution failed, recovery required",
+                description: "Create a recovery plan for the failed task execution",
+                affectedResources: new[] { ".aos/spec/tasks/" },
+                contextData: new()
                 {
                     { "executionStatus", "failed" },
                     { "parentTaskId", context.ParentTaskId ?? "unknown" }
-                }
-            });
+                }));
         }
 
-        // 6. Ready to execute (no pending execution or verification issues)
-        // This includes: fresh ready state OR verification passed (continue to next execution)
-        if (context.LastExecutionStatus == null && context.LastVerificationStatus == null ||
-            context.LastVerificationStatus == "passed")
+        // ── Gate 8: Verification passed → progression (next-phase / milestone completion / next task) ──
+        if (context.LastVerificationStatus == "passed")
         {
-            var executorPhase = "Executor";
-            var executorReasoning = $"Routing to {executorPhase} because the system is ready to execute the plan at cursor '{context.CurrentCursor ?? "null"}'";
-            var executorRequiresConfirmation = _destructivenessAnalyzer.RequiresConfirmation(executorPhase, context);
-            var executorRiskLevel = _destructivenessAnalyzer.AnalyzeRisk(executorPhase, context);
-            var executorSideEffects = _destructivenessAnalyzer.GetSideEffects(executorPhase);
-
-            return Task.FromResult(new GatingResult
+            // 8a. All phases in milestone are complete → MilestoneProgression
+            if (context.IsMilestoneComplete)
             {
-                TargetPhase = executorPhase,
-                Reason = "Ready to execute the plan",
-                Reasoning = executorReasoning,
-                RequiresConfirmation = executorRequiresConfirmation,
-                ProposedAction = new ProposedAction
-                {
-                    Phase = executorPhase,
-                    Description = "Execute the planned tasks",
-                    RiskLevel = executorRiskLevel,
-                    SideEffects = executorSideEffects,
-                    AffectedResources = new[] { "workspace_files" }
-                },
-                ContextData = new Dictionary<string, object> { { "cursor", context.CurrentCursor ?? "null" } }
-            });
-        }
+                return Task.FromResult(BuildResult("MilestoneProgression", context,
+                    reason: "All phases in current milestone verified, milestone progression required",
+                    description: "Record milestone completion and advance to the next milestone",
+                    affectedResources: new[] { ".aos/spec/milestones/", ".aos/state/state.json" },
+                    contextData: new()
+                    {
+                        { "milestoneComplete", true },
+                        { "cursor", context.CurrentCursor ?? "null" }
+                    }));
+            }
 
-        // 7. Execution completed, verification pending -> Verifier
-        if (context.LastExecutionStatus == "completed" && context.LastVerificationStatus != "passed")
-        {
-            var phase = "Verifier";
-            var reasoning = $"Routing to {phase} because execution completed and verification is pending. Need to verify the work.";
-            var requiresConfirmation = _destructivenessAnalyzer.RequiresConfirmation(phase, context);
-            var riskLevel = _destructivenessAnalyzer.AnalyzeRisk(phase, context);
-            var sideEffects = _destructivenessAnalyzer.GetSideEffects(phase);
-
-            return Task.FromResult(new GatingResult
+            // 8b. Current phase complete, more phases remain → Planner (next phase)
+            if (context.IsPhaseComplete)
             {
-                TargetPhase = phase,
-                Reason = "Execution complete, awaiting verification",
-                Reasoning = reasoning,
-                RequiresConfirmation = requiresConfirmation,
-                ProposedAction = new ProposedAction
-                {
-                    Phase = phase,
-                    Description = "Run verification checks on the completed execution",
-                    RiskLevel = riskLevel,
-                    SideEffects = sideEffects,
-                    AffectedResources = Array.Empty<string>()
-                },
-                ContextData = new Dictionary<string, object> { { "executionStatus", "completed" } }
-            });
+                return Task.FromResult(BuildResult("Planner", context,
+                    reason: "Current phase verified, planning next phase",
+                    description: "Plan the next phase in the roadmap",
+                    affectedResources: new[] { ".aos/spec/tasks/" },
+                    contextData: new()
+                    {
+                        { "phaseComplete", true },
+                        { "cursor", context.CurrentCursor ?? "null" }
+                    }));
+            }
+
+            // 8c. More tasks remain in current phase → Executor (next task)
+            return Task.FromResult(BuildResult("Executor", context,
+                reason: "Task verified, executing next task in phase",
+                description: "Execute the next planned task in the current phase",
+                affectedResources: new[] { "workspace_files" },
+                contextData: new() { { "verificationPassed", true }, { "cursor", context.CurrentCursor ?? "null" } }));
         }
 
-        // 8. Default: No specific phase triggered, respond conversationally
-        var defaultPhase = "Responder";
-        var defaultReasoning = $"No specific workflow triggered, defaulting to {defaultPhase}. Cursor at '{context.CurrentCursor ?? "null"}'.";
-        var defaultRequiresConfirmation = _destructivenessAnalyzer.RequiresConfirmation(defaultPhase, context);
-        var defaultRiskLevel = _destructivenessAnalyzer.AnalyzeRisk(defaultPhase, context);
-        var defaultSideEffects = _destructivenessAnalyzer.GetSideEffects(defaultPhase);
-
-        return Task.FromResult(new GatingResult
+        // ── Gate 8.5: Fix plan emitted, rerun ready → Executor ──
+        if (context.LastExecutionStatus == "fix-planned" && context.LastVerificationStatus == "ready-to-execute")
         {
-            TargetPhase = defaultPhase,
-            Reason = "No specific workflow triggered, defaulting to conversational response.",
-            Reasoning = defaultReasoning,
-            RequiresConfirmation = defaultRequiresConfirmation,
+            return Task.FromResult(BuildResult("Executor", context,
+                reason: "Fix tasks are planned and ready to rerun",
+                description: "Execute the generated fix-task plan",
+                affectedResources: new[] { "workspace_files" },
+                contextData: new()
+                {
+                    { "fixRerun", true },
+                    { "cursor", context.CurrentCursor ?? "null" }
+                }));
+        }
+
+        // ── Gate 9: Ready to execute (fresh state, no pending execution) → Executor ──
+        if (context.LastExecutionStatus == null && context.LastVerificationStatus == null)
+        {
+            return Task.FromResult(BuildResult("Executor", context,
+                reason: "Ready to execute the plan",
+                description: "Execute the planned tasks",
+                affectedResources: new[] { "workspace_files" },
+                contextData: new() { { "cursor", context.CurrentCursor ?? "null" } }));
+        }
+
+        // ── Gate 10: Default → Responder ──
+        return Task.FromResult(BuildResult("Responder", context,
+            reason: "No specific workflow triggered, defaulting to conversational response.",
+            description: "Respond conversationally to user input",
+            affectedResources: Array.Empty<string>(),
+            contextData: new() { { "cursor", context.CurrentCursor ?? "null" } }));
+    }
+
+    private GatingResult BuildResult(
+        string phase,
+        GatingContext context,
+        string reason,
+        string description,
+        string[] affectedResources,
+        Dictionary<string, object> contextData)
+    {
+        var reasoning = $"Routing to {phase}: {reason}. Cursor at '{context.CurrentCursor ?? "null"}'.";
+        var requiresConfirmation = _destructivenessAnalyzer.RequiresConfirmation(phase, context);
+        var riskLevel = _destructivenessAnalyzer.AnalyzeRisk(phase, context);
+        var sideEffects = _destructivenessAnalyzer.GetSideEffects(phase);
+
+        return new GatingResult
+        {
+            TargetPhase = phase,
+            Reason = reason,
+            Reasoning = reasoning,
+            RequiresConfirmation = requiresConfirmation,
             ProposedAction = new ProposedAction
             {
-                Phase = defaultPhase,
-                Description = "Respond conversationally to user input",
-                RiskLevel = defaultRiskLevel,
-                SideEffects = defaultSideEffects,
-                AffectedResources = Array.Empty<string>()
+                Phase = phase,
+                Description = description,
+                RiskLevel = riskLevel,
+                SideEffects = sideEffects,
+                AffectedResources = affectedResources
             },
-            ContextData = new Dictionary<string, object> { { "cursor", context.CurrentCursor ?? "null" } }
-        });
+            ContextData = contextData
+        };
     }
 }

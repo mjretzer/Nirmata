@@ -33,6 +33,11 @@ The system SHALL provide a workspace-scoped filesystem API that can return direc
 - **WHEN** a client requests `GET /v1/workspaces/{workspaceId}/files/{path}` for a file path
 - **THEN** the system returns 200 OK with the file content for that workspace
 
+#### Scenario: Read missing file path
+- **WHEN** a client requests `GET /v1/workspaces/{workspaceId}/files/{path}` for a path that does not exist in that workspace
+- **THEN** the system returns 404 Not Found
+- **AND** clients can render missing-artifact behavior for that path
+
 ### Requirement: Filesystem requests are gated to workspace root
 The system MUST ensure that filesystem requests can only access paths under the registered workspace root.
 

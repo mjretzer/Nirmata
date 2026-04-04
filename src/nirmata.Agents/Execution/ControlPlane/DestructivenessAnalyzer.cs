@@ -10,7 +10,8 @@ public sealed class DestructivenessAnalyzer : IDestructivenessAnalyzer
     {
         return phase switch
         {
-            "Interviewer" or "Roadmapper" or "Planner" or "FixPlanner" => RiskLevel.WriteSafe,
+            "Interviewer" or "Roadmapper" or "Planner" or "FixPlanner"
+                or "CodebaseMapper" or "MilestoneProgression" => RiskLevel.WriteSafe,
             "Executor" => RiskLevel.WriteDestructive,
             "Verifier" => RiskLevel.Read,
             "Responder" => RiskLevel.Read,
@@ -88,11 +89,13 @@ public sealed class DestructivenessAnalyzer : IDestructivenessAnalyzer
         return phase switch
         {
             "Interviewer" => new[] { "file_system" },
+            "CodebaseMapper" => new[] { "file_system", "external_process" },
             "Roadmapper" => new[] { "file_system" },
             "Planner" => new[] { "file_system" },
             "Executor" => new[] { "file_system", "external_process" },
             "Verifier" => new[] { "external_process" },
             "FixPlanner" => new[] { "file_system" },
+            "MilestoneProgression" => new[] { "file_system" },
             "Responder" => Array.Empty<string>(),
             _ => Array.Empty<string>()
         };

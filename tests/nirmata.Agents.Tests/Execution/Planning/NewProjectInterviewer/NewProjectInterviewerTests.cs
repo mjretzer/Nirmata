@@ -20,6 +20,59 @@ public class NewProjectInterviewerTests
     private readonly Mock<IWorkspace> _workspaceMock;
     private readonly Interviewer _sut;
 
+    // Structured JSON responses matching the prompts in InterviewPrompts.cs
+    private const string DiscoveryJsonResponse = """
+    {
+      "qaPairs": [
+        { "question": "What problem does this project solve?", "answer": "It automates software project management and orchestration." },
+        { "question": "Who is the target audience?", "answer": "Software developers and development teams." },
+        { "question": "What are the primary goals?", "answer": "Improve project organization and streamline development workflow." }
+      ],
+      "draft": {
+        "name": "Test Project",
+        "description": "A software development project for managing and organizing projects efficiently",
+        "technologyStack": ".NET/C#",
+        "goals": ["Improve project organization", "Streamline development workflow"],
+        "targetAudience": "Software developers and development teams",
+        "keyFeatures": ["Project organization", "Workflow management"],
+        "constraints": ["Must run on Windows"],
+        "assumptions": ["Team is familiar with .NET"]
+      }
+    }
+    """;
+
+    private const string ClarificationJsonResponse = """
+    {
+      "qaPairs": [
+        { "question": "What integration boundaries exist?", "answer": "Integration with LLM providers and MCP servers." },
+        { "question": "Are there security or compliance requirements?", "answer": "API keys must not be logged." }
+      ],
+      "draftUpdates": {
+        "keyFeatures": ["LLM integration", "MCP server support"],
+        "constraints": ["API keys must not be logged"],
+        "assumptions": ["LLM providers are available via HTTP"]
+      }
+    }
+    """;
+
+    private const string ConfirmationJsonResponse = """
+    {
+      "qaPairs": [
+        { "question": "Do these requirements accurately capture the project needs?", "answer": "Yes, this covers the main requirements." }
+      ],
+      "confirmedDraft": {
+        "name": "Test Project",
+        "description": "A software development project for managing and organizing projects efficiently",
+        "technologyStack": ".NET/C#",
+        "goals": ["Improve project organization", "Streamline development workflow"],
+        "targetAudience": "Software developers and development teams",
+        "keyFeatures": ["Project organization", "Workflow management", "LLM integration", "MCP server support"],
+        "constraints": ["Must run on Windows", "API keys must not be logged"],
+        "assumptions": ["Team is familiar with .NET", "LLM providers are available via HTTP"]
+      }
+    }
+    """;
+
     public NewProjectInterviewerTests()
     {
         _fakeLlmProvider = new FakeLlmProvider();
@@ -28,6 +81,9 @@ public class NewProjectInterviewerTests
         _specStoreMock = new Mock<ISpecStore>();
         _workspaceMock = new Mock<IWorkspace>();
 
+        // AosRootPath is required for session persistence between phases
+        _workspaceMock.Setup(x => x.AosRootPath).Returns(Path.Combine(Path.GetTempPath(), "nirmata-test-" + Guid.NewGuid().ToString("N")));
+
         _sut = new Interviewer(
             _fakeLlmProvider,
             _specGeneratorMock.Object,
@@ -35,6 +91,14 @@ public class NewProjectInterviewerTests
             _specStoreMock.Object,
             _workspaceMock.Object
         );
+    }
+
+    private void EnqueueStructuredResponses()
+    {
+        _fakeLlmProvider
+            .EnqueueTextResponse(DiscoveryJsonResponse)
+            .EnqueueTextResponse(ClarificationJsonResponse)
+            .EnqueueTextResponse(ConfirmationJsonResponse);
     }
 
     [Fact]
@@ -55,10 +119,7 @@ public class NewProjectInterviewerTests
             }
         };
 
-        _fakeLlmProvider
-            .EnqueueTextResponse("Discovery response")
-            .EnqueueTextResponse("Clarification response")
-            .EnqueueTextResponse("Confirmation response");
+        EnqueueStructuredResponses();
 
         _specGeneratorMock
             .Setup(x => x.GenerateFromSession(session))
@@ -109,10 +170,7 @@ public class NewProjectInterviewerTests
         var session = new InterviewSession { RunId = "RUN-001" };
         var expectedSpec = CreateValidProjectSpec();
 
-        _fakeLlmProvider
-            .EnqueueTextResponse("Discovery response")
-            .EnqueueTextResponse("Clarification response")
-            .EnqueueTextResponse("Confirmation response");
+        EnqueueStructuredResponses();
 
         _specGeneratorMock
             .Setup(x => x.GenerateFromSession(session))
@@ -155,10 +213,7 @@ public class NewProjectInterviewerTests
         var session = new InterviewSession { RunId = "RUN-001" };
         var expectedSpec = CreateValidProjectSpec();
 
-        _fakeLlmProvider
-            .EnqueueTextResponse("Discovery response")
-            .EnqueueTextResponse("Clarification response")
-            .EnqueueTextResponse("Confirmation response");
+        EnqueueStructuredResponses();
 
         _specGeneratorMock
             .Setup(x => x.GenerateFromSession(session))
@@ -194,16 +249,13 @@ public class NewProjectInterviewerTests
     }
 
     [Fact]
-    public async Task ConductInterviewAsync_PopulatesQAPairsInSession()
+    public async Task ConductInterviewAsync_PopulatesQAPairsFromLlmResponse()
     {
         // Arrange
         var session = new InterviewSession { RunId = "RUN-001" };
         var expectedSpec = CreateValidProjectSpec();
 
-        _fakeLlmProvider
-            .EnqueueTextResponse("Discovery response")
-            .EnqueueTextResponse("Clarification response")
-            .EnqueueTextResponse("Confirmation response");
+        EnqueueStructuredResponses();
 
         _specGeneratorMock
             .Setup(x => x.GenerateFromSession(session))
@@ -232,24 +284,21 @@ public class NewProjectInterviewerTests
         // Act
         await _sut.ConductInterviewAsync(session);
 
-        // Assert
-        session.QAPairs.Should().HaveCount(5); // 2 discovery + 2 clarification + 1 confirmation
+        // Assert — 3 discovery + 2 clarification + 1 confirmation = 6 Q&A pairs from structured JSON
+        session.QAPairs.Should().HaveCount(6);
         session.QAPairs.Should().Contain(qa => qa.Phase == InterviewPhase.Discovery);
         session.QAPairs.Should().Contain(qa => qa.Phase == InterviewPhase.Clarification);
         session.QAPairs.Should().Contain(qa => qa.Phase == InterviewPhase.Confirmation);
     }
 
     [Fact]
-    public async Task ConductInterviewAsync_PopulatesProjectDraft()
+    public async Task ConductInterviewAsync_PopulatesProjectDraftFromLlmResponse()
     {
         // Arrange
         var session = new InterviewSession { RunId = "RUN-001" };
         var expectedSpec = CreateValidProjectSpec();
 
-        _fakeLlmProvider
-            .EnqueueTextResponse("Discovery response")
-            .EnqueueTextResponse("Clarification response")
-            .EnqueueTextResponse("Confirmation response");
+        EnqueueStructuredResponses();
 
         _specGeneratorMock
             .Setup(x => x.GenerateFromSession(session))
@@ -278,12 +327,60 @@ public class NewProjectInterviewerTests
         // Act
         await _sut.ConductInterviewAsync(session);
 
-        // Assert
+        // Assert — draft is populated from the confirmed draft in the confirmation phase
         session.ProjectDraft.Should().NotBeNull();
-        session.ProjectDraft!.Name.Should().NotBeNullOrEmpty();
-        session.ProjectDraft.Description.Should().NotBeNullOrEmpty();
-        session.ProjectDraft.TechnologyStack.Should().NotBeNullOrEmpty();
-        session.ProjectDraft.Goals.Should().NotBeEmpty();
+        session.ProjectDraft!.Name.Should().Be("Test Project");
+        session.ProjectDraft.Description.Should().Contain("software development project");
+        session.ProjectDraft.TechnologyStack.Should().Be(".NET/C#");
+        session.ProjectDraft.Goals.Should().HaveCountGreaterOrEqualTo(2);
+        session.ProjectDraft.KeyFeatures.Should().Contain("LLM integration");
+        session.ProjectDraft.Constraints.Should().NotBeEmpty();
+        session.ProjectDraft.Assumptions.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task ConductInterviewAsync_WithNonJsonLlmResponse_UsesFallbackQAPairs()
+    {
+        // Arrange — LLM returns plain text instead of structured JSON
+        var session = new InterviewSession { RunId = "RUN-001" };
+        var expectedSpec = CreateValidProjectSpec();
+
+        _fakeLlmProvider
+            .EnqueueTextResponse("Just a plain text discovery response")
+            .EnqueueTextResponse("Just a plain text clarification response")
+            .EnqueueTextResponse("Just a plain text confirmation response");
+
+        _specGeneratorMock
+            .Setup(x => x.GenerateFromSession(session))
+            .Returns(expectedSpec);
+
+        _specGeneratorMock
+            .Setup(x => x.Validate(expectedSpec))
+            .Returns(SpecValidationResult.Success());
+
+        _specGeneratorMock
+            .Setup(x => x.SerializeToJson(expectedSpec))
+            .Returns("{}");
+
+        _evidenceWriterMock
+            .Setup(x => x.WriteTranscriptAsync(session, It.IsAny<CancellationToken>()))
+            .ReturnsAsync("/tmp/interview.transcript.md");
+
+        _evidenceWriterMock
+            .Setup(x => x.WriteSummaryAsync(session, expectedSpec, It.IsAny<CancellationToken>()))
+            .ReturnsAsync("/tmp/interview.summary.md");
+
+        _workspaceMock
+            .Setup(x => x.GetAbsolutePathForArtifactId("project"))
+            .Returns("/tmp/project.json");
+
+        // Act
+        var result = await _sut.ConductInterviewAsync(session);
+
+        // Assert — fallback creates 1 Q&A pair per phase (3 total)
+        result.Success.Should().BeTrue();
+        session.QAPairs.Should().HaveCount(3);
+        session.QAPairs[0].Answer.Should().Contain("plain text discovery");
     }
 
     [Fact]

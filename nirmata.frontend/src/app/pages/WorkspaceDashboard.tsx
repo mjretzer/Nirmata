@@ -203,7 +203,7 @@ const gatingMap: Record<GatingStep, GatingMeta> = {
 
 function recommendedActionToGatingStep(action: string): GatingStep {
   switch (action) {
-    case "new-project":    return "missing-spec";
+    case "new-project":    return "needs-plan";
     case "create-roadmap": return "missing-roadmap";
     case "plan-phase":     return "needs-plan";
     case "execute-plan":   return "ready-to-execute";
@@ -525,8 +525,17 @@ export function WorkspaceDashboard() {
   const { artifacts: codebaseArtifacts } = useCodebaseIntel();
 
   const { runnableGate, blockedGate, isLoading: gateLoading } = useOrchestratorState();
-  const activeGate = runnableGate.runnable ? runnableGate : blockedGate;
-  const gatingStep: GatingStep = recommendedActionToGatingStep(activeGate.recommendedAction);
+  const activeGate = useMemo(() => {
+    if (!blockedGate.runnable && blockedGate.recommendedAction) {
+      return blockedGate;
+    }
+
+    if (runnableGate.runnable && runnableGate.recommendedAction) {
+      return runnableGate;
+    }
+
+    return !blockedGate.runnable ? blockedGate : runnableGate;
+  }, [blockedGate, runnableGate]);
 
   const workspace = useMemo<WorkspaceSummary | null>(() => {
     if (!workspaceId) return null;
@@ -650,7 +659,9 @@ export function WorkspaceDashboard() {
 
   // ── Render: workspace loaded ─────────────────────────────────────
   const renderWorkspace = (ws: WorkspaceSummary) => {
-    const gating = gatingStep;
+    const gating: GatingStep = !ws.hasTaskPlans
+      ? "needs-plan"
+      : recommendedActionToGatingStep(activeGate.recommendedAction);
     const step = gatingMap[gating];
     const StepIcon = step.icon;
 

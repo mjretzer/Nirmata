@@ -17,7 +17,8 @@ public class GatingEngineConfirmationTests
         {
             HasProject = true,
             HasRoadmap = true,
-            HasPlan = true,
+            HasTaskPlan = true,
+            HasCodebaseIntelligence = true,
             CurrentCursor = "TSK-001",
             LastExecutionStatus = null,
             LastVerificationStatus = null,
@@ -43,7 +44,7 @@ public class GatingEngineConfirmationTests
         {
             HasProject = false,
             HasRoadmap = false,
-            HasPlan = false,
+            HasTaskPlan = false,
             CurrentCursor = null,
             LastExecutionStatus = null,
             LastVerificationStatus = null
@@ -68,7 +69,8 @@ public class GatingEngineConfirmationTests
         {
             HasProject = true,
             HasRoadmap = true,
-            HasPlan = true,
+            HasTaskPlan = true,
+            HasCodebaseIntelligence = true,
             CurrentCursor = "TSK-001",
             LastExecutionStatus = "completed",
             LastVerificationStatus = null,
@@ -94,7 +96,8 @@ public class GatingEngineConfirmationTests
         {
             HasProject = true,
             HasRoadmap = true,
-            HasPlan = false,
+            HasTaskPlan = false,
+            HasCodebaseIntelligence = true,
             CurrentCursor = "TSK-001",
             LastExecutionStatus = null,
             LastVerificationStatus = null
@@ -107,7 +110,6 @@ public class GatingEngineConfirmationTests
         result.TargetPhase.Should().Be("Planner");
         result.Reasoning.Should().NotBeNullOrEmpty();
         result.Reasoning.Should().Contain("Planner");
-        result.Reasoning.Should().Contain("no plan exists");
     }
 
     [Fact]
@@ -119,7 +121,8 @@ public class GatingEngineConfirmationTests
         {
             HasProject = true,
             HasRoadmap = false,
-            HasPlan = false,
+            HasTaskPlan = false,
+            HasCodebaseIntelligence = true,
             CurrentCursor = null,
             LastExecutionStatus = null,
             LastVerificationStatus = null
@@ -145,7 +148,7 @@ public class GatingEngineConfirmationTests
         {
             HasProject = false,
             HasRoadmap = false,
-            HasPlan = false,
+            HasTaskPlan = false,
             CurrentCursor = null,
             LastExecutionStatus = null,
             LastVerificationStatus = null
@@ -156,20 +159,20 @@ public class GatingEngineConfirmationTests
 
         // Assert
         result.TargetPhase.Should().Be("Interviewer");
-        result.ProposedAction!.AffectedResources.Should().Contain(".aos/project-spec.json");
+        result.ProposedAction!.AffectedResources.Should().Contain(".aos/spec/project.json");
     }
 
     [Fact]
     public async Task EvaluateAsync_WithResponderPhase_DoesNotRequireConfirmation()
     {
         // Arrange - Responder is the default when no specific phase triggered
-        // This happens when execution is pending verification
         var sut = new GatingEngine(_analyzer);
         var context = new GatingContext
         {
             HasProject = true,
             HasRoadmap = true,
-            HasPlan = true,
+            HasTaskPlan = true,
+            HasCodebaseIntelligence = true,
             CurrentCursor = "TSK-001",
             LastExecutionStatus = "in_progress",  // Not completed, not failed - unusual state
             LastVerificationStatus = null,
@@ -194,7 +197,8 @@ public class GatingEngineConfirmationTests
         {
             HasProject = true,
             HasRoadmap = true,
-            HasPlan = true,
+            HasTaskPlan = true,
+            HasCodebaseIntelligence = true,
             CurrentCursor = "TSK-001",
             LastExecutionStatus = "completed",
             LastVerificationStatus = "failed",
@@ -209,5 +213,30 @@ public class GatingEngineConfirmationTests
         result.TargetPhase.Should().Be("FixPlanner");
         result.ProposedAction.Should().NotBeNull();
         result.ProposedAction!.SideEffects.Should().Contain("file_system");
+    }
+
+    [Fact]
+    public async Task EvaluateAsync_CodebaseMapperPhase_DoesNotRequireConfirmation()
+    {
+        // Arrange — brownfield preflight is WriteSafe, should not require confirmation
+        var sut = new GatingEngine(_analyzer);
+        var context = new GatingContext
+        {
+            HasProject = true,
+            HasRoadmap = false,
+            HasTaskPlan = false,
+            HasCodebaseIntelligence = false,
+            CurrentCursor = null,
+            LastExecutionStatus = null,
+            LastVerificationStatus = null
+        };
+
+        // Act
+        var result = await sut.EvaluateAsync(context);
+
+        // Assert
+        result.TargetPhase.Should().Be("CodebaseMapper");
+        result.RequiresConfirmation.Should().BeFalse();
+        result.ProposedAction!.RiskLevel.Should().Be(RiskLevel.WriteSafe);
     }
 }

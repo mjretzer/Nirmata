@@ -27,6 +27,8 @@ public class ContinuityIntegrationTests : IDisposable
         _tempAosRoot = Path.Combine(Path.GetTempPath(), $"aos-integration-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_tempAosRoot);
         Directory.CreateDirectory(Path.Combine(_tempAosRoot, "evidence", "runs"));
+        Directory.CreateDirectory(Path.Combine(_tempAosRoot, "spec"));
+        Directory.CreateDirectory(Path.Combine(_tempAosRoot, "state"));
         Directory.CreateDirectory(Path.Combine(_tempAosRoot, "cache"));
     }
 
@@ -235,6 +237,114 @@ public class ContinuityIntegrationTests : IDisposable
     }
 
     [Fact]
+    public async Task FullTaskLifecycle_PersistsStateEventsRunSummaryAndHistory()
+    {
+        // Arrange - initialize canonical state and evidence stores
+        var stateStore = StateStore.FromAosRoot(_tempAosRoot);
+        var runManager = RunManager.FromAosRoot(_tempAosRoot);
+        var historyWriter = new Agents.Execution.Continuity.HistoryWriter.HistoryWriter(_tempAosRoot);
+
+        stateStore.EnsureWorkspaceInitialized();
+
+        // Act - move the task into execution, create a run, then complete both the run and task.
+        AppendCursorSetEvent(
+            stateStore,
+            milestoneId: "M1",
+            phaseId: "Implementation",
+            taskId: "TSK-0001",
+            stepId: "step-1",
+            milestoneStatus: StateCursorStatuses.InProgress,
+            phaseStatus: StateCursorStatuses.InProgress,
+            taskStatus: StateCursorStatuses.InProgress,
+            stepStatus: StateCursorStatuses.InProgress);
+        stateStore.EnsureWorkspaceInitialized();
+
+        var runId = runManager.StartRun("execute-plan", ["--task", "TSK-0001"]);
+        var summaryPath = Path.Combine(_tempAosRoot, "evidence", "runs", runId, "summary.json");
+
+        using (var startedSummary = JsonDocument.Parse(await File.ReadAllTextAsync(summaryPath)))
+        {
+            startedSummary.RootElement.GetProperty("runId").GetString().Should().Be(runId);
+            startedSummary.RootElement.GetProperty("status").GetString().Should().Be("started");
+            startedSummary.RootElement.GetProperty("startedAtUtc").GetString().Should().NotBeNullOrEmpty();
+            startedSummary.RootElement.GetProperty("finishedAtUtc").ValueKind.Should().Be(JsonValueKind.Null);
+        }
+
+        AppendCursorSetEvent(
+            stateStore,
+            milestoneId: "M1",
+            phaseId: "Implementation",
+            taskId: "TSK-0001",
+            stepId: null,
+            milestoneStatus: StateCursorStatuses.InProgress,
+            phaseStatus: StateCursorStatuses.InProgress,
+            taskStatus: StateCursorStatuses.Done,
+            stepStatus: StateCursorStatuses.Done);
+        stateStore.EnsureWorkspaceInitialized();
+
+        runManager.FinishRun(runId);
+        var historyEntry = await historyWriter.AppendAsync(runId, "TSK-0001", "Lifecycle completed successfully");
+
+        // Assert - state.json reflects the final cursor.
+        var statePath = Path.Combine(_tempAosRoot, "state", "state.json");
+        using (var stateDocument = JsonDocument.Parse(await File.ReadAllTextAsync(statePath)))
+        {
+            var cursor = stateDocument.RootElement.GetProperty("cursor");
+            cursor.GetProperty("milestoneId").GetString().Should().Be("M1");
+            cursor.GetProperty("phaseId").GetString().Should().Be("Implementation");
+            cursor.GetProperty("taskId").GetString().Should().Be("TSK-0001");
+            cursor.GetProperty("taskStatus").GetString().Should().Be(StateCursorStatuses.Done);
+            cursor.GetProperty("stepStatus").GetString().Should().Be(StateCursorStatuses.Done);
+            cursor.TryGetProperty("stepId", out _).Should().BeFalse();
+        }
+
+        // Assert - events.ndjson preserves the lifecycle transitions in file order.
+        var eventsPath = Path.Combine(_tempAosRoot, "state", "events.ndjson");
+        var events = (await File.ReadAllLinesAsync(eventsPath))
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .Select(line => JsonDocument.Parse(line))
+            .ToList();
+
+        events.Should().HaveCount(2);
+        events.Select(doc => doc.RootElement.GetProperty("eventType").GetString())
+            .Should().Equal("cursor.set", "cursor.set");
+        events[0].RootElement.GetProperty("cursor").GetProperty("taskStatus").GetString()
+            .Should().Be(StateCursorStatuses.InProgress);
+        events[1].RootElement.GetProperty("cursor").GetProperty("taskStatus").GetString()
+            .Should().Be(StateCursorStatuses.Done);
+
+        foreach (var eventDocument in events)
+        {
+            eventDocument.Dispose();
+        }
+
+        // Assert - run summary advances from started to succeeded and points to canonical artifacts.
+        using (var finishedSummary = JsonDocument.Parse(await File.ReadAllTextAsync(summaryPath)))
+        {
+            finishedSummary.RootElement.GetProperty("status").GetString().Should().Be("succeeded");
+            finishedSummary.RootElement.GetProperty("finishedAtUtc").GetString().Should().NotBeNullOrEmpty();
+
+            var artifacts = finishedSummary.RootElement.GetProperty("artifacts");
+            artifacts.GetProperty("runMetadata").GetString().Should().Be($".aos/evidence/runs/{runId}/artifacts/run.json");
+            artifacts.GetProperty("result").GetString().Should().Be($".aos/evidence/runs/{runId}/artifacts/result.json");
+            artifacts.GetProperty("commands").GetString().Should().Be($".aos/evidence/runs/{runId}/commands.json");
+        }
+
+        // Assert - history output links the completed run and task back to canonical evidence.
+        historyEntry.Key.Should().Be($"{runId}/TSK-0001");
+        historyEntry.Verification.Status.Should().Be("passed");
+        historyEntry.Evidence.Should().Contain(pointer =>
+            pointer.Type == "summary" &&
+            pointer.Path == $".aos/evidence/runs/{runId}/summary.json");
+
+        var historyPath = Path.Combine(_tempAosRoot, "spec", "summary.md");
+        var historyContent = await File.ReadAllTextAsync(historyPath);
+        historyContent.Should().Contain($"### {runId}/TSK-0001");
+        historyContent.Should().Contain($".aos/evidence/runs/{runId}/summary.json");
+        historyContent.Should().Contain("Lifecycle completed successfully");
+    }
+
+    [Fact]
     public async Task ManualTest_6_2_And_6_3_EndToEnd_ProgressReportThenWriteHistory()
     {
         // Arrange - Full workflow test
@@ -309,5 +419,37 @@ public class ContinuityIntegrationTests : IDisposable
 
         public StateEventTailResponse TailEvents(StateEventTailRequest request) =>
             new() { Items = Array.Empty<StateEventEntry>() };
+    }
+
+    private static void AppendCursorSetEvent(
+        IStateStore stateStore,
+        string? milestoneId,
+        string? phaseId,
+        string? taskId,
+        string? stepId,
+        string? milestoneStatus,
+        string? phaseStatus,
+        string? taskStatus,
+        string? stepStatus)
+    {
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(new
+        {
+            schemaVersion = 1,
+            eventType = "cursor.set",
+            timestampUtc = DateTimeOffset.UtcNow.ToString("O"),
+            cursor = new
+            {
+                milestoneId,
+                phaseId,
+                taskId,
+                stepId,
+                milestoneStatus,
+                phaseStatus,
+                taskStatus,
+                stepStatus
+            }
+        }));
+
+        stateStore.AppendEvent(document.RootElement.Clone());
     }
 }

@@ -51,6 +51,15 @@ public sealed class WorkspaceConfirmationConfig
     public Dictionary<string, double>? OperationThresholds { get; init; }
 
     /// <summary>
+    /// Whether to create an atomic Git commit scoped to the task's contracted allowed files
+    /// after a task is successfully verified. Defaults to false (opt-in).
+    /// When enabled, the orchestrator stages only the files within the task plan's allowed scope
+    /// that were modified by execution, and records the resulting commit as task evidence.
+    /// </summary>
+    [JsonPropertyName("commitOnVerify")]
+    public bool? CommitOnVerify { get; init; }
+
+    /// <summary>
     /// Loads workspace configuration from .aos/config file.
     /// </summary>
     /// <param name="workspaceRoot">The workspace root directory.</param>

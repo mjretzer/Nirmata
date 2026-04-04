@@ -14,7 +14,9 @@ public sealed class AosTestWorkspaceBuilder : IDisposable
     private readonly JsonSerializerOptions _jsonOptions;
     private object? _projectData;
     private object? _roadmapData;
+    private object? _codebaseMapData;
     private StateSnapshot? _stateData;
+    private readonly Dictionary<string, object> _taskPlanData = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AosTestWorkspaceBuilder"/> class.
@@ -33,6 +35,7 @@ public sealed class AosTestWorkspaceBuilder : IDisposable
         Directory.CreateDirectory(Path.Combine(_tempDirectory, ".aos"));
         Directory.CreateDirectory(Path.Combine(_tempDirectory, ".aos", "state"));
         Directory.CreateDirectory(Path.Combine(_tempDirectory, ".aos", "evidence"));
+        Directory.CreateDirectory(Path.Combine(_tempDirectory, ".aos", "codebase"));
         Directory.CreateDirectory(Path.Combine(_tempDirectory, ".aos", "spec"));
     }
 
@@ -109,6 +112,30 @@ public sealed class AosTestWorkspaceBuilder : IDisposable
     }
 
     /// <summary>
+    /// Configures fresh codebase intelligence at .aos/codebase/map.json.
+    /// </summary>
+    /// <param name="codebaseMapData">Optional custom codebase map payload.</param>
+    /// <returns>The builder for method chaining.</returns>
+    public AosTestWorkspaceBuilder WithCodebaseIntelligence(object? codebaseMapData = null)
+    {
+        _codebaseMapData = codebaseMapData ?? new
+        {
+            schemaVersion = 1,
+            scannedAtUtc = DateTimeOffset.UtcNow,
+            files = new[]
+            {
+                new
+                {
+                    path = "src/test.txt",
+                    kind = "source"
+                }
+            }
+        };
+
+        return this;
+    }
+
+    /// <summary>
     /// Configures the state.json file.
     /// </summary>
     /// <param name="snapshot">State snapshot to use.</param>
@@ -116,6 +143,43 @@ public sealed class AosTestWorkspaceBuilder : IDisposable
     public AosTestWorkspaceBuilder WithState(StateSnapshot snapshot)
     {
         _stateData = snapshot;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures a canonical task-scoped plan.json file.
+    /// </summary>
+    /// <param name="taskId">Task identifier used for the task directory.</param>
+    /// <param name="taskPlanData">Optional custom task-plan payload.</param>
+    /// <returns>The builder for method chaining.</returns>
+    public AosTestWorkspaceBuilder WithTaskPlan(string taskId, object? taskPlanData = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(taskId);
+
+        _taskPlanData[taskId] = taskPlanData ?? new
+        {
+            schemaVersion = 1,
+            taskId,
+            title = $"Task {taskId}",
+            description = $"Plan for {taskId}",
+            fileScopes = new[]
+            {
+                new
+                {
+                    path = "src/test.txt",
+                    scopeType = "create"
+                }
+            },
+            verificationSteps = new[]
+            {
+                new
+                {
+                    verificationType = "file",
+                    description = "Verify file was created"
+                }
+            }
+        };
+
         return this;
     }
 
@@ -173,6 +237,23 @@ public sealed class AosTestWorkspaceBuilder : IDisposable
             Directory.CreateDirectory(Path.GetDirectoryName(roadmapPath)!);
             var roadmapJson = JsonSerializer.Serialize(_roadmapData, _jsonOptions);
             File.WriteAllText(roadmapPath, roadmapJson);
+        }
+
+        if (_codebaseMapData != null)
+        {
+            var mapPath = Path.Combine(_tempDirectory, ".aos", "codebase", "map.json");
+            Directory.CreateDirectory(Path.GetDirectoryName(mapPath)!);
+            var mapJson = JsonSerializer.Serialize(_codebaseMapData, _jsonOptions);
+            File.WriteAllText(mapPath, mapJson);
+            File.SetLastWriteTimeUtc(mapPath, DateTime.UtcNow);
+        }
+
+        foreach (var (taskId, taskPlanData) in _taskPlanData)
+        {
+            var planPath = Path.Combine(_tempDirectory, ".aos", "spec", "tasks", taskId, "plan.json");
+            Directory.CreateDirectory(Path.GetDirectoryName(planPath)!);
+            var planJson = JsonSerializer.Serialize(taskPlanData, _jsonOptions);
+            File.WriteAllText(planPath, planJson);
         }
 
         // Write state.json if configured

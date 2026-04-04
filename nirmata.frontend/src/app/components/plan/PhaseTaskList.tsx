@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router";
 import { cn } from "../ui/utils";
 import { copyToClipboard } from "../../utils/clipboard";
-import { CreateTaskPanel, type CreateTaskFormData } from "./CreateTaskPanel";
+import { CreateTaskPanel } from "./CreateTaskPanel";
 import { useState } from "react";
 
 interface PhaseTaskListProps {
@@ -21,9 +21,8 @@ export function PhaseTaskList({ phase }: PhaseTaskListProps) {
   const { plans: allTaskPlans } = useTaskPlans();
   const ws = workspace.projectName;
   const [createPanelOpen, setCreatePanelOpen] = useState(false);
-  const [localTasks, setLocalTasks] = useState(allTasks.filter(t => t.phaseId === phase.id));
 
-  const phaseTasks = localTasks;
+  const phaseTasks = allTasks.filter(t => t.phaseId === phase.id);
   const completedCount = phaseTasks.filter(t => t.status === "completed").length;
   const failedCount = phaseTasks.filter(t => t.status === "failed").length;
   const inProgressCount = phaseTasks.filter(t => t.status === "in-progress").length;
@@ -307,23 +306,8 @@ export function PhaseTaskList({ phase }: PhaseTaskListProps) {
         <CreateTaskPanel
           defaultPhaseId={phase.id}
           onClose={() => setCreatePanelOpen(false)}
-          onSaveDraft={(data: CreateTaskFormData) => {
-            const nextNum = String(localTasks.length + 101).padStart(6, "0");
-            setLocalTasks(prev => [...prev, {
-              id: `TSK-${nextNum}`, phaseId: phase.id,
-              milestone: phase.milestoneId, name: data.name || "Draft task",
-              status: "planned", assignedTo: data.assignee || "Unassigned",
-            }]);
-          }}
-          onPublish={(data: CreateTaskFormData) => {
-            const nextNum = String(localTasks.length + 101).padStart(6, "0");
-            setLocalTasks(prev => [...prev, {
-              id: `TSK-${nextNum}`, phaseId: phase.id,
-              milestone: phase.milestoneId, name: data.name,
-              status: "planned", assignedTo: data.assignee || "Unassigned",
-              plan: { fileScope: data.fileScope, steps: data.steps.filter(s => s.trim()), verification: data.verifications.filter(v => v.trim()) },
-            }]);
-          }}
+          onSaveDraft={(_data) => {}}
+          onPublish={(_data) => {}}
         />
       )}
     </div>

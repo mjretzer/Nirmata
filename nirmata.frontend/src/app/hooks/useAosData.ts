@@ -130,6 +130,8 @@ import {
   type WorkspaceUatRecord,
   type CodebaseArtifactDto,
   type ChatApiMessage,
+  type WorkspaceGateSummaryDto,
+  type CodebaseReadinessSummaryDto,
 } from "../utils/apiClient";
 export type { AosApiError, WorkspaceBootstrapResult };
 import { toast } from "sonner";
@@ -176,6 +178,9 @@ export type {
   TimelineStep,
   OrchestratorMessage,
   GateKindMeta,
+  // Workspace gate summary
+  WorkspaceGateSummaryDto,
+  CodebaseReadinessSummaryDto,
   // Chat
   ChatMessage,
   ChatRole,
@@ -1237,6 +1242,46 @@ export function useCodebaseIntel(): {
 }
 
 // ── Orchestrator / Gate ───────────────────────────────────────
+
+/**
+ * useWorkspaceGateSummary
+ *
+ * Loads the workspace-scoped gate summary derived server-side from canonical
+ * `.aos/spec`, `.aos/state`, and `.aos/codebase` artifacts.
+ *
+ * Returns the backend summary verbatim — no client-side gate inference.
+ * Consumers render the current gate, blocking reason, next required step,
+ * and optional brownfield codebase readiness details.
+ */
+export function useWorkspaceGateSummary(): {
+  summary: WorkspaceGateSummaryDto | null;
+  isLoading: boolean;
+  refresh: () => void;
+} {
+  const [summary, setSummary] = useState<WorkspaceGateSummaryDto | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { activeWorkspaceId } = useWorkspaceContext();
+
+  const load = useCallback(() => {
+    if (!isGuidWorkspaceId(activeWorkspaceId)) {
+      setSummary(null);
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    domainClient
+      .getWorkspaceGateSummary(activeWorkspaceId)
+      .then((dto) => setSummary(dto))
+      .catch(() => setSummary(null))
+      .finally(() => setIsLoading(false));
+  }, [activeWorkspaceId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return { summary, isLoading, refresh: load };
+}
 
 export function useOrchestratorState(): {
   blockedGate: NextTaskGate;

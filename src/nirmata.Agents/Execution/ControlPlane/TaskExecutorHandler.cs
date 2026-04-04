@@ -48,20 +48,13 @@ public sealed class TaskExecutorHandler
 
         try
         {
-            // Extract task ID from request inputs
-            var taskId = ExtractTaskId(request);
-            if (string.IsNullOrEmpty(taskId))
-            {
-                return CommandRouteResult.Failure(1, "Task ID is required for execution.");
-            }
-
-            // Read the current state to determine the current task
+            // Read the current state to determine the executable task contract.
             var snapshot = _stateStore.ReadSnapshot();
-            var currentTaskId = snapshot?.Cursor?.TaskId;
+            var currentTaskId = ResolveExecutableTaskId(request, snapshot);
 
             if (string.IsNullOrEmpty(currentTaskId))
             {
-                return CommandRouteResult.Failure(2, "No current task found in state cursor.");
+                return CommandRouteResult.Failure(2, "No executable task found in state cursor.");
             }
 
             // Build the task directory path
@@ -165,7 +158,7 @@ public sealed class TaskExecutorHandler
                 TaskId = state.Cursor.TaskId,
                 TaskStatus = success ? "completed" : "failed",
                 StepId = state.Cursor.StepId,
-                StepStatus = state.Cursor.StepStatus
+                StepStatus = null
             };
 
             var updatedState = new StateSnapshot
@@ -182,6 +175,29 @@ public sealed class TaskExecutorHandler
             // Don't fail the execution if state update fails
             // The event log still contains the execution result
         }
+    }
+
+    private static string ResolveExecutableTaskId(CommandRequest request, StateSnapshot? snapshot)
+    {
+        var taskId = ExtractTaskId(request);
+        if (!string.IsNullOrEmpty(taskId))
+        {
+            return taskId;
+        }
+
+        var cursor = snapshot?.Cursor;
+        if (cursor == null)
+        {
+            return string.Empty;
+        }
+
+        if (string.Equals(cursor.TaskStatus, "fix-planned", StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrWhiteSpace(cursor.StepId))
+        {
+            return cursor.StepId;
+        }
+
+        return cursor.TaskId ?? string.Empty;
     }
 
     private static string ExtractTaskId(CommandRequest request)
@@ -201,7 +217,6 @@ public sealed class TaskExecutorHandler
             }
         }
 
-        // Return empty - will use current cursor task
         return string.Empty;
     }
 

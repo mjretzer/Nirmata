@@ -51,7 +51,7 @@ public sealed class PauseResumeManager : IPauseResumeManager
         }
 
         var taskId = snapshot.Cursor.TaskId;
-        var runId = await GetCurrentRunIdAsync(ct);
+        var runId = await GetCurrentRunIdFromEventsAsync();
 
         if (string.IsNullOrEmpty(runId))
         {
@@ -110,14 +110,9 @@ public sealed class PauseResumeManager : IPauseResumeManager
         };
         _handoffStateStore.WriteHandoff(updatedHandoff);
 
-        // Restore cursor position (this would be done via state events in a real implementation)
-        // For now, we record the restoration
-        await _runLifecycleManager.RecordCommandAsync(
-            newRunContext.RunId,
-            "continuity",
-            "restore-cursor",
-            "completed",
-            ct);
+        // Restore cursor into canonical state by emitting a cursor.set event to events.ndjson.
+        // This ensures state.json is derived from on-disk artifacts, not from in-memory assumptions.
+        EmitCursorSetEvent(handoff.Cursor);
 
         // Record resume in new run
         await _runLifecycleManager.RecordCommandAsync(
@@ -235,6 +230,10 @@ public sealed class PauseResumeManager : IPauseResumeManager
         // Write handoff state
         _handoffStateStore.WriteHandoff(handoffState);
 
+        // Restore cursor into canonical state by emitting a cursor.set event to events.ndjson.
+        // This ensures the post-resume state.json reflects the cursor derived from historical evidence.
+        EmitCursorSetEvent(handoffState.Cursor);
+
         // Start new continuation run
         var newRunContext = await _runLifecycleManager.StartRunAsync(ct);
 
@@ -345,12 +344,64 @@ public sealed class PauseResumeManager : IPauseResumeManager
         }
     }
 
-    private async Task<string?> GetCurrentRunIdAsync(CancellationToken ct)
+    /// <summary>
+    /// Derives the active run ID from canonical <c>events.ndjson</c> rather than from repository heuristics.
+    /// An active run is the most recent <c>run.started</c> event with no matching <c>run.completed</c> or <c>run.failed</c>.
+    /// </summary>
+    private Task<string?> GetCurrentRunIdFromEventsAsync()
     {
-        // Get the most recent run from the repository
-        var runs = await _runRepository.ListAsync(since: DateTimeOffset.UtcNow.AddHours(-1), cancellationToken: ct);
-        var activeRun = runs.Where(r => r.CompletedAt == default).MaxBy(r => r.StartedAt);
-        return activeRun?.RunId;
+        var allEvents = _stateStore.TailEvents(new StateEventTailRequest { SinceLine = 0 });
+        var startedRunIds = new List<string>();
+        var closedRunIds = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var entry in allEvents.Items)
+        {
+            var payload = entry.Payload;
+            if (!payload.TryGetProperty("eventType", out var evtTypeProp) ||
+                evtTypeProp.ValueKind != JsonValueKind.String)
+                continue;
+
+            if (!payload.TryGetProperty("runId", out var runIdProp) ||
+                runIdProp.ValueKind != JsonValueKind.String)
+                continue;
+
+            var eventType = evtTypeProp.GetString()!;
+            var runId = runIdProp.GetString()!;
+
+            if (string.Equals(eventType, "run.started", StringComparison.Ordinal))
+                startedRunIds.Add(runId);
+            else if (string.Equals(eventType, "run.completed", StringComparison.Ordinal) ||
+                     string.Equals(eventType, "run.failed", StringComparison.Ordinal))
+                closedRunIds.Add(runId);
+        }
+
+        var activeRunId = startedRunIds.LastOrDefault(id => !closedRunIds.Contains(id));
+        return Task.FromResult(activeRunId);
+    }
+
+    /// <summary>
+    /// Emits a <c>cursor.set</c> event to <c>.aos/state/events.ndjson</c> so the canonical
+    /// state snapshot reflects the cursor being restored.
+    /// </summary>
+    private void EmitCursorSetEvent(StateCursor cursor)
+    {
+        using var doc = JsonSerializer.SerializeToDocument(new
+        {
+            eventType = "cursor.set",
+            cursor = new
+            {
+                milestoneId = cursor.MilestoneId,
+                phaseId = cursor.PhaseId,
+                taskId = cursor.TaskId,
+                stepId = cursor.StepId,
+                milestoneStatus = cursor.MilestoneStatus,
+                phaseStatus = cursor.PhaseStatus,
+                taskStatus = cursor.TaskStatus,
+                stepStatus = cursor.StepStatus
+            },
+            timestamp = DateTimeOffset.UtcNow.ToString("O")
+        }, DeterministicJsonOptions.Standard);
+        _stateStore.AppendEvent(doc.RootElement);
     }
 
     private async Task<TaskContext> BuildTaskContextAsync(string taskId, string runId, CancellationToken ct)

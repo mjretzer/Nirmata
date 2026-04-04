@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentAssertions;
 using nirmata.Agents.Execution.Continuity.ProgressReporter;
 using nirmata.Aos.Contracts.State;
@@ -15,6 +16,8 @@ public class ProgressReporterTests
     public ProgressReporterTests()
     {
         _stateStoreMock = new Mock<IStateStore>();
+        _stateStoreMock.Setup(x => x.TailEvents(It.IsAny<StateEventTailRequest>()))
+            .Returns(new StateEventTailResponse());
         _sut = new Agents.Execution.Continuity.ProgressReporter.ProgressReporter(_stateStoreMock.Object);
     }
 
@@ -474,5 +477,38 @@ public class ProgressReporterTests
         // Assert
         await act.Should().ThrowAsync<ArgumentException>()
             .WithMessage("*Unsupported format 'xml'*");
+    }
+
+    [Fact]
+    public async Task ReportAsync_WithActiveRunInEvents_RunIdDerivedFromCanonicalEvents()
+    {
+        // Arrange
+        var runId = "RUN-20260101-120000-abc123";
+        _stateStoreMock.Setup(x => x.ReadSnapshot()).Returns(new StateSnapshot
+        {
+            Cursor = new StateCursor
+            {
+                TaskId = "TSK-0001",
+                PhaseId = "Implementation",
+                TaskStatus = StateCursorStatuses.InProgress
+            }
+        });
+        using var doc = JsonDocument.Parse(
+            $"{{\"eventType\":\"run.started\",\"runId\":\"{runId}\"}}");
+        _stateStoreMock.Setup(x => x.TailEvents(It.IsAny<StateEventTailRequest>()))
+            .Returns(new StateEventTailResponse
+            {
+                Items = new List<StateEventEntry>
+                {
+                    new StateEventEntry { LineNumber = 1, Payload = doc.RootElement.Clone() }
+                }
+            });
+
+        // Act
+        var report = await _sut.ReportAsync();
+
+        // Assert — run ID must be derived from events.ndjson, not from any other source
+        report.HasActiveExecution.Should().BeTrue();
+        report.RunId.Should().Be(runId);
     }
 }

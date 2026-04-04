@@ -6,72 +6,93 @@ namespace nirmata.Agents.Execution.Planning;
 internal static class InterviewPrompts
 {
     /// <summary>
-    /// System prompt for the discovery phase.
+    /// System prompt for the discovery phase — returns structured JSON.
     /// </summary>
     public const string DiscoveryPhaseSystemPrompt = """
-You are a project requirements interviewer. Your goal is to conduct a structured interview to gather comprehensive project requirements.
+You are a project requirements interviewer. Analyze the provided context and conduct a thorough discovery of the project's purpose, goals, constraints, and scope.
 
-In the DISCOVERY phase, your role is to:
-1. Ask open-ended questions to understand the project's purpose and goals
-2. Identify the problem the project solves
-3. Understand the target audience or users
-4. Gather initial feature ideas
-5. Identify any known constraints or requirements
+Produce a JSON object with this exact structure (no markdown fencing):
+{
+  "qaPairs": [
+    { "question": "What problem does this project solve?", "answer": "..." },
+    { "question": "Who is the target audience?", "answer": "..." }
+  ],
+  "draft": {
+    "name": "Project name inferred from context",
+    "description": "Concise project description",
+    "technologyStack": "Primary tech stack or null",
+    "goals": ["goal 1", "goal 2"],
+    "targetAudience": "Who will use this or null",
+    "keyFeatures": ["feature 1"],
+    "constraints": ["constraint 1"],
+    "assumptions": ["assumption 1"]
+  }
+}
 
-Guidelines:
-- Ask one question at a time to maintain clarity
-- Build on previous answers with follow-up questions
-- Be conversational but focused on gathering requirements
-- If the user is unsure, offer helpful suggestions or examples
-- Keep questions concise and clear
-
-Current interview state will be provided in the context. Adapt your questions based on what has already been gathered.
+Rules:
+- Generate 3-5 Q&A pairs covering: purpose/problem, target users, goals, initial features, known constraints.
+- For each question, synthesize the best answer from the provided context (codebase intelligence, user input, project hints).
+- The "draft" object must be populated from the synthesized answers — never leave required fields empty.
+- If context is sparse, make reasonable assumptions and list them explicitly in "assumptions".
+- Output ONLY the JSON object. No markdown, no explanation.
 """;
 
     /// <summary>
-    /// System prompt for the clarification phase.
+    /// System prompt for the clarification phase — returns structured JSON.
     /// </summary>
     public const string ClarificationPhaseSystemPrompt = """
-You are a project requirements interviewer. Your goal is to conduct a structured interview to gather comprehensive project requirements.
+You are a project requirements interviewer in the CLARIFICATION phase. You have discovery results and must probe for gaps, resolve ambiguities, and make implicit assumptions explicit.
 
-In the CLARIFICATION phase, your role is to:
-1. Probe unclear or vague requirements
-2. Ask for specific examples where details are missing
-3. Identify implicit assumptions and make them explicit
-4. Explore edge cases and constraints
-5. Clarify technical requirements and preferences
+Produce a JSON object with this exact structure (no markdown fencing):
+{
+  "qaPairs": [
+    { "question": "Clarification question...", "answer": "Synthesized answer..." }
+  ],
+  "draftUpdates": {
+    "technologyStack": "refined value or null to keep current",
+    "goals": ["additional goals to append"],
+    "keyFeatures": ["additional features to append"],
+    "constraints": ["additional constraints to append"],
+    "assumptions": ["additional assumptions to append"]
+  }
+}
 
-Guidelines:
-- Ask targeted follow-up questions based on previous answers
-- Focus on areas where information is incomplete
-- Help the user think through implications of their requirements
-- Be thorough but don't overwhelm with too many questions at once
-- Document any assumptions you make
-
-Current interview state will be provided in the context. Focus on gaps in the gathered information.
+Rules:
+- Generate 2-4 Q&A pairs that probe unclear areas, missing details, and implicit assumptions from the discovery phase.
+- "draftUpdates" contains ONLY new items to append (not the full list). Use null or empty arrays for fields that need no updates.
+- Focus on: technical requirements, integration boundaries, security/compliance, timeline, non-goals, and edge cases.
+- Output ONLY the JSON object. No markdown, no explanation.
 """;
 
     /// <summary>
-    /// System prompt for the confirmation phase.
+    /// System prompt for the confirmation phase — returns structured JSON.
     /// </summary>
     public const string ConfirmationPhaseSystemPrompt = """
-You are a project requirements interviewer. Your goal is to conduct a structured interview to gather comprehensive project requirements.
+You are a project requirements interviewer in the CONFIRMATION phase. Review all gathered information, resolve any remaining conflicts, and produce the final confirmed project specification.
 
-In the CONFIRMATION phase, your role is to:
-1. Summarize the key requirements gathered
-2. Verify understanding with the user
-3. Confirm the project scope and boundaries
-4. Identify any final missing pieces
-5. Prepare to generate the project specification
+Produce a JSON object with this exact structure (no markdown fencing):
+{
+  "qaPairs": [
+    { "question": "confirmation question...", "answer": "confirmed answer..." }
+  ],
+  "confirmedDraft": {
+    "name": "Final project name",
+    "description": "Final comprehensive project description",
+    "technologyStack": "Confirmed technology stack",
+    "goals": ["all confirmed goals"],
+    "targetAudience": "Confirmed target audience",
+    "keyFeatures": ["all confirmed features"],
+    "constraints": ["all confirmed constraints"],
+    "assumptions": ["all confirmed assumptions"]
+  }
+}
 
-Guidelines:
-- Present a clear summary of what was discussed
-- Ask for explicit confirmation of key decisions
-- Give the user opportunity to add or correct anything
-- Once confirmed, indicate readiness to generate the project spec
-- Be thorough in confirming before finalizing
-
-Current interview state will be provided in the context. Ensure all key requirements are validated.
+Rules:
+- Generate 1-3 Q&A pairs that confirm the key decisions and boundaries.
+- "confirmedDraft" is the FINAL, COMPLETE specification. Include ALL goals, features, constraints, and assumptions — not just new ones.
+- Resolve any conflicts between discovery and clarification answers.
+- The confirmed draft will be used directly to generate the canonical project.json.
+- Output ONLY the JSON object. No markdown, no explanation.
 """;
 
     /// <summary>
@@ -86,7 +107,7 @@ Current interview state will be provided in the context. Ensure all key requirem
     };
 
     /// <summary>
-    /// Creates the user prompt with interview context.
+    /// Creates the user prompt with interview context for the given phase.
     /// </summary>
     public static string CreateUserPrompt(InterviewSession session, string? userResponse = null)
     {
@@ -113,13 +134,17 @@ Current interview state will be provided in the context. Ensure all key requirem
                 builder.AppendLine($"- Target Audience: {session.ProjectDraft.TargetAudience}");
             if (session.ProjectDraft.KeyFeatures.Count > 0)
                 builder.AppendLine($"- Key Features: {string.Join(", ", session.ProjectDraft.KeyFeatures)}");
+            if (session.ProjectDraft.Constraints.Count > 0)
+                builder.AppendLine($"- Constraints: {string.Join(", ", session.ProjectDraft.Constraints)}");
+            if (session.ProjectDraft.Assumptions.Count > 0)
+                builder.AppendLine($"- Assumptions: {string.Join(", ", session.ProjectDraft.Assumptions)}");
             builder.AppendLine();
         }
 
         if (session.QAPairs.Count > 0)
         {
             builder.AppendLine("## Previous Q&A");
-            foreach (var qa in session.QAPairs.TakeLast(5))
+            foreach (var qa in session.QAPairs)
             {
                 builder.AppendLine($"Q ({qa.Phase}): {qa.Question}");
                 builder.AppendLine($"A: {qa.Answer}");
@@ -134,10 +159,18 @@ Current interview state will be provided in the context. Ensure all key requirem
             builder.AppendLine();
         }
 
+        if (session.ContextData.Count > 0)
+        {
+            builder.AppendLine("## Additional Context");
+            foreach (var (key, value) in session.ContextData)
+            {
+                builder.AppendLine($"- {key}: {value}");
+            }
+            builder.AppendLine();
+        }
+
         builder.AppendLine("## Your Task");
-        builder.AppendLine(session.QAPairs.Count == 0 && string.IsNullOrEmpty(userResponse)
-            ? "Begin the interview with an opening question to understand the project."
-            : "Based on the context above, ask your next interview question or provide a summary if we're in the confirmation phase.");
+        builder.AppendLine($"Conduct the {session.CurrentPhase} phase of the interview. Return the structured JSON output as specified in the system prompt.");
 
         return builder.ToString();
     }

@@ -186,7 +186,7 @@ public sealed class LlmStructuredActionGenerator : ILlmStructuredActionGenerator
             CurrentCursor = null,
             HasProject = true,
             HasRoadmap = true,
-            HasPlan = true
+            HasTaskPlan = true
         };
 
         var result = await GenerateAsync(intent, context, cancellationToken);
@@ -324,7 +324,7 @@ public sealed class LlmStructuredActionGenerator : ILlmStructuredActionGenerator
                $"Workspace Context:\n" +
                $"- Has Project: {context.HasProject}\n" +
                $"- Has Roadmap: {context.HasRoadmap}\n" +
-               $"- Has Plan: {context.HasPlan}\n" +
+               $"- Has Task Plan: {context.HasTaskPlan}\n" +
                $"- Current Cursor: {context.CurrentCursor ?? "none"}\n\n" +
                $"Use the generate_proposed_action tool to provide your response.";
     }

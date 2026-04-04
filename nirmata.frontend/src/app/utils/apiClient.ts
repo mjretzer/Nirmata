@@ -60,6 +60,7 @@ import { DAEMON_BASE_URL, DOMAIN_BASE_URL } from "../api/routing";
  *                               GET  /v1/workspaces/:id/state/packs               → WorkspaceContextPack[]
  *   useCheckpoints()            GET  /v1/workspaces/:id/checkpoints              → WorkspaceCheckpointSummary[]
  *   useCodebaseIntel()          GET  /v1/workspaces/:id/codebase                → CodebaseInventoryDto
+ *   useWorkspaceGateSummary()    GET  /v1/workspaces/:id/status                 → WorkspaceGateSummaryDto
  *   useOrchestratorState()      GET  /v1/workspaces/:id/orchestrator/gate       → OrchestratorGateDto
  *                               GET  /v1/workspaces/:id/orchestrator/timeline   → OrchestratorTimelineDto
  *   useChatMessages()           GET  /v1/workspaces/:id/chat                    → ChatSnapshot
@@ -473,6 +474,36 @@ export interface OrchestratorTimelineStepDto {
 
 export interface OrchestratorTimelineDto {
   steps: OrchestratorTimelineStepDto[];
+}
+
+// Workspace gate summary — GET /v1/workspaces/{id}/status
+// Mirrors WorkspaceGateSummaryDto and CodebaseReadinessSummaryDto from nirmata.Data.Dto/Models/WorkspaceStatus/
+
+/** Brownfield codebase readiness details embedded in a workspace gate summary. */
+export interface CodebaseReadinessSummaryDto {
+  /** Freshness status: "missing" | "stale" | "ready" */
+  mapStatus: string;
+  /** Human-readable explanation of the readiness state. */
+  detail: string;
+  /** ISO timestamp when map.json was last written; null when absent. */
+  lastUpdated: string | null;
+}
+
+/**
+ * Workspace-scoped gate summary derived server-side from canonical artifacts.
+ * Returned by GET /v1/workspaces/{workspaceId}/status.
+ * Gates: "interview" | "codebase-preflight" | "roadmap" | "planning" |
+ *        "execution" | "verification" | "fix" | "ready"
+ */
+export interface WorkspaceGateSummaryDto {
+  /** Identifier of the current blocking gate. */
+  currentGate: string;
+  /** Artifact-backed explanation of why the workspace is blocked; null when gate is "ready". */
+  blockingReason: string | null;
+  /** The next CLI command or action the operator should run; null when gate is "ready". */
+  nextRequiredStep: string | null;
+  /** Brownfield codebase readiness details; present when map.json is missing or stale. */
+  codebaseReadiness: CodebaseReadinessSummaryDto | null;
 }
 
 // Chat — types aligned with backend DTOs in nirmata.Data.Dto/Models/Chat/
@@ -1085,6 +1116,14 @@ export class DomainClient extends BaseApiClient {
   getWorkspaceCodebaseArtifact(workspaceId: string, artifactId: string): Promise<CodebaseArtifactDetailDto> {
     return this.request<CodebaseArtifactDetailDto>(
       `/v1/workspaces/${encodeURIComponent(workspaceId)}/codebase/${encodeURIComponent(artifactId)}`,
+    );
+  }
+
+  // Workspace gate summary — derived server-side from canonical artifacts
+
+  getWorkspaceGateSummary(workspaceId: string): Promise<WorkspaceGateSummaryDto> {
+    return this.request<WorkspaceGateSummaryDto>(
+      `/v1/workspaces/${encodeURIComponent(workspaceId)}/status`,
     );
   }
 

@@ -40,6 +40,8 @@ using nirmata.Aos.Public.Services;
 using nirmata.Aos.Public.Models;
 using nirmata.Aos.Configuration;
 using nirmata.Aos.Concurrency;
+using nirmata.Agents.Execution.FixPlanner;
+using nirmata.Common.Helpers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -113,6 +115,7 @@ public static class ServiceCollectionExtensions
             var phasePlannerHandler = sp.GetRequiredService<PhasePlannerHandler>();
             var taskExecutorHandler = sp.GetRequiredService<TaskExecutorHandler>();
             var verifierHandler = sp.GetRequiredService<VerifierHandler>();
+            var fixPlannerHandler = sp.GetRequiredService<FixPlannerHandler>();
             var atomicGitCommitterHandler = sp.GetRequiredService<AtomicGitCommitterHandler>();
             var preflightValidator = sp.GetRequiredService<IPreflightValidator>();
             var prerequisiteValidator = sp.GetRequiredService<IPrerequisiteValidator>();
@@ -122,6 +125,8 @@ public static class ServiceCollectionExtensions
             var inputClassifier = sp.GetRequiredService<InputClassifier>();
             var chatResponder = sp.GetRequiredService<ChatResponder>();
             var readOnlyHandler = sp.GetRequiredService<ReadOnlyHandler>();
+            var historyWriter = sp.GetRequiredService<IHistoryWriter>();
+            var handoffStateStore = sp.GetRequiredService<IHandoffStateStore>();
             var confirmationEventPublisher = sp.GetService<ConfirmationEventPublisher>();
 
             if (confirmationGateEvaluator != null)
@@ -141,6 +146,7 @@ public static class ServiceCollectionExtensions
                     phasePlannerHandler,
                     taskExecutorHandler,
                     verifierHandler,
+                    fixPlannerHandler,
                     atomicGitCommitterHandler,
                     preflightValidator,
                     prerequisiteValidator,
@@ -150,6 +156,8 @@ public static class ServiceCollectionExtensions
                     inputClassifier,
                     chatResponder,
                     readOnlyHandler,
+                    historyWriter,
+                    handoffStateStore,
                     confirmationEventPublisher);
             }
             else
@@ -168,6 +176,7 @@ public static class ServiceCollectionExtensions
                     phasePlannerHandler,
                     taskExecutorHandler,
                     verifierHandler,
+                    fixPlannerHandler,
                     atomicGitCommitterHandler,
                     preflightValidator,
                     prerequisiteValidator,
@@ -177,6 +186,8 @@ public static class ServiceCollectionExtensions
                     inputClassifier,
                     chatResponder,
                     readOnlyHandler,
+                    historyWriter,
+                    handoffStateStore,
                     confirmationEventPublisher);
             }
         });
@@ -262,6 +273,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IUatResultWriter, UatResultWriter>();
         services.AddSingleton<IUatVerifier, UatVerifier>();
         services.AddSingleton<VerifierHandler>();
+
+        // Register FixPlanner services
+        services.AddSingleton<IClock, SystemClock>();
+        services.AddSingleton<IFixPlanner, Execution.FixPlanner.FixPlanner>();
+        services.AddSingleton<FixPlannerHandler>();
 
         // Register CodebaseMapper services
         services.AddSingleton<ICodebaseScanner, Execution.Brownfield.CodebaseScanner.CodebaseScanner>();
@@ -554,6 +570,7 @@ public static class ServiceCollectionExtensions
             var phasePlannerHandler = sp.GetRequiredService<PhasePlannerHandler>();
             var taskExecutorHandler = sp.GetRequiredService<TaskExecutorHandler>();
             var verifierHandler = sp.GetRequiredService<VerifierHandler>();
+            var fixPlannerHandler = sp.GetRequiredService<FixPlannerHandler>();
             var atomicGitCommitterHandler = sp.GetRequiredService<AtomicGitCommitterHandler>();
             var preflightValidator = sp.GetRequiredService<IPreflightValidator>();
             var prerequisiteValidator = sp.GetRequiredService<IPrerequisiteValidator>();
@@ -563,6 +580,8 @@ public static class ServiceCollectionExtensions
             var inputClassifier = sp.GetRequiredService<InputClassifier>();
             var chatResponder = sp.GetRequiredService<ChatResponder>();
             var readOnlyHandler = sp.GetRequiredService<ReadOnlyHandler>();
+            var historyWriter = sp.GetRequiredService<IHistoryWriter>();
+            var handoffStateStore = sp.GetRequiredService<IHandoffStateStore>();
             var confirmationEventPublisher = sp.GetService<ConfirmationEventPublisher>();
 
             if (confirmationGateEvaluator != null)
@@ -582,6 +601,7 @@ public static class ServiceCollectionExtensions
                     phasePlannerHandler,
                     taskExecutorHandler,
                     verifierHandler,
+                    fixPlannerHandler,
                     atomicGitCommitterHandler,
                     preflightValidator,
                     prerequisiteValidator,
@@ -591,6 +611,8 @@ public static class ServiceCollectionExtensions
                     inputClassifier,
                     chatResponder,
                     readOnlyHandler,
+                    historyWriter,
+                    handoffStateStore,
                     confirmationEventPublisher);
             }
             else
@@ -609,6 +631,7 @@ public static class ServiceCollectionExtensions
                     phasePlannerHandler,
                     taskExecutorHandler,
                     verifierHandler,
+                    fixPlannerHandler,
                     atomicGitCommitterHandler,
                     preflightValidator,
                     prerequisiteValidator,
@@ -618,6 +641,8 @@ public static class ServiceCollectionExtensions
                     inputClassifier,
                     chatResponder,
                     readOnlyHandler,
+                    historyWriter,
+                    handoffStateStore,
                     confirmationEventPublisher);
             }
         });
@@ -703,6 +728,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IUatResultWriter, UatResultWriter>();
         services.AddSingleton<IUatVerifier, UatVerifier>();
         services.AddSingleton<VerifierHandler>();
+
+        // Register FixPlanner services
+        services.AddSingleton<IClock, SystemClock>();
+        services.AddSingleton<IFixPlanner, Execution.FixPlanner.FixPlanner>();
+        services.AddSingleton<FixPlannerHandler>();
 
         // Register CodebaseMapper services
         services.AddSingleton<ICodebaseScanner, Execution.Brownfield.CodebaseScanner.CodebaseScanner>();

@@ -1,4 +1,5 @@
 using nirmata.Data.Dto.Models.OrchestratorGate;
+using nirmata.Data.Dto.Models.WorkspaceStatus;
 
 namespace nirmata.Services.Interfaces;
 
@@ -25,5 +26,17 @@ public interface IOrchestratorGateService
     /// <param name="workspaceRoot">Absolute path to the workspace root directory.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task<OrchestratorTimelineDto> GetTimelineAsync(
+        string workspaceRoot, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Derives the workspace gate summary from canonical <c>.aos/spec</c>, <c>.aos/state</c>,
+    /// and <c>.aos/codebase</c> artifacts.
+    /// Maps the current blocking gate to a <see cref="WorkspaceGate"/> constant and includes
+    /// brownfield codebase readiness details when the <c>.aos/codebase/</c> directory is present
+    /// and the map is missing or stale.
+    /// </summary>
+    /// <param name="workspaceRoot">Absolute path to the workspace root directory.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<WorkspaceGateSummaryDto> GetGateSummaryAsync(
         string workspaceRoot, CancellationToken cancellationToken = default);
 }

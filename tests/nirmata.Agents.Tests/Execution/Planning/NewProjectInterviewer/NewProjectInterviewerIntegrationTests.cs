@@ -349,6 +349,52 @@ public class NewProjectInterviewerIntegrationTests : IDisposable
     }
 
     [Fact]
+    public async Task ConductInterviewAsync_PersistsSessionStateArtifact_ForResumableInterviewLoop()
+    {
+        // Arrange
+        var runId = "RUN-EVD-SESSION-001";
+        var session = new InterviewSession { RunId = runId };
+
+        _fakeLlmProvider
+            .EnqueueTextResponse("Discovery response")
+            .EnqueueTextResponse("Clarification response")
+            .EnqueueTextResponse("Confirmation response");
+
+        var expectedSpecPath = Path.Combine(_aosDirectory, "spec", "project.json");
+        _workspaceMock.Setup(x => x.GetAbsolutePathForArtifactId("project"))
+            .Returns(expectedSpecPath);
+
+        Directory.CreateDirectory(Path.Combine(_aosDirectory, "spec"));
+
+        // Act
+        var result = await _sut.ConductInterviewAsync(session);
+
+        // Assert
+        result.Success.Should().BeTrue();
+
+        var sessionStatePath = Path.Combine(
+            _aosDirectory,
+            "evidence",
+            "runs",
+            runId,
+            "artifacts",
+            "interview.session.json");
+
+        File.Exists(sessionStatePath).Should().BeTrue("the interview loop should persist a resumable session artifact");
+
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(sessionStatePath));
+        var root = document.RootElement;
+
+        root.GetProperty("sessionId").GetString().Should().Be(session.SessionId);
+        root.GetProperty("state").GetString().Should().Be(InterviewState.Confirmation.ToString());
+        root.GetProperty("currentPhase").GetString().Should().Be(InterviewPhase.Confirmation.ToString());
+        root.GetProperty("qaPairCount").GetInt32().Should().BeGreaterThan(0);
+        root.GetProperty("qaPairs").GetArrayLength().Should().Be(session.QAPairs.Count);
+        root.TryGetProperty("draft", out var draft).Should().BeTrue();
+        draft.ValueKind.Should().Be(JsonValueKind.Object);
+    }
+
+    [Fact]
     public async Task InterviewEvidence_ContainsAllQAPairs_InTranscript()
     {
         // Arrange

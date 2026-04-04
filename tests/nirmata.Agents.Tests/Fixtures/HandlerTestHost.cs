@@ -7,6 +7,7 @@ using nirmata.Agents.Execution.Brownfield.SymbolCacheBuilder;
 using nirmata.Agents.Execution.Context;
 using nirmata.Agents.Execution.ControlPlane;
 using nirmata.Agents.Execution.ControlPlane.Chat;
+using nirmata.Agents.Execution.ControlPlane.Tools.Registry;
 using nirmata.Agents.Execution.ControlPlane.Streaming;
 using nirmata.Agents.Execution.ToolCalling;
 using nirmata.Agents.Execution.ControlPlane.Llm.Contracts;
@@ -14,12 +15,15 @@ using nirmata.Agents.Execution.Execution;
 using nirmata.Agents.Execution.Execution.AtomicGitCommitter;
 using nirmata.Agents.Execution.Execution.SubagentRuns;
 using nirmata.Agents.Execution.Execution.TaskExecutor;
+using nirmata.Agents.Execution.FixPlanner;
 using nirmata.Agents.Execution.Planning;
 using nirmata.Agents.Execution.Planning.PhasePlanner;
 using nirmata.Agents.Execution.Planning.PhasePlanner.Assumptions;
 using nirmata.Agents.Execution.Planning.PhasePlanner.ContextGatherer;
 using nirmata.Agents.Execution.Planning.RoadmapModifier;
 using nirmata.Agents.Execution.Preflight;
+using nirmata.Agents.Execution.Continuity;
+using nirmata.Agents.Execution.Continuity.HistoryWriter;
 using nirmata.Agents.Execution.Validation;
 using nirmata.Agents.Execution.Verification;
 using nirmata.Agents.Execution.Verification.Issues;
@@ -43,6 +47,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace nirmata.Agents.Tests.Fixtures;
 
@@ -300,6 +305,7 @@ public sealed class HandlerTestHost : IDisposable
         _services.AddSingleton<RoadmapModificationGate>();
 
         // Register TaskExecutor services
+        _services.AddSingleton<IToolRegistry, ToolRegistry>();
         _services.AddSingleton<ITaskExecutor, TaskExecutor>();
         _services.AddSingleton<ISubagentOrchestrator, FakeSubagentOrchestrator>();
 
@@ -320,8 +326,11 @@ public sealed class HandlerTestHost : IDisposable
         _services.AddSingleton<IInterviewEvidenceWriter, FakeInterviewEvidenceWriter>();
         _services.AddSingleton<IRoadmapper, FakeRoadmapper>();
         _services.AddSingleton<IRoadmapGenerator, FakeRoadmapGenerator>();
+        _services.AddSingleton<IFixPlanner>(_ => Mock.Of<IFixPlanner>());
         _services.AddSingleton<IToolCallingLoop, FakeToolCallingLoop>();
         _services.AddSingleton<IChatResponder, FakeChatResponder>();
+        _services.AddSingleton<IHistoryWriter>(_ => Mock.Of<IHistoryWriter>());
+        _services.AddSingleton<IHandoffStateStore>(_ => Mock.Of<IHandoffStateStore>());
 
         // Register orchestrator services
         _services.AddSingleton<IDestructivenessAnalyzer, DestructivenessAnalyzer>();

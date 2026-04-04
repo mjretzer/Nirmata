@@ -53,7 +53,7 @@ internal static class AosContextPackBuilder
 
         for (var i = 0; i < orderedCandidates.Count; i++)
         {
-            if (usedItems >= budget.MaxItems)
+            if (budget.MaxItems > 0 && usedItems >= budget.MaxItems)
             {
                 break;
             }

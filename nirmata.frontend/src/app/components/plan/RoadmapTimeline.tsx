@@ -333,7 +333,7 @@ export function RoadmapTimeline() {
                 </div>
                 <h1 className="text-2xl font-bold tracking-tight mb-1">Plan</h1>
                 <p className="text-muted-foreground text-sm max-w-2xl font-mono">
-                  {allMilestones.length} milestones — {allPhases.length} phases — {tasks.length} tasks
+                  {allMilestones.length} milestones — {allPhases.length} phases — {hookTasks.length} tasks
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -373,7 +373,7 @@ export function RoadmapTimeline() {
                 const isMilestoneCompleted = milestone.status === "completed";
                 const isMilestonePlanned = milestone.status === "planned";
                 const milestonePhases = allPhases.filter(p => milestone.phases.includes(p.id));
-                const milestoneTasks = tasks.filter(t => t.milestone === milestone.id);
+                const milestoneTasks = hookTasks.filter(t => t.milestone === milestone.id);
                 const msCompletedTasks = milestoneTasks.filter(t => t.status === "completed").length;
                 const msProgress = milestoneTasks.length > 0 ? Math.round((msCompletedTasks / milestoneTasks.length) * 100) : 0;
                 const msGit = getGitMeta(milestone.id, "milestone", workspace.cursor.milestone, allPhases[0].id);
@@ -489,7 +489,7 @@ export function RoadmapTimeline() {
                         const isActive = phase.id === workspace.cursor.phase;
                         const isCompleted = phase.status === "completed";
                         const isPlanned = phase.status === "planned";
-                        const phaseTasks = tasks.filter(t => t.phaseId === phase.id);
+                        const phaseTasks = hookTasks.filter(t => t.phaseId === phase.id);
                         const completedCount = phaseTasks.filter(t => t.status === "completed").length;
                         const failedCount = phaseTasks.filter(t => t.status === "failed").length;
                         const phaseProgress = phaseTasks.length > 0 ? Math.round((completedCount / phaseTasks.length) * 100) : 0;

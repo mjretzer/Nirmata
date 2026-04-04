@@ -10,6 +10,8 @@ namespace nirmata.Agents.Execution.Planning;
 
 /// <summary>
 /// Default implementation of the new project interviewer using LLM-driven interviews.
+/// Each phase sends context to the LLM, parses the structured JSON response,
+/// and persists session state to evidence artifacts between phases.
 /// </summary>
 public sealed class NewProjectInterviewer : INewProjectInterviewer
 {
@@ -53,10 +55,15 @@ public sealed class NewProjectInterviewer : INewProjectInterviewer
             session.State = InterviewState.Discovery;
             session.ProjectDraft ??= new ProjectSpecDraft();
 
-            // Run through the interview phases
+            // Run through the interview phases, persisting state after each
             await RunDiscoveryPhaseAsync(session, ct);
+            await PersistSessionStateAsync(session, ct);
+
             await RunClarificationPhaseAsync(session, ct);
+            await PersistSessionStateAsync(session, ct);
+
             await RunConfirmationPhaseAsync(session, ct);
+            await PersistSessionStateAsync(session, ct);
 
             // Generate the project specification
             var spec = _specGenerator.GenerateFromSession(session);
@@ -112,50 +119,43 @@ public sealed class NewProjectInterviewer : INewProjectInterviewer
         session.CurrentPhase = InterviewPhase.Discovery;
         session.State = InterviewState.Discovery;
 
-        // In a real implementation, this would interact with the user
-        // For this implementation, we'll simulate the Q&A loop with the LLM
         var systemPrompt = InterviewPrompts.GetSystemPrompt(InterviewPhase.Discovery);
         var userPrompt = InterviewPrompts.CreateUserPrompt(session);
 
-        var messages = new List<LlmMessage>
-        {
-            LlmMessage.System(systemPrompt),
-            LlmMessage.User(userPrompt)
-        };
+        var response = await CallLlmAsync(systemPrompt, userPrompt, ct);
+        var parsed = ParsePhaseResponse(response);
 
-        var request = new LlmCompletionRequest
+        if (parsed == null)
         {
-            Messages = messages,
-            Options = new LlmProviderOptions
+            // Fallback: treat the raw response as a single discovery answer
+            session.QAPairs.Add(new InterviewQAPair
             {
-                Temperature = 0.7f,
-                MaxTokens = 2000
+                Question = "Describe the project based on available context.",
+                Answer = response ?? "No response from LLM.",
+                Phase = InterviewPhase.Discovery
+            });
+            return;
+        }
+
+        // Add Q&A pairs from the LLM response
+        foreach (var qa in parsed.QAPairs ?? [])
+        {
+            if (!string.IsNullOrWhiteSpace(qa.Question) && !string.IsNullOrWhiteSpace(qa.Answer))
+            {
+                session.QAPairs.Add(new InterviewQAPair
+                {
+                    Question = qa.Question,
+                    Answer = qa.Answer,
+                    Phase = InterviewPhase.Discovery
+                });
             }
-        };
+        }
 
-        var result = await _llmProvider.CompleteAsync(request, ct);
-        var assistantContent = result.Message.Content ?? "Let's start by understanding your project. What problem are you trying to solve?";
-
-        // Simulate a Q&A exchange - in production this would be interactive
-        session.QAPairs.Add(new InterviewQAPair
+        // Apply the draft from the LLM's discovery output
+        if (parsed.Draft != null)
         {
-            Question = "What is the name of your project?",
-            Answer = "A software development project",
-            Phase = InterviewPhase.Discovery
-        });
-
-        session.QAPairs.Add(new InterviewQAPair
-        {
-            Question = "What problem does this project solve?",
-            Answer = "It helps developers manage and organize their projects more efficiently",
-            Phase = InterviewPhase.Discovery
-        });
-
-        // Update draft with discovered information
-        session.ProjectDraft!.Name = "New Project";
-        session.ProjectDraft.Description = "A software development project for managing and organizing projects efficiently";
-        session.ProjectDraft.Goals.Add("Improve project organization");
-        session.ProjectDraft.Goals.Add("Streamline development workflow");
+            ApplyDraft(session.ProjectDraft!, parsed.Draft);
+        }
     }
 
     private async Task RunClarificationPhaseAsync(InterviewSession session, CancellationToken ct)
@@ -166,6 +166,84 @@ public sealed class NewProjectInterviewer : INewProjectInterviewer
         var systemPrompt = InterviewPrompts.GetSystemPrompt(InterviewPhase.Clarification);
         var userPrompt = InterviewPrompts.CreateUserPrompt(session);
 
+        var response = await CallLlmAsync(systemPrompt, userPrompt, ct);
+        var parsed = ParsePhaseResponse(response);
+
+        if (parsed == null)
+        {
+            session.QAPairs.Add(new InterviewQAPair
+            {
+                Question = "Are there additional clarifications needed?",
+                Answer = response ?? "No additional clarification available.",
+                Phase = InterviewPhase.Clarification
+            });
+            return;
+        }
+
+        foreach (var qa in parsed.QAPairs ?? [])
+        {
+            if (!string.IsNullOrWhiteSpace(qa.Question) && !string.IsNullOrWhiteSpace(qa.Answer))
+            {
+                session.QAPairs.Add(new InterviewQAPair
+                {
+                    Question = qa.Question,
+                    Answer = qa.Answer,
+                    Phase = InterviewPhase.Clarification
+                });
+            }
+        }
+
+        // Apply incremental draft updates from clarification
+        if (parsed.DraftUpdates != null)
+        {
+            AppendDraftUpdates(session.ProjectDraft!, parsed.DraftUpdates);
+        }
+    }
+
+    private async Task RunConfirmationPhaseAsync(InterviewSession session, CancellationToken ct)
+    {
+        session.CurrentPhase = InterviewPhase.Confirmation;
+        session.State = InterviewState.Confirmation;
+
+        var systemPrompt = InterviewPrompts.GetSystemPrompt(InterviewPhase.Confirmation);
+        var userPrompt = InterviewPrompts.CreateUserPrompt(session);
+
+        var response = await CallLlmAsync(systemPrompt, userPrompt, ct);
+        var parsed = ParsePhaseResponse(response);
+
+        if (parsed == null)
+        {
+            session.QAPairs.Add(new InterviewQAPair
+            {
+                Question = "Do these requirements accurately capture the project needs?",
+                Answer = response ?? "Requirements confirmed.",
+                Phase = InterviewPhase.Confirmation
+            });
+            return;
+        }
+
+        foreach (var qa in parsed.QAPairs ?? [])
+        {
+            if (!string.IsNullOrWhiteSpace(qa.Question) && !string.IsNullOrWhiteSpace(qa.Answer))
+            {
+                session.QAPairs.Add(new InterviewQAPair
+                {
+                    Question = qa.Question,
+                    Answer = qa.Answer,
+                    Phase = InterviewPhase.Confirmation
+                });
+            }
+        }
+
+        // Confirmation produces the final complete draft — replace current draft
+        if (parsed.ConfirmedDraft != null)
+        {
+            ApplyDraft(session.ProjectDraft!, parsed.ConfirmedDraft);
+        }
+    }
+
+    private async Task<string?> CallLlmAsync(string systemPrompt, string userPrompt, CancellationToken ct)
+    {
         var messages = new List<LlmMessage>
         {
             LlmMessage.System(systemPrompt),
@@ -178,67 +256,139 @@ public sealed class NewProjectInterviewer : INewProjectInterviewer
             Options = new LlmProviderOptions
             {
                 Temperature = 0.7f,
-                MaxTokens = 2000
+                MaxTokens = 4000
             }
         };
 
-        var response = await _llmProvider.CompleteAsync(request, ct);
-
-        // Add clarification Q&A pairs
-        session.QAPairs.Add(new InterviewQAPair
-        {
-            Question = "What technology stack will you be using?",
-            Answer = ".NET/C# with modern web technologies",
-            Phase = InterviewPhase.Clarification
-        });
-
-        session.QAPairs.Add(new InterviewQAPair
-        {
-            Question = "Who is your target audience?",
-            Answer = "Software developers and development teams",
-            Phase = InterviewPhase.Clarification
-        });
-
-        // Update draft with clarified information
-        session.ProjectDraft!.TechnologyStack = ".NET/C#";
-        session.ProjectDraft.TargetAudience = "Software developers and development teams";
-        session.ProjectDraft.KeyFeatures.Add("Project organization");
-        session.ProjectDraft.KeyFeatures.Add("Workflow management");
+        var result = await _llmProvider.CompleteAsync(request, ct);
+        return result.Message.Content;
     }
 
-    private async Task RunConfirmationPhaseAsync(InterviewSession session, CancellationToken ct)
+    /// <summary>
+    /// Parses the structured JSON response from the LLM for any phase.
+    /// The response may contain "draft", "draftUpdates", or "confirmedDraft" depending on the phase.
+    /// </summary>
+    private static PhaseResponse? ParsePhaseResponse(string? content)
     {
-        session.CurrentPhase = InterviewPhase.Confirmation;
-        session.State = InterviewState.Confirmation;
+        if (string.IsNullOrWhiteSpace(content))
+            return null;
 
-        var systemPrompt = InterviewPrompts.GetSystemPrompt(InterviewPhase.Confirmation);
-        var userPrompt = InterviewPrompts.CreateUserPrompt(session);
-
-        var messages = new List<LlmMessage>
+        // Strip markdown fencing if present
+        var json = content.Trim();
+        if (json.StartsWith("```"))
         {
-            LlmMessage.System(systemPrompt),
-            LlmMessage.User(userPrompt)
-        };
+            var firstNewline = json.IndexOf('\n');
+            if (firstNewline > 0)
+                json = json[(firstNewline + 1)..];
+            if (json.EndsWith("```"))
+                json = json[..^3];
+            json = json.Trim();
+        }
 
-        var request = new LlmCompletionRequest
+        try
         {
-            Messages = messages,
-            Options = new LlmProviderOptions
+            return JsonSerializer.Deserialize<PhaseResponse>(json, JsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Replaces the current draft with values from the LLM-generated draft.
+    /// </summary>
+    private static void ApplyDraft(ProjectSpecDraft target, DraftData source)
+    {
+        if (!string.IsNullOrWhiteSpace(source.Name))
+            target.Name = source.Name;
+        if (!string.IsNullOrWhiteSpace(source.Description))
+            target.Description = source.Description;
+        if (!string.IsNullOrWhiteSpace(source.TechnologyStack))
+            target.TechnologyStack = source.TechnologyStack;
+        if (!string.IsNullOrWhiteSpace(source.TargetAudience))
+            target.TargetAudience = source.TargetAudience;
+
+        if (source.Goals is { Count: > 0 })
+        {
+            target.Goals.Clear();
+            target.Goals.AddRange(source.Goals);
+        }
+        if (source.KeyFeatures is { Count: > 0 })
+        {
+            target.KeyFeatures.Clear();
+            target.KeyFeatures.AddRange(source.KeyFeatures);
+        }
+        if (source.Constraints is { Count: > 0 })
+        {
+            target.Constraints.Clear();
+            target.Constraints.AddRange(source.Constraints);
+        }
+        if (source.Assumptions is { Count: > 0 })
+        {
+            target.Assumptions.Clear();
+            target.Assumptions.AddRange(source.Assumptions);
+        }
+    }
+
+    /// <summary>
+    /// Appends incremental updates from the clarification phase.
+    /// </summary>
+    private static void AppendDraftUpdates(ProjectSpecDraft target, DraftData source)
+    {
+        if (!string.IsNullOrWhiteSpace(source.TechnologyStack))
+            target.TechnologyStack = source.TechnologyStack;
+        if (!string.IsNullOrWhiteSpace(source.TargetAudience))
+            target.TargetAudience = source.TargetAudience;
+
+        if (source.Goals is { Count: > 0 })
+            target.Goals.AddRange(source.Goals.Where(g => !target.Goals.Contains(g)));
+        if (source.KeyFeatures is { Count: > 0 })
+            target.KeyFeatures.AddRange(source.KeyFeatures.Where(f => !target.KeyFeatures.Contains(f)));
+        if (source.Constraints is { Count: > 0 })
+            target.Constraints.AddRange(source.Constraints.Where(c => !target.Constraints.Contains(c)));
+        if (source.Assumptions is { Count: > 0 })
+            target.Assumptions.AddRange(source.Assumptions.Where(a => !target.Assumptions.Contains(a)));
+    }
+
+    /// <summary>
+    /// Persists the current interview session state to evidence for resumability.
+    /// </summary>
+    private async Task PersistSessionStateAsync(InterviewSession session, CancellationToken ct)
+    {
+        try
+        {
+            var runId = session.RunId ?? "unknown";
+            var evidenceDir = Path.Combine(
+                _workspace.AosRootPath, "evidence", "runs", runId, "artifacts");
+
+            if (!Directory.Exists(evidenceDir))
+                Directory.CreateDirectory(evidenceDir);
+
+            var sessionStatePath = Path.Combine(evidenceDir, "interview.session.json");
+            var sessionJson = JsonSerializer.Serialize(new
             {
-                Temperature = 0.5f,
-                MaxTokens = 2000
-            }
-        };
+                sessionId = session.SessionId,
+                state = session.State.ToString(),
+                currentPhase = session.CurrentPhase.ToString(),
+                startedAt = session.StartedAt,
+                qaPairCount = session.QAPairs.Count,
+                draft = session.ProjectDraft,
+                qaPairs = session.QAPairs.Select(qa => new
+                {
+                    question = qa.Question,
+                    answer = qa.Answer,
+                    phase = qa.Phase.ToString(),
+                    timestamp = qa.Timestamp
+                })
+            }, JsonOptions);
 
-        var response = await _llmProvider.CompleteAsync(request, ct);
-
-        // Add confirmation Q&A
-        session.QAPairs.Add(new InterviewQAPair
+            await File.WriteAllTextAsync(sessionStatePath, sessionJson, ct);
+        }
+        catch
         {
-            Question = "Do these requirements accurately capture your project needs?",
-            Answer = "Yes, this covers the main requirements",
-            Phase = InterviewPhase.Confirmation
-        });
+            // Session persistence is best-effort — do not fail the interview if evidence write fails
+        }
     }
 
     private async Task<IReadOnlyList<InterviewArtifact>> WriteEvidenceAsync(
@@ -383,7 +533,60 @@ public sealed class NewProjectInterviewer : INewProjectInterviewer
 
         return builder.ToString();
     }
+
+    /// <summary>
+    /// Internal DTO for parsing the structured JSON response from the LLM.
+    /// </summary>
+    private sealed class PhaseResponse
+    {
+        [JsonPropertyName("qaPairs")]
+        public List<QAPairDto>? QAPairs { get; set; }
+
+        [JsonPropertyName("draft")]
+        public DraftData? Draft { get; set; }
+
+        [JsonPropertyName("draftUpdates")]
+        public DraftData? DraftUpdates { get; set; }
+
+        [JsonPropertyName("confirmedDraft")]
+        public DraftData? ConfirmedDraft { get; set; }
+    }
+
+    private sealed class QAPairDto
+    {
+        [JsonPropertyName("question")]
+        public string? Question { get; set; }
+
+        [JsonPropertyName("answer")]
+        public string? Answer { get; set; }
+    }
+
+    private sealed class DraftData
+    {
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+
+        [JsonPropertyName("description")]
+        public string? Description { get; set; }
+
+        [JsonPropertyName("technologyStack")]
+        public string? TechnologyStack { get; set; }
+
+        [JsonPropertyName("goals")]
+        public List<string>? Goals { get; set; }
+
+        [JsonPropertyName("targetAudience")]
+        public string? TargetAudience { get; set; }
+
+        [JsonPropertyName("keyFeatures")]
+        public List<string>? KeyFeatures { get; set; }
+
+        [JsonPropertyName("constraints")]
+        public List<string>? Constraints { get; set; }
+
+        [JsonPropertyName("assumptions")]
+        public List<string>? Assumptions { get; set; }
+    }
 }
 
 #pragma warning restore CS0618
-

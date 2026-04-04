@@ -16,13 +16,30 @@ public class GatingEngineTests
         {
             HasProject = false,
             HasRoadmap = false,
-            HasPlan = false
+            HasTaskPlan = false
         };
 
         var result = await sut.EvaluateAsync(context);
 
         result.TargetPhase.Should().Be("Interviewer");
         result.Reason.Should().Be("Project specification not found");
+    }
+
+    [Fact]
+    public async Task EvaluateAsync_WhenProjectExistsButCodebaseMissing_ReturnsCodebaseMapper()
+    {
+        var sut = new GatingEngine(_analyzer);
+        var context = new GatingContext
+        {
+            HasProject = true,
+            HasRoadmap = false,
+            HasTaskPlan = false,
+            HasCodebaseIntelligence = false
+        };
+
+        var result = await sut.EvaluateAsync(context);
+
+        result.TargetPhase.Should().Be("CodebaseMapper");
     }
 
     [Fact]
@@ -33,7 +50,8 @@ public class GatingEngineTests
         {
             HasProject = true,
             HasRoadmap = false,
-            HasPlan = false
+            HasTaskPlan = false,
+            HasCodebaseIntelligence = true
         };
 
         var result = await sut.EvaluateAsync(context);
@@ -43,32 +61,34 @@ public class GatingEngineTests
     }
 
     [Fact]
-    public async Task EvaluateAsync_WhenProjectAndRoadmapExistButPlanMissing_ReturnsPlanner()
+    public async Task EvaluateAsync_WhenProjectAndRoadmapExistButTaskPlanMissing_ReturnsPlanner()
     {
         var sut = new GatingEngine(_analyzer);
         var context = new GatingContext
         {
             HasProject = true,
             HasRoadmap = true,
-            HasPlan = false,
+            HasTaskPlan = false,
+            HasCodebaseIntelligence = true,
             CurrentCursor = "milestone-1"
         };
 
         var result = await sut.EvaluateAsync(context);
 
         result.TargetPhase.Should().Be("Planner");
-        result.Reason.Should().Be("No plan exists for current cursor position");
+        result.Reason.Should().Be("No task plan exists for current cursor position");
     }
 
     [Fact]
-    public async Task EvaluateAsync_WhenPlanExists_ReturnsExecutor()
+    public async Task EvaluateAsync_WhenTaskPlanExists_ReturnsExecutor()
     {
         var sut = new GatingEngine(_analyzer);
         var context = new GatingContext
         {
             HasProject = true,
             HasRoadmap = true,
-            HasPlan = true,
+            HasTaskPlan = true,
+            HasCodebaseIntelligence = true,
             CurrentCursor = "task-1"
         };
 
@@ -86,7 +106,8 @@ public class GatingEngineTests
         {
             HasProject = true,
             HasRoadmap = true,
-            HasPlan = true,
+            HasTaskPlan = true,
+            HasCodebaseIntelligence = true,
             LastExecutionStatus = "completed",
             LastVerificationStatus = null
         };
@@ -105,7 +126,8 @@ public class GatingEngineTests
         {
             HasProject = true,
             HasRoadmap = true,
-            HasPlan = true,
+            HasTaskPlan = true,
+            HasCodebaseIntelligence = true,
             LastExecutionStatus = "completed",
             LastVerificationStatus = "failed"
         };
@@ -126,7 +148,7 @@ public class GatingEngineTests
         {
             HasProject = false,
             HasRoadmap = true,
-            HasPlan = true,
+            HasTaskPlan = true,
             LastVerificationStatus = "failed"
         };
 
@@ -143,7 +165,8 @@ public class GatingEngineTests
         {
             HasProject = true,
             HasRoadmap = true,
-            HasPlan = true,
+            HasTaskPlan = true,
+            HasCodebaseIntelligence = true,
             CurrentCursor = "task-123"
         };
 

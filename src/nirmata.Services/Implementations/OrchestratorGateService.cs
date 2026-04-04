@@ -1,6 +1,8 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using nirmata.Data.Dto.Models.OrchestratorGate;
+using nirmata.Data.Dto.Models.WorkspaceStatus;
 using nirmata.Services.Interfaces;
 
 namespace nirmata.Services.Implementations;
@@ -259,6 +261,46 @@ public sealed class OrchestratorGateService : IOrchestratorGateService
         return new OrchestratorTimelineDto { Steps = steps };
     }
 
+    public async Task<WorkspaceGateSummaryDto> GetGateSummaryAsync(
+        string workspaceRoot, CancellationToken cancellationToken = default)
+    {
+        var gate = await GetGateAsync(workspaceRoot, cancellationToken);
+        var currentGate = DeriveCurrentGate(gate.RecommendedAction);
+
+        var codebaseReadiness = await ClassifyCodebaseReadinessAsync(workspaceRoot, cancellationToken);
+
+        // Promote to codebase-preflight when the map is not ready and the workflow
+        // is still at a pre-execution planning gate.
+        if (codebaseReadiness is not null &&
+            (currentGate == WorkspaceGate.Roadmap || currentGate == WorkspaceGate.Planning))
+        {
+            currentGate = WorkspaceGate.CodebasePreflight;
+        }
+
+        var blockingReason = currentGate switch
+        {
+            WorkspaceGate.Ready => null,
+            WorkspaceGate.CodebasePreflight => codebaseReadiness!.Detail,
+            _ => gate.Checks.FirstOrDefault(c =>
+                    c.Status == GateCheckStatus.Fail || c.Status == GateCheckStatus.Warn)?.Detail,
+        };
+
+        var nextRequiredStep = currentGate switch
+        {
+            WorkspaceGate.Ready => null,
+            WorkspaceGate.CodebasePreflight => "map-codebase",
+            _ => gate.RecommendedAction,
+        };
+
+        return new WorkspaceGateSummaryDto
+        {
+            CurrentGate = currentGate,
+            BlockingReason = blockingReason,
+            NextRequiredStep = nextRequiredStep,
+            CodebaseReadiness = codebaseReadiness,
+        };
+    }
+
     // ── Private helpers ────────────────────────────────────────────────────────
 
     private static OrchestratorGateCheckDto MakeCheck(
@@ -334,6 +376,102 @@ public sealed class OrchestratorGateService : IOrchestratorGateService
         catch (Exception ex) when (ex is IOException or JsonException)
         {
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Maps a <see cref="OrchestratorGateDto.RecommendedAction"/> value to the corresponding
+    /// <see cref="WorkspaceGate"/> constant.
+    /// </summary>
+    private static string DeriveCurrentGate(string? recommendedAction) =>
+        recommendedAction switch
+        {
+            "new-project"  => WorkspaceGate.Interview,
+            "create-roadmap" => WorkspaceGate.Roadmap,
+            _ when recommendedAction?.StartsWith("plan-phase", StringComparison.OrdinalIgnoreCase) == true
+                => WorkspaceGate.Planning,
+            "execute-plan" => WorkspaceGate.Execution,
+            _ when recommendedAction?.StartsWith("verify-work", StringComparison.OrdinalIgnoreCase) == true
+                => WorkspaceGate.Verification,
+            "plan-fix" => WorkspaceGate.Fix,
+            _ => WorkspaceGate.Ready,
+        };
+
+    /// <summary>
+    /// Classifies codebase map readiness from <c>.aos/codebase/</c>.
+    /// Returns <see langword="null"/> when the codebase directory is absent (greenfield)
+    /// or the map hash is current.
+    /// Returns a <see cref="CodebaseReadinessSummaryDto"/> with <c>MapStatus</c> of
+    /// <c>"missing"</c> or <c>"stale"</c> when the map is not ready.
+    /// </summary>
+    private static async Task<CodebaseReadinessSummaryDto?> ClassifyCodebaseReadinessAsync(
+        string workspaceRoot, CancellationToken cancellationToken)
+    {
+        var codebaseDir = Path.Combine(workspaceRoot, ".aos", "codebase");
+
+        if (!Directory.Exists(codebaseDir))
+            return null; // Greenfield project — no codebase directory.
+
+        var mapPath = Path.Combine(codebaseDir, "map.json");
+        if (!File.Exists(mapPath))
+        {
+            return new CodebaseReadinessSummaryDto
+            {
+                MapStatus = "missing",
+                Detail = "Codebase map is not present — run map-codebase to generate it",
+                LastUpdated = null,
+            };
+        }
+
+        var lastUpdated = new DateTimeOffset(File.GetLastWriteTimeUtc(mapPath), TimeSpan.Zero);
+        var manifestPath = Path.Combine(codebaseDir, "hash-manifest.json");
+        var isFresh = await IsMapHashCurrentAsync(mapPath, manifestPath, cancellationToken);
+
+        return isFresh
+            ? null // Map hash is current — no readiness issue to surface.
+            : new CodebaseReadinessSummaryDto
+            {
+                MapStatus = "stale",
+                Detail = "Codebase map exists but may be out of date — run map-codebase to refresh it",
+                LastUpdated = lastUpdated,
+            };
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> when <c>hash-manifest.json</c> exists and the SHA-256
+    /// hash of <paramref name="mapPath"/> matches the <c>"map.json"</c> entry in that manifest.
+    /// Returns <see langword="false"/> on any I/O or parse error.
+    /// </summary>
+    private static async Task<bool> IsMapHashCurrentAsync(
+        string mapPath, string manifestPath, CancellationToken cancellationToken)
+    {
+        if (!File.Exists(manifestPath))
+            return false;
+
+        try
+        {
+            var json = await File.ReadAllTextAsync(manifestPath, cancellationToken);
+            using var doc = JsonDocument.Parse(json);
+
+            if (!doc.RootElement.TryGetProperty("files", out var files) ||
+                files.ValueKind != JsonValueKind.Object)
+                return false;
+
+            if (!files.TryGetProperty("map.json", out var hashEl) ||
+                hashEl.ValueKind != JsonValueKind.String)
+                return false;
+
+            var expectedHash = hashEl.GetString() ?? string.Empty;
+
+            await using var stream = File.OpenRead(mapPath);
+            var hashBytes = await SHA256.HashDataAsync(stream, cancellationToken);
+            var actualHash = Convert.ToHexString(hashBytes).ToLowerInvariant();
+
+            return actualHash.Equals(expectedHash, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception ex) when (ex is IOException or JsonException)
+        {
+            return false;
         }
     }
 

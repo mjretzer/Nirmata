@@ -67,6 +67,8 @@ export type {
   OrchestratorGate,
   OrchestratorTimelineStep,
   OrchestratorStateResponse,
+  WorkspaceGateSummaryDto,
+  CodebaseReadinessSummaryDto,
   ChatTurnRequestDto,
   ChatApiMessage,
   ChatApiSuggestion,

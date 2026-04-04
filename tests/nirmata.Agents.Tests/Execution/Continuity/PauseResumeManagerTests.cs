@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentAssertions;
 using nirmata.Agents.Execution.Continuity;
 using nirmata.Agents.Models.Results;
@@ -67,10 +68,10 @@ public class PauseResumeManagerTests : IDisposable
             Cursor = new StateCursor { TaskId = taskId, PhaseId = "Implementation" }
         };
         _stateStoreMock.Setup(x => x.ReadSnapshot()).Returns(snapshot);
-        _runRepositoryMock.Setup(x => x.ListAsync(It.IsAny<string?>(), It.IsAny<DateTimeOffset?>(), It.IsAny<DateTimeOffset?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<RunResponse>
+        _stateStoreMock.Setup(x => x.TailEvents(It.IsAny<StateEventTailRequest>()))
+            .Returns(new StateEventTailResponse
             {
-                new() { RunId = runId, StartedAt = DateTimeOffset.UtcNow.AddMinutes(-5) }
+                Items = new List<StateEventEntry> { CreateRunStartedEvent(runId) }
             });
         _handoffStateStoreMock.Setup(x => x.HandoffPath).Returns("/tmp/aos/.aos/state/handoff.json");
 
@@ -90,6 +91,102 @@ public class PauseResumeManagerTests : IDisposable
         )), Times.Once);
         _runLifecycleManagerMock.Verify(x => x.RecordCommandAsync(
             runId, "continuity", "pause", "completed", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task PauseAsync_WhenActiveRunHasBeenClosed_ThrowsInvalidOperationException()
+    {
+        // Arrange - run.started followed by run.completed for the same run ID means no active run
+        var runId = "RUN-20260101-120000-abc123";
+        var snapshot = new StateSnapshot
+        {
+            Cursor = new StateCursor { TaskId = "TSK-0001" }
+        };
+        _stateStoreMock.Setup(x => x.ReadSnapshot()).Returns(snapshot);
+        _stateStoreMock.Setup(x => x.TailEvents(It.IsAny<StateEventTailRequest>()))
+            .Returns(new StateEventTailResponse
+            {
+                Items = new List<StateEventEntry>
+                {
+                    CreateRunStartedEvent(runId),
+                    CreateRunFinishedEvent(runId, "run.completed")
+                }
+            });
+
+        var act = async () => await _sut.PauseAsync();
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("No active run found*");
+    }
+
+    [Fact]
+    public async Task ResumeAsync_WhenValidHandoff_EmitsCursorSetEventToCanonicalState()
+    {
+        // Arrange
+        var taskId = "TSK-0001";
+        var phaseId = "Implementation";
+        var newRunId = "RUN-20260101-130000-def456";
+        var handoff = new HandoffState
+        {
+            SchemaVersion = "1.0",
+            Timestamp = DateTimeOffset.UtcNow.ToString("O"),
+            SourceRunId = "RUN-20260101-120000-abc123",
+            Cursor = new StateCursor { TaskId = taskId, PhaseId = phaseId, TaskStatus = StateCursorStatuses.InProgress },
+            TaskContext = new TaskContext { TaskId = taskId, Status = "paused" },
+            Scope = new ScopeConstraints(),
+            NextCommand = new NextCommand { Name = "continue" }
+        };
+        _handoffStateStoreMock.Setup(x => x.Exists()).Returns(true);
+        _handoffStateStoreMock.Setup(x => x.ReadHandoff()).Returns(handoff);
+        _runLifecycleManagerMock.Setup(x => x.StartRunAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunContext { RunId = newRunId });
+
+        JsonElement capturedEvent = default;
+        _stateStoreMock.Setup(x => x.AppendEvent(It.IsAny<JsonElement>()))
+            .Callback<JsonElement>(e => capturedEvent = e.Clone());
+
+        // Act
+        await _sut.ResumeAsync();
+
+        // Assert - canonical cursor.set event must be emitted so state.json derives the restored cursor
+        _stateStoreMock.Verify(x => x.AppendEvent(It.IsAny<JsonElement>()), Times.Once);
+        capturedEvent.GetProperty("eventType").GetString().Should().Be("cursor.set");
+        var cursorProp = capturedEvent.GetProperty("cursor");
+        cursorProp.GetProperty("taskId").GetString().Should().Be(taskId);
+        cursorProp.GetProperty("phaseId").GetString().Should().Be(phaseId);
+    }
+
+    [Fact]
+    public async Task ResumeFromRunAsync_WhenRunExists_EmitsCursorSetEventToCanonicalState()
+    {
+        // Arrange
+        var historicalRunId = "RUN-20260101-120000-abc123";
+        var taskId = "TSK-0002";
+        var newRunId = "RUN-20260101-130000-def456";
+
+        var evidencePath = Path.Combine(_tempDir.Path, "evidence", "runs", historicalRunId, "artifacts");
+        Directory.CreateDirectory(evidencePath);
+        var summaryPath = Path.Combine(_tempDir.Path, "evidence", "runs", historicalRunId, "summary.json");
+        File.WriteAllText(summaryPath, $@"{{""cursor"":{{""taskId"":""{taskId}""}}}}");
+
+        _runRepositoryMock.Setup(x => x.ExistsAsync(historicalRunId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _runRepositoryMock.Setup(x => x.GetAsync(historicalRunId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunResponse { RunId = historicalRunId, StartedAt = DateTimeOffset.UtcNow.AddHours(-1), Success = true });
+        _runLifecycleManagerMock.Setup(x => x.StartRunAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RunContext { RunId = newRunId });
+
+        JsonElement capturedEvent = default;
+        _stateStoreMock.Setup(x => x.AppendEvent(It.IsAny<JsonElement>()))
+            .Callback<JsonElement>(e => capturedEvent = e.Clone());
+
+        // Act
+        await _sut.ResumeFromRunAsync(historicalRunId);
+
+        // Assert - canonical cursor.set event must be emitted so state.json derives the restored cursor
+        _stateStoreMock.Verify(x => x.AppendEvent(It.IsAny<JsonElement>()), Times.Once);
+        capturedEvent.GetProperty("eventType").GetString().Should().Be("cursor.set");
+        capturedEvent.GetProperty("cursor").GetProperty("taskId").GetString().Should().Be(taskId);
     }
 
     [Fact]
@@ -261,5 +358,17 @@ public class PauseResumeManagerTests : IDisposable
         result.Errors.Should().BeEmpty();
         result.Handoff.Should().NotBeNull();
         result.Handoff!.SourceRunId.Should().Be("RUN-123");
+    }
+
+    private static StateEventEntry CreateRunStartedEvent(string runId)
+    {
+        using var doc = JsonDocument.Parse($"{{\"eventType\":\"run.started\",\"runId\":\"{runId}\"}}" );
+        return new StateEventEntry { LineNumber = 1, Payload = doc.RootElement.Clone() };
+    }
+
+    private static StateEventEntry CreateRunFinishedEvent(string runId, string eventType)
+    {
+        using var doc = JsonDocument.Parse($"{{\"eventType\":\"{eventType}\",\"runId\":\"{runId}\"}}" );
+        return new StateEventEntry { LineNumber = 2, Payload = doc.RootElement.Clone() };
     }
 }

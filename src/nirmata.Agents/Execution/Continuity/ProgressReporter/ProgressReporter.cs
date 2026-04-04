@@ -213,6 +213,16 @@ public sealed class ProgressReporter : IProgressReporter
             };
         }
 
+        // If there are medium severity blockers, recommend resume to address them
+        if (blockers.Any(b => b.Severity == "medium"))
+        {
+            return new NextCommand
+            {
+                Command = "resume",
+                Reason = "Blocked phase or milestone detected. Resume to unblock the current execution."
+            };
+        }
+
         // If no active execution, recommend start
         if (string.IsNullOrEmpty(cursor.TaskId) &&
             string.IsNullOrEmpty(cursor.PhaseId) &&
@@ -283,15 +293,36 @@ public sealed class ProgressReporter : IProgressReporter
                !string.IsNullOrEmpty(cursor.MilestoneId);
     }
 
-    private static string? InferRunId(StateCursor cursor)
+    private string? InferRunId(StateCursor cursor)
     {
-        // Run ID inference based on cursor context
-        // In a real implementation, this might query the run repository
-        if (!string.IsNullOrEmpty(cursor.TaskId))
+        // Derive the active run ID from canonical events.ndjson.
+        // An active run is the most recent run.started event with no matching run.completed or run.failed.
+        var allEvents = _stateStore.TailEvents(new StateEventTailRequest { SinceLine = 0 });
+        var startedRunIds = new List<string>();
+        var closedRunIds = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var entry in allEvents.Items)
         {
-            return null; // Will be populated by caller if needed
+            var payload = entry.Payload;
+            if (!payload.TryGetProperty("eventType", out var evtTypeProp) ||
+                evtTypeProp.ValueKind != JsonValueKind.String)
+                continue;
+
+            if (!payload.TryGetProperty("runId", out var runIdProp) ||
+                runIdProp.ValueKind != JsonValueKind.String)
+                continue;
+
+            var eventType = evtTypeProp.GetString()!;
+            var runId = runIdProp.GetString()!;
+
+            if (string.Equals(eventType, "run.started", StringComparison.Ordinal))
+                startedRunIds.Add(runId);
+            else if (string.Equals(eventType, "run.completed", StringComparison.Ordinal) ||
+                     string.Equals(eventType, "run.failed", StringComparison.Ordinal))
+                closedRunIds.Add(runId);
         }
-        return null;
+
+        return startedRunIds.LastOrDefault(id => !closedRunIds.Contains(id));
     }
 
     private string? GetRunStatus(string? runId)

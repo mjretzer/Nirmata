@@ -73,7 +73,7 @@ public class HandoffStateStoreTests : IDisposable
 
         _sut.WriteHandoff(handoff);
 
-        var handoffPath = Path.Combine(_tempDir, ".aos", "state", "handoff.json");
+        var handoffPath = Path.Combine(_tempDir, "state", "handoff.json");
         File.Exists(handoffPath).Should().BeTrue();
         var json = File.ReadAllText(handoffPath);
         json.Should().Contain("\"schemaVersion\"");
@@ -104,7 +104,7 @@ public class HandoffStateStoreTests : IDisposable
     [Fact]
     public void HandoffPath_ReturnsCorrectPath()
     {
-        var expectedPath = Path.Combine(_tempDir, ".aos", "state", "handoff.json");
+        var expectedPath = Path.Combine(_tempDir, "state", "handoff.json");
 
         _sut.HandoffPath.Should().Be(expectedPath);
     }

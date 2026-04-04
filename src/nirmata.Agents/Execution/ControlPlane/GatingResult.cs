@@ -6,7 +6,8 @@ namespace nirmata.Agents.Execution.ControlPlane;
 public sealed class GatingResult
 {
     /// <summary>
-    /// One of the six phase names: Interviewer, Roadmapper, Planner, Executor, Verifier, FixPlanner.
+    /// Target phase name: Interviewer, CodebaseMapper, Roadmapper, Planner, Executor, Verifier,
+    /// FixPlanner, MilestoneProgression, or Responder.
     /// </summary>
     public required string TargetPhase { get; init; }
 

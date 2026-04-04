@@ -75,6 +75,8 @@ public class ResumeWorkCommandHandlerTests
     public async Task HandleAsync_WhenNoHandoff_ReturnsFailureWithSuggestion()
     {
         var request = CommandRequest.Create("continuity", "resume-work");
+        _pauseResumeManagerMock.Setup(x => x.ValidateHandoffAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HandoffValidationResult { IsValid = true });
         _pauseResumeManagerMock.Setup(x => x.ResumeAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new FileNotFoundException());
 
@@ -89,6 +91,8 @@ public class ResumeWorkCommandHandlerTests
     public async Task HandleAsync_WhenInvalidData_ReturnsFailure()
     {
         var request = CommandRequest.Create("continuity", "resume-work");
+        _pauseResumeManagerMock.Setup(x => x.ValidateHandoffAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HandoffValidationResult { IsValid = true });
         _pauseResumeManagerMock.Setup(x => x.ResumeAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidDataException("Corrupted handoff"));
 

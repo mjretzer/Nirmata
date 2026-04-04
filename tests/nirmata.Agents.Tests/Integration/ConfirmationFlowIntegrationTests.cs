@@ -173,7 +173,7 @@ public class ConfirmationFlowIntegrationTests
             {
                 HasProject = true,
                 HasRoadmap = true,
-                HasPlan = true
+                HasTaskPlan = true
             },
             options);
 
